@@ -48,6 +48,7 @@ logs/
 data/raw/
 data/processed/
 data/auxiliary/
+data/metadata/
 vector_stores/
 
 # Keep structure but not content
