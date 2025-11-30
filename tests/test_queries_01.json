@@ -1,0 +1,238 @@
+{
+  "test_queries": [
+    {
+      "id": 1,
+      "category": "character_evolution",
+      "query": "How does Rand al'Thor's character develop from books 1 through 6?",
+      "expected_elements": [
+        "Dragon Reborn revelation",
+        "Learning to channel",
+        "Taking Callandor",
+        "Becoming Car'a'carn",
+        "Relationships with Min, Elayne, Aviendha"
+      ],
+      "temporal_boundary": 6,
+      "difficulty": "medium"
+    },
+    {
+      "id": 2,
+      "category": "character_evolution",
+      "query": "Trace Egwene's journey from the Two Rivers to becoming Amyrlin Seat",
+      "expected_elements": [
+        "Leaving Two Rivers",
+        "Becoming Accepted",
+        "Training with Wise Ones",
+        "Raised to Amyrlin in Salidar",
+        "Reuniting White Tower"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "hard"
+    },
+    {
+      "id": 3,
+      "category": "character_evolution",
+      "query": "What is Perrin's relationship with wolves through the first 5 books?",
+      "expected_elements": [
+        "First contact in TEOTW",
+        "Golden eyes",
+        "Wolf Dream",
+        "Young Bull",
+        "Reluctance and acceptance"
+      ],
+      "temporal_boundary": 5,
+      "difficulty": "medium"
+    },
+    {
+      "id": 4,
+      "category": "concept",
+      "query": "Explain the difference between saidin and saidar",
+      "expected_elements": [
+        "Male vs female halves",
+        "Saidin tainted",
+        "Different methods of channeling",
+        "Surrender vs seizure",
+        "Power differences"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "easy"
+    },
+    {
+      "id": 5,
+      "category": "concept",
+      "query": "What is Tel'aran'rhiod and how does it work?",
+      "expected_elements": [
+        "World of Dreams",
+        "Dreamers can enter",
+        "Wise Ones use",
+        "Reflections of real world",
+        "Dangers",
+        "Need shaping reality"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "medium"
+    },
+    {
+      "id": 6,
+      "category": "prophecy",
+      "query": "What are the main prophecies about the Dragon Reborn from the Karaethon Cycle?",
+      "expected_elements": [
+        "Born on Dragonmount",
+        "Raised by Aiel",
+        "Take the Stone of Tear",
+        "Break nations",
+        "Bind the Nine Moons"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "hard"
+    },
+    {
+      "id": 7,
+      "category": "prophecy",
+      "query": "What do Min's viewings reveal about Rand up to book 3?",
+      "expected_elements": [
+        "Three women",
+        "Various symbols",
+        "Death and life imagery",
+        "Specific viewings from TEOTW-TDR"
+      ],
+      "temporal_boundary": 3,
+      "difficulty": "medium"
+    },
+    {
+      "id": 8,
+      "category": "magic",
+      "query": "What is balefire and why is it dangerous?",
+      "expected_elements": [
+        "Burns pattern",
+        "Removes from timeline",
+        "Forbidden weave",
+        "Can destroy reality",
+        "Used by Rand and others"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "medium"
+    },
+    {
+      "id": 9,
+      "category": "magic",
+      "query": "How does Traveling work and who can do it?",
+      "expected_elements": [
+        "Gateway creation",
+        "Lost Talent rediscovered",
+        "Egwene discovers",
+        "Different from Skimming",
+        "Requirements"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "medium"
+    },
+    {
+      "id": 10,
+      "category": "timeline",
+      "query": "What major events happen at Falme in The Great Hunt?",
+      "expected_elements": [
+        "Horn of Valere blown",
+        "Heroes return",
+        "Rand's sword fight in sky",
+        "Seanchan battle",
+        "Egwene freed from a'dam"
+      ],
+      "temporal_boundary": 2,
+      "difficulty": "easy"
+    },
+    {
+      "id": 11,
+      "category": "relationship",
+      "query": "Describe the relationship between Nynaeve and Lan",
+      "expected_elements": [
+        "First meeting",
+        "Mutual attraction",
+        "Lan's reluctance",
+        "Eventual bonding",
+        "Marriage",
+        "Malkier crown"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "medium"
+    },
+    {
+      "id": 12,
+      "category": "concept",
+      "query": "What are the Three Oaths sworn by Aes Sedai?",
+      "expected_elements": [
+        "Speak no word that is not true",
+        "Make no weapon for one man to kill another",
+        "Never use the One Power as a weapon except against Darkfriends or Shadowspawn",
+        "Bound by Oath Rod",
+        "Ageless appearance"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "easy"
+    },
+    {
+      "id": 13,
+      "category": "magic",
+      "query": "What are angreal, sa'angreal, and ter'angreal?",
+      "expected_elements": [
+        "Power-wrought objects",
+        "Angreal multiply Power",
+        "sa'angreal much stronger",
+        "ter'angreal various uses",
+        "Made in Age of Legends",
+        "Examples of each"
+      ],
+      "temporal_boundary": null,
+      "difficulty": "easy"
+    },
+    {
+      "id": 14,
+      "category": "timeline",
+      "query": "What happens in Rhuidean when Rand enters through the glass columns?",
+      "expected_elements": [
+        "Aiel history",
+        "Way of the Leaf",
+        "Servants of Aes Sedai",
+        "Breaking",
+        "Dragon marks",
+        "Asmodean confrontation"
+      ],
+      "temporal_boundary": 4,
+      "difficulty": "hard"
+    },
+    {
+      "id": 15,
+      "category": "character_evolution",
+      "query": "How does Mat's character change after leaving the Two Rivers up to book 5?",
+      "expected_elements": [
+        "Shadar Logoth dagger",
+        "Healing in Tar Valon",
+        "Memories from Aelfinn/Eelfinn",
+        "Military genius emerges",
+        "Ashandarei",
+        "Battle strategies"
+      ],
+      "temporal_boundary": 5,
+      "difficulty": "hard"
+    }
+  ],
+  "metadata": {
+    "total_queries": 15,
+    "categories": {
+      "character_evolution": 4,
+      "concept": 4,
+      "prophecy": 2,
+      "magic": 3,
+      "timeline": 2,
+      "relationship": 1
+    },
+    "difficulty_distribution": {
+      "easy": 3,
+      "medium": 8,
+      "hard": 4
+    },
+    "temporal_boundaries": {
+      "with_boundary": 7,
+      "without_boundary": 8
+    }
+  }
+}

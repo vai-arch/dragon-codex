@@ -1,0 +1,127 @@
+{
+  "test_queries": [
+    {
+      "id": 1,
+      "category": "character_evolution",
+      "query": "How does Rand's relationship with the One Power change throughout the series?",
+      "difficulty": "medium",
+      "expected_elements": ["channeling", "saidin", "taint", "cleansing", "madness"]
+    },
+    {
+      "id": 2,
+      "category": "character_evolution",
+      "query": "Trace Egwene's journey from village girl to Amyrlin Seat",
+      "difficulty": "hard",
+      "expected_elements": ["Two Rivers", "accepted", "Aes Sedai", "Amyrlin", "White Tower"]
+    },
+    {
+      "id": 3,
+      "category": "concept",
+      "query": "What is the One Power and how does it work?",
+      "difficulty": "easy",
+      "expected_elements": ["saidin", "saidar", "channeling", "weaves", "five powers"]
+    },
+    {
+      "id": 4,
+      "category": "concept",
+      "query": "Explain the Warder bond",
+      "difficulty": "easy",
+      "expected_elements": ["Aes Sedai", "compulsion", "death", "awareness"]
+    },
+    {
+      "id": 5,
+      "category": "prophecy",
+      "query": "What are the main Dragon Reborn prophecies?",
+      "difficulty": "medium",
+      "expected_elements": ["Karaethon Cycle", "Stone of Tear", "Aiel", "bind", "break"]
+    },
+    {
+      "id": 6,
+      "category": "magic",
+      "query": "What is balefire and why is it dangerous?",
+      "difficulty": "medium",
+      "expected_elements": ["pattern", "thread", "unravel", "forbidden", "paradox"]
+    },
+    {
+      "id": 7,
+      "category": "magic",
+      "query": "What weaves does Nynaeve discover or master?",
+      "difficulty": "hard",
+      "expected_elements": ["healing", "compulsion", "weather", "block", "angreal"]
+    },
+    {
+      "id": 8,
+      "category": "timeline",
+      "query": "What major events happen at Falme?",
+      "difficulty": "medium",
+      "expected_elements": ["Horn of Valere", "Seanchan", "damane", "proclaim", "sky"]
+    },
+    {
+      "id": 9,
+      "category": "relationship",
+      "query": "Describe the relationship between Rand and his three loves",
+      "difficulty": "hard",
+      "expected_elements": ["Min", "Elayne", "Aviendha", "bond", "sister-wives"]
+    },
+    {
+      "id": 10,
+      "category": "location",
+      "query": "What is the significance of the White Tower?",
+      "difficulty": "easy",
+      "expected_elements": ["Aes Sedai", "Tar Valon", "Amyrlin", "Ajah", "training"]
+    },
+    {
+      "id": 11,
+      "category": "character_evolution",
+      "query": "How does Mat change from farm boy to military commander?",
+      "difficulty": "medium",
+      "expected_elements": ["memories", "luck", "tactics", "Band of the Red Hand", "ashandarei"]
+    },
+    {
+      "id": 12,
+      "category": "character_evolution",
+      "query": "What is Perrin's arc with the wolves and the hammer vs axe?",
+      "difficulty": "medium",
+      "expected_elements": ["wolfbrother", "Young Bull", "Tel'aran'rhiod", "forging", "leadership"]
+    },
+    {
+      "id": 13,
+      "category": "prophecy",
+      "query": "What do Min's viewings reveal about major characters?",
+      "difficulty": "hard",
+      "expected_elements": ["visions", "interpretation", "future", "unchangeable", "symbols"]
+    },
+    {
+      "id": 14,
+      "category": "timeline",
+      "query": "What happens during the cleansing of saidin?",
+      "difficulty": "hard",
+      "expected_elements": ["Shadar Logoth", "taint", "Nynaeve", "Choedan Kal", "Forsaken"]
+    },
+    {
+      "id": 15,
+      "category": "concept",
+      "query": "What are the different Ajahs and what do they represent?",
+      "difficulty": "easy",
+      "expected_elements": ["Blue", "Red", "Green", "Yellow", "White", "Gray", "Brown"]
+    }
+  ],
+  "metadata": {
+    "total_queries": 15,
+    "categories": {
+      "character_evolution": 4,
+      "concept": 4,
+      "prophecy": 2,
+      "magic": 2,
+      "timeline": 2,
+      "relationship": 1,
+      "location": 1
+    },
+    "difficulty": {
+      "easy": 4,
+      "medium": 7,
+      "hard": 4
+    },
+    "purpose": "Testing RAG system responses for quality, accuracy, and WoT-specific knowledge"
+  }
+}

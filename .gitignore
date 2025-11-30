@@ -47,6 +47,7 @@ logs/
 # Data (too large for git)
 data/raw/
 data/processed/
+data/auxiliary/
 vector_stores/
 
 # Keep structure but not content
@@ -77,3 +78,6 @@ htmlcov/
 *.temp
 temp/
 tmp/
+
+_/
+internal/
