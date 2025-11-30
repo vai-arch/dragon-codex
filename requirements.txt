@@ -1,0 +1,29 @@
+# Core RAG framework
+langchain==0.1.0
+langchain-community==0.0.13
+langchain-ollama==0.0.1
+
+# Vector database
+chromadb==0.4.22
+
+# Embeddings and retrieval
+sentence-transformers==2.3.1
+rank-bm25==0.2.2
+
+# Data processing
+markdown-it-py==3.0.0
+mdit-py-plugins==0.4.0
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.5.3
+tqdm==4.66.1
+
+# Development tools
+jupyter==1.0.0
+pandas==2.1.4
+
+# MCP (for later phases)
+mcp==0.1.0
+rapidfuzz
+mwparserfromhell
