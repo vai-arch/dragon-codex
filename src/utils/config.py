@@ -20,13 +20,18 @@ class Config:
         
         # Project paths
         self.PROJECT_ROOT = Path(os.getenv('PROJECT_ROOT', Path.cwd()))
-        self.DATA_PATH = Path(os.getenv('DATA_PATH', self.PROJECT_ROOT / 'data'))
-        self.BOOKS_PATH = Path(os.getenv('BOOKS_PATH', self.DATA_PATH / 'raw' / 'books'))
-        self.WIKI_PATH = Path(os.getenv('WIKI_PATH', self.DATA_PATH / 'raw' / 'wiki'))
-        self.PROCESSED_PATH = Path(os.getenv('PROCESSED_PATH', self.DATA_PATH / 'processed'))
-        self.METADATA_PATH = Path(os.getenv('METADATA_PATH', self.DATA_PATH / 'metadata'))
-        self.VECTOR_STORE_PATH = Path(os.getenv('VECTOR_STORE_PATH', 
-                                                self.PROJECT_ROOT / 'vector_stores'))
+        self.DATA_PATH = self.PROJECT_ROOT / 'data'
+        self.BOOKS_PATH = self.DATA_PATH / 'raw' / 'books'
+        self.WIKI_PATH = self.DATA_PATH / 'raw' / 'wiki'
+        self.WIKI_GLOSSARY_PATH = self.DATA_PATH / 'raw' / 'wiki_glossary'
+        self.WIKI_ORIGINAL_PATH = self.DATA_PATH / 'raw' / 'wiki_original'
+        self.PROCESSED_PATH = self.DATA_PATH / 'processed'
+        self.PROCESSED_BOOKS_PATH = self.PROCESSED_PATH / 'books'
+        self.PROCESSED_WIKI_PATH = self.PROCESSED_PATH / 'wiki'
+        self.METADATA_PATH = self.DATA_PATH / 'metadata'
+        self.METADATA_BOOKS_PATH = self.METADATA_PATH / 'books'
+        self.METADATA_WIKI_PATH = self.METADATA_PATH / 'wiki'
+        self.VECTOR_STORE_PATH = self.PROJECT_ROOT / 'vector_stores'
         
         # Ollama configuration
         self.OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
@@ -85,22 +90,22 @@ class Config:
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
     
-    def get_book_path(self, book_number):
-        """Get path to a specific book file"""
-        # This will be implemented with actual file naming logic
-        return self.BOOKS_PATH / f"{book_number:02d}-book.md"
+    # def get_book_path(self, book_number):
+    #     """Get path to a specific book file"""
+    #     # This will be implemented with actual file naming logic
+    #     return self.BOOKS_PATH / f"{book_number:02d}-book.md"
     
-    def get_processed_file(self, filename):
-        """Get path to a processed data file"""
-        return self.PROCESSED_PATH / filename
+    # def get_processed_file(self, filename):
+    #     """Get path to a processed data file"""
+    #     return self.PROCESSED_PATH / filename
     
-    def get_metadata_file(self, filename):
-        """Get path to a metadata file"""
-        return self.METADATA_PATH / filename
+    # def get_metadata_file(self, filename):
+    #     """Get path to a metadata file"""
+    #     return self.METADATA_PATH / filename
     
-    def get_vector_store_path(self, collection_name):
-        """Get path to a vector store collection"""
-        return self.VECTOR_STORE_PATH / collection_name
+    # def get_vector_store_path(self, collection_name):
+    #     """Get path to a vector store collection"""
+    #     return self.VECTOR_STORE_PATH / collection_name
     
     def __repr__(self):
         """String representation of configuration"""
