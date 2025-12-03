@@ -27,8 +27,8 @@ from typing import Dict, List
 WIKI_PATH = Config().WIKI_GLOSSARY_PATH
 
 # Input/Output files
-UNIFIED_GLOSSARY = Config().METADATA_BOOKS_PATH / "unified_glossary.json"
-OUTPUT_MAPPIN = Config().METADATA_PATH / "glossary_to_wiki_mapping.json"
+UNIFIED_GLOSSARY = Config().FILE_UNIFIED_GLOSSARY
+OUTPUT_MAPPIN = Config().FILE_GLOSSARY_WIKI_MAPPING
 
 logger = get_logger(__name__)
 

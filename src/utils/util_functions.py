@@ -2,7 +2,18 @@ import subprocess
 import sys
 from src.utils.logger import get_logger
 
+from pathlib import Path
+import shutil
+
 logger = get_logger(__name__)
+
+def copy_files(src_folder, dst_folder, extension=".txt"):
+    src = Path(src_folder)
+    dst = Path(dst_folder)
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for txt_file in src.glob("{extension}"):
+        shutil.copy2(txt_file, dst)
 
 def run_command(command, step):
     """Run a command and log results"""

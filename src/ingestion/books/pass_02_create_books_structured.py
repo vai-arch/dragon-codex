@@ -12,12 +12,13 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
+from src.utils.config import Config
 
 def load_config():
     """Load basic configuration"""
     return {
-        'books_json_path': 'data/raw/books',
-        'output_path': 'data/processed/books_structured.json'
+        'books_json_path': Config().BOOKS_PATH,
+        'output_path': Config().FILE_BOOKS_STRUCTURED
     }
 
 def process_all_books(books_path: str) -> dict:

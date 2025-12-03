@@ -327,7 +327,7 @@ def save_all_parsed_books(skip_txt_parsing=False):
         logger.info(f"  ✓ Saved: {filename} ({meta['total_chapters']} chapters)")
     
     # Save combined file
-    combined_file = Config().PROCESSED_BOOKS_PATH/'books_all_parsed.json'
+    combined_file = Config().FILE_BOOKS_ALL_PARSED
     with open(combined_file, 'w', encoding='utf-8') as f:
         json.dump(all_books, f, indent=2, ensure_ascii=False)
     
@@ -344,7 +344,7 @@ def save_all_parsed_books(skip_txt_parsing=False):
     
     # Save unified glossary
     unified_glossary = parser.build_unified_glossary()
-    glossary_file = Config().METADATA_BOOKS_PATH / 'unified_glossary.json'
+    glossary_file = Config().FILE_UNIFIED_GLOSSARY
     glossary_file.parent.mkdir(parents=True, exist_ok=True)
     
     with open(glossary_file, 'w', encoding='utf-8') as f:

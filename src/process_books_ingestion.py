@@ -29,6 +29,9 @@ def reprocess_all_books():
     if not run_command(ingestionBooksFolder / "pass_03_check_build_glossary_wiki_mapping.py", "3"):
         return False
     
+    if not run_command(ingestionBooksFolder / "pass_04_create_fake_wiki_entries_for_glossary.py", "3"):
+        return False
+
     return True
 
 def main():

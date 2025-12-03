@@ -21,17 +21,73 @@ class Config:
         # Project paths
         self.PROJECT_ROOT = Path(os.getenv('PROJECT_ROOT', Path.cwd()))
         self.DATA_PATH = self.PROJECT_ROOT / 'data'
+
+        # Raw -> Original unprocessed data files
         self.BOOKS_PATH = self.DATA_PATH / 'raw' / 'books'
         self.WIKI_PATH = self.DATA_PATH / 'raw' / 'wiki'
         self.WIKI_GLOSSARY_PATH = self.DATA_PATH / 'raw' / 'wiki_glossary'
         self.WIKI_ORIGINAL_PATH = self.DATA_PATH / 'raw' / 'wiki_original'
+        
+        # Processed -> Raw data transformed into structured format (still "data heavy")
         self.PROCESSED_PATH = self.DATA_PATH / 'processed'
         self.PROCESSED_BOOKS_PATH = self.PROCESSED_PATH / 'books'
         self.PROCESSED_WIKI_PATH = self.PROCESSED_PATH / 'wiki'
+        # MEtadata -> Derived insights, indexes, and mappings (smaller, reference files)
         self.METADATA_PATH = self.DATA_PATH / 'metadata'
         self.METADATA_BOOKS_PATH = self.METADATA_PATH / 'books'
         self.METADATA_WIKI_PATH = self.METADATA_PATH / 'wiki'
+
         self.VECTOR_STORE_PATH = self.PROJECT_ROOT / 'vector_stores'
+       
+        # Week 2.5: Metadata Generation
+        # ---------------------------------------------------------------------
+        # Maps wiki page redirects to their canonical target pages
+        self.FILE_REDIRECT_MAPPING = self.METADATA_WIKI_PATH / 'redirect_mapping.json'
+        # Maps wiki filenames to their category lists for classification
+        self.FILE_CATEGORIES_MAPPING = self.METADATA_WIKI_PATH / 'filename_to_categories.json'
+        # Unified glossary extracted from all 15 book files (characters, places, terms)
+        self.FILE_UNIFIED_GLOSSARY = self.METADATA_BOOKS_PATH / 'unified_glossary.json'
+        # Maps glossary term names to their corresponding wiki filenames (100% coverage)
+        self.FILE_GLOSSARY_WIKI_MAPPING = self.METADATA_WIKI_PATH / 'glossary_to_wiki_mapping.json'
+        
+        # Week 3 Goal 2: Parsed Wiki Data
+        # ---------------------------------------------------------------------
+        # Parsed chronology pages (5 major characters: Rand, Mat, Perrin, Egwene, Elayne)
+        self.FILE_WIKI_CHRONOLOGY = self.PROCESSED_WIKI_PATH / 'wiki_chronology.json'
+        # Parsed character pages (2,452 characters with biographical/physical/chronological data)
+        self.FILE_WIKI_CHARACTER = self.PROCESSED_WIKI_PATH / 'wiki_character.json'
+        # Parsed chapter summary pages (714 chapter summaries across all books)
+        self.FILE_WIKI_CHAPTER_SUMMARY = self.PROCESSED_WIKI_PATH / 'wiki_chapter_summary.json'
+        # Parsed concept pages (2,716 concepts: places, terms, magic, prophecies, etc.)
+        self.FILE_WIKI_CONCEPT = self.PROCESSED_WIKI_PATH / 'wiki_concept.json'
+        
+        # Week 3 Goal 3: Character Index
+        # ---------------------------------------------------------------------
+        # Comprehensive character index with aliases, abilities, titles, book appearances
+        self.FILE_CHARACTER_INDEX = self.METADATA_WIKI_PATH / 'character_index.json'
+        
+        # Week 2: Book Processing (Pending)
+        # ---------------------------------------------------------------------
+        # Parsed book structure with chapters, glossaries, and metadata
+        self.FILE_BOOKS_STRUCTURED = self.PROCESSED_BOOKS_PATH / 'books_structured.json'
+        self.FILE_BOOKS_ALL_PARSED = self.PROCESSED_BOOKS_PATH / 'books_all_parsed.json'
+        # Chapter-based chunks from all 15 books with metadata
+        self.FILE_BOOK_CHUNKS = self.PROCESSED_BOOKS_PATH / 'book_chunks.jsonl'
+        
+        # Week 3 Goal 4: Prophecy & Magic Extraction (Pending)
+        # ---------------------------------------------------------------------
+        # Index of all prophecies (Karaethon Cycle, Dark Prophecy, viewings, etc.)
+        self.FILE_PROPHECY_INDEX = self.METADATA_WIKI_PATH / 'prophecy_index.json'
+        # Index of One Power magic system (weaves, objects, terms, strength rankings)
+        self.FILE_MAGIC_SYSTEM_INDEX = self.METADATA_WIKI_PATH / 'magic_system_index.json'
+        
+        # Week 4: Wiki Chunks (Pending)
+        # ---------------------------------------------------------------------
+        # Chunked wiki content ready for embedding
+        self.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY = self.PROCESSED_WIKI_PATH / 'wiki_chunks_chapter_summary.jsonl'
+        self.FILE_WIKI_CHUNKS_CHARACTER = self.PROCESSED_WIKI_PATH / 'wiki_chunks_character.jsonl'
+        self.FILE_WIKI_CHUNKS_CHRONOLOGY = self.PROCESSED_WIKI_PATH / 'wiki_chunks_chronology.jsonl'
+        self.FILE_WIKI_CHUNKS_CONCEPT = self.PROCESSED_WIKI_PATH / 'wiki_chunks_concept.jsonl'
         
         # Ollama configuration
         self.OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
@@ -58,8 +114,7 @@ class Config:
         self.CHROMA_COLLECTION_NARRATIVE = os.getenv('CHROMA_COLLECTION_NARRATIVE', 'narrative')
         self.CHROMA_COLLECTION_CONCEPTS = os.getenv('CHROMA_COLLECTION_CONCEPTS', 'concepts')
         self.CHROMA_COLLECTION_MAGIC = os.getenv('CHROMA_COLLECTION_MAGIC', 'magic')
-        self.CHROMA_COLLECTION_PROPHECIES = os.getenv('CHROMA_COLLECTION_PROPHECIES', 
-                                                      'prophecies')
+        self.CHROMA_COLLECTION_PROPHECIES = os.getenv('CHROMA_COLLECTION_PROPHECIES', 'prophecies')
         
         # Logging
         self.LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')

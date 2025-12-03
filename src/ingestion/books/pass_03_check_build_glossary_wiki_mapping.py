@@ -61,8 +61,8 @@ from src.utils.logger import setup_logging, get_logger
 WIKI_PATH = Config().WIKI_PATH
 
 # Input/Output files
-UNIFIED_GLOSSARY = Config().METADATA_BOOKS_PATH / "unified_glossary.json"
-OUTPUT_MAPPING = Config().METADATA_PATH / "glossary_to_wiki_mapping.json"
+UNIFIED_GLOSSARY = Config().FILE_UNIFIED_GLOSSARY
+OUTPUT_MAPPING = Config().FILE_GLOSSARY_WIKI_MAPPING
 
 logger = get_logger(__name__)
 

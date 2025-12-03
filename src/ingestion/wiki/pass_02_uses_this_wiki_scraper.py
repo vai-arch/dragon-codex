@@ -463,15 +463,18 @@ class WoTWikiScraper:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Check for existing files
+        # Check for existing files (case-insensitive tracking)
         existing_files = set(f.stem for f in output_dir.glob('*.txt'))
+        existing_files_lower = {name.lower(): name for name in existing_files}
         
         stats = {
             'total': len(character_names),
             'success': 0,
             'failed': 0,
             'skipped': 0,
-            'errors': []
+            'collisions': 0,
+            'errors': [],
+            'collision_log': []
         }
         
         print(f"\nScraping {len(character_names)} pages...")
@@ -508,10 +511,36 @@ class WoTWikiScraper:
                 # Update safe filename from actual title
                 safe_filename = page_data['title'].replace(' ', '_').replace('/', '_')
                 safe_filename = re.sub(r'[<>:"|?*]', '', safe_filename)
+                
+                # Check for case-insensitive collision (Windows issue)
+                safe_filename_lower = safe_filename.lower()
+                if safe_filename_lower in existing_files_lower:
+                    # Collision detected! Add duplicate suffix
+                    original_name = existing_files_lower[safe_filename_lower]
+                    collision_info = f"{char_name} -> {safe_filename} (collides with {original_name})"
+                    
+                    # Find next available suffix number
+                    suffix_num = 1
+                    while True:
+                        test_name = f"{safe_filename}_DUPLICATE_{suffix_num}"
+                        if test_name.lower() not in existing_files_lower:
+                            safe_filename = test_name
+                            break
+                        suffix_num += 1
+                    
+                    stats['collisions'] += 1
+                    stats['collision_log'].append(collision_info + f" -> saved as {safe_filename}")
+                    print(f"\n  ⚠️  COLLISION: {collision_info}")
+                    print(f"      Saving as: {safe_filename}.txt")
+                
                 output_path = output_dir / f"{safe_filename}.txt"
                 
                 # Save markdown
                 self.save_as_markdown(page_data, output_path)
+                
+                # Update tracking (add new filename to existing files)
+                existing_files.add(safe_filename)
+                existing_files_lower[safe_filename.lower()] = safe_filename
                 
                 stats['success'] += 1
                 
@@ -526,6 +555,19 @@ class WoTWikiScraper:
         
         if stats['skipped'] > 0:
             print(f"\n✓ Skipped {stats['skipped']} existing files")
+        
+        if stats['collisions'] > 0:
+            print(f"\n⚠️  {stats['collisions']} case collisions detected and resolved")
+            
+            # Save collision log
+            collision_log_file = output_dir / 'case_collisions.log'
+            with open(collision_log_file, 'w', encoding='utf-8') as f:
+                f.write("CASE COLLISION LOG\n")
+                f.write("="*80 + "\n\n")
+                f.write(f"Total collisions: {stats['collisions']}\n\n")
+                for entry in stats['collision_log']:
+                    f.write(entry + "\n")
+            print(f"   Collision log saved to: {collision_log_file}")
         
         return stats
 

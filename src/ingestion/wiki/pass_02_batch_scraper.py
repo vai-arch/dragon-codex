@@ -11,6 +11,8 @@ This script will scrape all characters from a list and save enhanced markdown fi
 import json
 from pathlib import Path
 import sys
+from src.utils.config import Config
+from src.utils.util_functions import copy_files
 
 # Import the scraper (make sure enhanced_wiki_scraper.py is in same directory or Python path)
 try:
@@ -20,6 +22,11 @@ except ImportError:
     print("Make sure both scripts are in the same directory!")
     sys.exit(1)
 
+
+list_file = Config().DATA_PATH / "auxiliary/wiki/wiki_all_page_titles.json"
+output_dir = Config().WIKI_ORIGINAL_PATH
+final_dir = Config().WIKI_PATH
+wiki_glossary_dir = Config().WIKI_GLOSSARY_PATH
 
 def load_character_list(file_path):
     """
@@ -243,17 +250,14 @@ def main():
     response = input("Scrape from custom list? (y/n): ").strip().lower()
     
     if response == 'y':
-        # list_file = input("Path to character list file: ").strip()
-        list_file = "data/auxiliary/wiki/wiki_all_page_titles.json"
-        # output_dir = input("Output directory: ").strip()
-        output_dir = "data/raw/wiki_original"
-        
-        if list_file and output_dir:
-            scrape_all_characters(
-                character_list_file=list_file,
-                output_dir=output_dir,
-                delay=1.0
-            )
+        scrape_all_characters(
+            character_list_file=list_file,
+            output_dir=output_dir,
+            delay=1.0
+        )
+        # After scraping, copy files to final directory
+        copy_files(output_dir, final_dir, extension=".txt")
+        copy_files(wiki_glossary_dir, final_dir, extension=".txt")
     
     print("\n✓ Done!")
 
