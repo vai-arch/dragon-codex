@@ -14,38 +14,9 @@ import re
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
-
-# Book title mapping from wot_constants.py
-BOOK_TITLES = {
-    0: "New Spring",
-    1: "The Eye of the World",
-    2: "The Great Hunt",
-    3: "The Dragon Reborn",
-    4: "The Shadow Rising",
-    5: "The Fires of Heaven",
-    6: "Lord of Chaos",
-    7: "A Crown of Swords",
-    8: "The Path of Daggers",
-    9: "Winter's Heart",
-    10: "Crossroads of Twilight",
-    11: "Knife of Dreams",
-    12: "The Gathering Storm",
-    13: "Towers of Midnight",
-    14: "A Memory of Light",
-}
-
-# Create reverse mapping: title → book_number
-TITLE_TO_BOOK_NUMBER = {title: num for num, title in BOOK_TITLES.items()}
-
-
-# Categories that indicate page should be skipped
-SKIP_CATEGORIES = {
-    'Naming_redirects', 'Chapter_redirects', 'Date_redirects',
-    'Category_redirects', 'Alias_redirects', 'Timeline_redirects',
-    'Inclusion_redirects', 'Grammar_redirects', 'Sword_form_redirects',
-    'Administrative_redirects', 'Disambiguation'
-}
+from src.utils.wot_constants import BOOK_TITLES, TITLE_TO_NUMBER
+from src.utils.util_files_functions import load_text_from_file
+from src.utils.wiki_constants import REDIRECT_CATEGORIES, CATEGORIES_TO_SKIP, PROPHECIES_CATEGORIES, MAGIC_CATEGORIES, extract_categories, extract_id
 
 
 def classify_page_type(filename: str, categories: List[str]) -> str:
@@ -57,17 +28,22 @@ def classify_page_type(filename: str, categories: List[str]) -> str:
         categories: List of page categories
         
     Returns:
-        str: One of: 'SKIP', 'CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'CONCEPT'
+        str: One of: 'SKIP', 'CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'PROPHECIES', 'MAGIC', 'CONCEPT'
     """
-    # Skip redirects and disambiguation pages
-    if any(cat in SKIP_CATEGORIES for cat in categories):
-        return 'SKIP'
-    
+     
     # Skip files with no categories
     if not categories:
         return 'SKIP'
     
-    # Chronology pages (5 files)
+    # Skip disambiguation pages
+    if any(cat in CATEGORIES_TO_SKIP for cat in categories):
+        return 'SKIP'
+    
+    # Skip redirect pages
+    if any(cat in REDIRECT_CATEGORIES for cat in categories):
+        return 'SKIP'
+    
+    # Chronology pages
     if 'Character_Chronologies' in categories:
         return 'CHRONOLOGY'
     
@@ -78,7 +54,15 @@ def classify_page_type(filename: str, categories: List[str]) -> str:
     # Chapter summary pages (714 files)
     if 'Chapter_summaries' in categories:
         return 'CHAPTER_SUMMARY'
-    
+
+    # Skip redirect pages
+    if any(cat in PROPHECIES_CATEGORIES for cat in categories):
+        return 'PROPHECIES'
+       
+   # Skip redirect pages
+    if any(cat in MAGIC_CATEGORIES for cat in categories):
+        return 'MAGIC'
+       
     # Everything else is a concept/place/event page
     return 'CONCEPT'
 
@@ -119,13 +103,13 @@ def is_book_section(section_title: str) -> Tuple[bool, Optional[int]]:
     """
     section_clean = section_title.strip()
     
-    if section_clean in TITLE_TO_BOOK_NUMBER:
-        return True, TITLE_TO_BOOK_NUMBER[section_clean]
+    if section_clean in TITLE_TO_NUMBER:
+        return True, TITLE_TO_NUMBER[section_clean]
     
     return False, None
 
 
-def extract_metadata(content: str) -> Dict:
+def extract_metadata(filepath, content: str) -> Dict: 
     """
     Extract metadata from wiki page header.
     
@@ -137,19 +121,9 @@ def extract_metadata(content: str) -> Dict:
     """
     metadata = {}
     
-    # Extract page ID
-    page_id_match = re.search(r'<!--\s*Page ID:\s*(\d+)\s*-->', content)
-    if page_id_match:
-        metadata['page_id'] = int(page_id_match.group(1))
-    
-    # Extract categories
-    cat_match = re.search(r'<!--\s*Categories:\s*(.*?)\s*-->', content)
-    if cat_match:
-        categories = [cat.strip() for cat in cat_match.group(1).split(',')]
-        metadata['categories'] = [cat for cat in categories if cat]
-    else:
-        metadata['categories'] = []
-    
+    metadata['page_id'] = extract_id(content)
+    metadata['categories'] = extract_categories(filepath, content)
+
     return metadata
 
 
@@ -283,6 +257,7 @@ def parse_chronology_page(filepath: Path, content: str, metadata: Dict) -> Dict:
         'filename': filepath.name,
         'page_type': 'CHRONOLOGY',
         'character_name': character_name,
+        'page_name': character_name,
         'metadata': metadata,
         'temporal_sections': temporal_sections,
         'non_temporal_sections': non_temporal_sections
@@ -356,6 +331,7 @@ def parse_character_page(filepath: Path, content: str, metadata: Dict) -> Dict:
         'filename': filepath.name,
         'page_type': 'CHARACTER',
         'character_name': character_name,
+        'page_name': character_name,
         'metadata': metadata,
         'temporal_sections': temporal_sections,
         'non_temporal_sections': non_temporal_sections
@@ -404,6 +380,7 @@ def parse_chapter_summary_page(filepath: Path, content: str, metadata: Dict) -> 
     return {
         'filename': filepath.name,
         'page_type': 'CHAPTER_SUMMARY',
+        'page_name': chapter_title,
         'book_number': book_number,
         'book_title': book_title,
         'chapter_number': chapter_number,
@@ -413,7 +390,7 @@ def parse_chapter_summary_page(filepath: Path, content: str, metadata: Dict) -> 
     }
 
 
-def parse_concept_page(filepath: Path, content: str, metadata: Dict) -> Dict:
+def parse_concept_page(filepath: Path, content: str, metadata: Dict, concept_type: str) -> Dict:
     """
     Parse concept/place/event page (topic-based, no temporal structure).
     
@@ -434,7 +411,7 @@ def parse_concept_page(filepath: Path, content: str, metadata: Dict) -> Dict:
     
     return {
         'filename': filepath.name,
-        'page_type': 'CONCEPT',
+        'page_type': concept_type,
         'page_name': page_name,
         'metadata': metadata,
         'sections': sections
@@ -458,16 +435,11 @@ def parse_wiki_file(filepath: Path, categories: List[str]) -> Optional[Dict]:
     if page_type == 'SKIP':
         return None
     
-    # Read file content
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except Exception as e:
-        print(f"Error reading {filepath.name}: {e}")
-        return None
+    #read file content
+    content = load_text_from_file(filepath)
     
     # Extract metadata
-    metadata = extract_metadata(content)
+    metadata = extract_metadata(filepath, content)
     
     # Parse based on page type
     if page_type == 'CHRONOLOGY':
@@ -476,8 +448,12 @@ def parse_wiki_file(filepath: Path, categories: List[str]) -> Optional[Dict]:
         return parse_character_page(filepath, content, metadata)
     elif page_type == 'CHAPTER_SUMMARY':
         return parse_chapter_summary_page(filepath, content, metadata)
+    elif page_type == 'PROPHECIES':
+        return parse_concept_page(filepath, content, metadata, concept_type='PROPHECIES')
+    elif page_type == 'MAGIC':
+        return parse_concept_page(filepath, content, metadata, concept_type='MAGIC')
     elif page_type == 'CONCEPT':
-        return parse_concept_page(filepath, content, metadata)
+        return parse_concept_page(filepath, content, metadata, concept_type='CONCEPT')
     
     return None
 

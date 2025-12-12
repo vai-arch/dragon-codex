@@ -7,7 +7,9 @@ import logging
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from src.utils.config import get_config
 
+config = get_config()
 
 # Color codes for console output
 class LogColors:
@@ -52,6 +54,30 @@ class ColoredFormatter(logging.Formatter):
         
         return result
 
+import logging
+
+def set_global_log_level(level: str):
+    """
+    Safely change the logging level for all existing loggers at runtime.
+    
+    Args:
+        level: Log level name as string (DEBUG, INFO, WARNING, ERROR, CRITICAL, or custom)
+    """
+    # Map custom levels
+    level_name = level.upper()
+    
+    # Convert to numeric level
+    numeric_level = getattr(logging, level_name, None)
+    if numeric_level is None:
+        raise ValueError(f"Invalid log level: {level}")
+
+    # Change root logger
+    logging.getLogger().setLevel(numeric_level)
+
+    # Change all existing named loggers
+    for logger_name, logger_obj in logging.Logger.manager.loggerDict.items():
+        if isinstance(logger_obj, logging.Logger):
+            logger_obj.setLevel(numeric_level)
 
 def setup_logging(
     name='dragon_codex',
@@ -136,8 +162,6 @@ def get_logger(name, log_level=None):
     """
     # Try to load configuration
     try:
-        from src.utils.config import get_config
-        config = get_config()
         default_level = config.LOG_LEVEL
         default_file = config.LOG_FILE
         max_bytes = config.LOG_MAX_BYTES

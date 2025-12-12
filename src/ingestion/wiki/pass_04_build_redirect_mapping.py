@@ -10,9 +10,15 @@ This script:
 
 Usage:
     python build_redirect_mapping.py
+
+Input: 
+- data/raw/wiki/*.txt
+Output: 
+- data/metadata/redirect_mapping.json
+- data/metadata/redirect_aliases_mapping.json
+
 """
 
-import json
 import re
 import time
 from pathlib import Path
@@ -21,10 +27,11 @@ from src.utils.logger import get_logger
 from typing import Dict, Optional
 import requests
 import sys
-import logging
+from src.utils.util_files_functions import load_json_from_file, remove_file, save_json_to_file, find_files_in_folder,load_text_from_file
+from src.utils.wiki_constants import REDIRECT_CATEGORIES, extract_categories, extract_page_name
 
 # Fandom API configuration
-FANDOM_API_URL = "https://wot.fandom.com/api.php"
+FANDOM_API_URL = f"{Config().WIKI_BASE_URL}/api.php"
 API_PARAMS_TEMPLATE = {
     "action": "query",
     "titles": "",
@@ -35,59 +42,24 @@ API_PARAMS_TEMPLATE = {
 # Rate limiting
 REQUEST_DELAY = 0.5  # seconds between API requests
 
-# Paths (adjust if needed)
-PROJECT_ROOT = Path(__file__).parent
-DATA_ROOT = Config().DATA_PATH
 WIKI_PATH = Config().WIKI_PATH
-METADATA_PATH = Config().METADATA_PATH
-
-# Setup logging
-METADATA_PATH.mkdir(parents=True, exist_ok=True)
+redirect_mapping_path = Config().FILE_REDIRECT_MAPPING
+redirect_aliases_mapping_path = Config().FILE_REDIRECT_ALIASES_MAPPING
 
 logger = get_logger(__name__)
 
 def is_redirect_page(file_path: Path) -> bool:
     """Check if a wiki file is a redirect page (ANY type)."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            # Check for any redirect category
-            redirect_types = [
-                "Naming_redirects",
-                "Alias_redirects",
-                "Grammar_redirects",
-                "Old_Tongue_redirects",
-                "Geo-political_redirects",
-                "Sword_form_redirects",
-                "Chapter_redirects",
-                "Date_redirects",
-                "Timeline_redirects",
-                "Book_redirects",
-                "Category_redirects",
-                "Inclusion_redirects",
-                "Administrative_redirects",
-                "Real-world_redirects",
-            ]
-            return any(rtype in content for rtype in redirect_types)
-    except Exception as e:
-        logger.warning(f"Error reading {file_path.name}: {e}")
-        return False
+    
+     # Regex to find any [[Category:Something]] tags
+    categories = extract_categories(file_path, None)
 
-def extract_page_name(file_path: Path) -> Optional[str]:
-    """Extract page name from wiki file H1 header."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('# ') and not line.startswith('##'):
-                    page_name = line[2:].strip()
-                    return page_name
-        logger.warning(f"No H1 header found in {file_path.name}")
-        return None
-    except Exception as e:
-        logger.warning(f"Error extracting page name from {file_path.name}: {e}")
-        return None
+    if not categories:
+        # No categories at all
+        return True
 
+    # Check if any category matches your redirect categories
+    return any(rtype.lower() in (cat.lower() for cat in categories) for rtype in REDIRECT_CATEGORIES)     
 
 def query_redirect_target(page_name: str) -> Optional[str]:
     """Query Fandom API to get redirect target for a page."""
@@ -118,33 +90,19 @@ def query_redirect_target(page_name: str) -> Optional[str]:
         logger.error(f"  Error processing API response for {page_name}: {e}")
         return None
 
-
-def save_progress(mapping: Dict[str, str], output_path: Path):
-    """Save progress to a temporary file."""
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(mapping, f, indent=2, ensure_ascii=False)
-        logger.debug(f"Progress saved: {len(mapping)} mappings")
-    except Exception as e:
-        logger.warning(f"Could not save progress: {e}")
-
-
 def build_redirect_mapping(wiki_path: Path) -> Dict[str, str]:
     """Build complete redirect mapping from wiki files."""
     mapping = {}
     errors = []
     
-    wiki_files = list(wiki_path.glob("*.txt"))
-    total_files = len(wiki_files)
-    
-    logger.info(f"Scanning {total_files} wiki files for redirects...")
-    
+    wiki_files = find_files_in_folder(wiki_path, ".txt", recursive=False )
+
     redirect_count = 0
     processed_count = 0
     
     for i, file_path in enumerate(wiki_files, 1):
         if i % 100 == 0:
-            logger.info(f"Progress: {i}/{total_files} files scanned, {redirect_count} redirects found")
+            logger.info(f"Progress: {i}/{len(wiki_files)} files scanned, {redirect_count} redirects found")
         
         if not is_redirect_page(file_path):
             continue
@@ -159,7 +117,7 @@ def build_redirect_mapping(wiki_path: Path) -> Dict[str, str]:
             })
             continue
         
-        logger.info(f"Processing redirect [{redirect_count}]: {page_name}")
+        logger.debug(f"Processing redirect [{redirect_count}]: {page_name}")
         
         target = query_redirect_target(page_name)
         
@@ -174,13 +132,10 @@ def build_redirect_mapping(wiki_path: Path) -> Dict[str, str]:
             })
         
         time.sleep(REQUEST_DELAY)
-        
-        if processed_count > 0 and processed_count % 50 == 0:
-            save_progress(mapping, METADATA_PATH / "redirect_mapping_progress.json")
     
     logger.info("=" * 60)
     logger.info(f"Redirect mapping complete!")
-    logger.info(f"Total files scanned: {total_files}")
+    logger.info(f"Total files scanned: {len(wiki_files)}")
     logger.info(f"Redirect pages found: {redirect_count}")
     logger.info(f"Successfully mapped: {processed_count}")
     logger.info(f"Errors: {len(errors)}")
@@ -188,71 +143,49 @@ def build_redirect_mapping(wiki_path: Path) -> Dict[str, str]:
     
     if errors:
         logger.warning(f"\n{len(errors)} errors occurred:")
-        for error in errors[:10]:
+        for error in errors[:10000]:
             logger.warning(f"  {error}")
-        if len(errors) > 10:
-            logger.warning(f"  ... and {len(errors) - 10} more errors")
+        if len(errors) > 10000:
+            logger.warning(f"  ... and {len(errors) - 10000} more errors")
     
-    return mapping
+    return dict(sorted(mapping.items()))
 
+def invert_redirect_mapping(mapping: str):
+    """Invert redirect mapping so that each canonical page lists all its redirect aliases."""
+    
+    inverted = {}
 
-def save_mapping(mapping: Dict[str, str], output_path: Path):
-    """Save redirect mapping to JSON file."""
-    try:
-        sorted_mapping = dict(sorted(mapping.items()))
-        
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(sorted_mapping, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"Redirect mapping saved to: {output_path}")
-        logger.info(f"Total mappings: {len(mapping)}")
-        
-    except Exception as e:
-        logger.error(f"Failed to save mapping: {e}")
-        raise
+    # Build inverted mapping
+    for redirect, canonical in mapping.items():
+        inverted.setdefault(canonical, []).append(redirect)
 
+    # Sort lists for consistency
+    inverted = {k: sorted(v) for k, v in inverted.items()}
 
-def main():
+    return inverted
+
+def main(complete_rebuild: bool = True):
     """Main execution function."""
     logger.info("=" * 60)
     logger.info("Dragon's Codex - Redirect Mapping Builder")
     logger.info("=" * 60)
     
-    if not WIKI_PATH.exists():
-        logger.error(f"Wiki directory not found: {WIKI_PATH}")
-        logger.error("Please ensure wiki .txt files are in data/raw/wiki/")
-        return 1
-    
-    wiki_files = list(WIKI_PATH.glob("*.txt"))
-    if not wiki_files:
-        logger.error(f"No .txt files found in {WIKI_PATH}")
-        return 1
-    
-    logger.info(f"Wiki directory: {WIKI_PATH}")
-    logger.info(f"Found {len(wiki_files)} .txt files")
-    logger.info("")
-    
-    try:
+    if(complete_rebuild):
         mapping = build_redirect_mapping(WIKI_PATH)
-        
-        output_path = Config().FILE_REDIRECT_MAPPING
-        
-        save_mapping(mapping, output_path)
-        
-        progress_file = METADATA_PATH / "wiki/redirect_mapping_progress.json"
-        if progress_file.exists():
-            progress_file.unlink()
-            logger.debug("Cleaned up progress file")
-        
-        logger.info("")
-        logger.info("✓ Redirect mapping complete!")
-        return 0
-        
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        return 1
+        save_json_to_file(mapping, redirect_mapping_path, indent=2)
+    else:
+        mapping = load_json_from_file(redirect_mapping_path)
 
+    aliases = invert_redirect_mapping(mapping)
+    save_json_to_file(aliases, redirect_aliases_mapping_path, indent=2)
+
+    logger.info("✓ Redirect mapping complete!")
 
 if __name__ == "__main__":
     exit_code = main()
     sys.exit(exit_code)
+
+    # result = is_redirect_page(
+    #     Path("C:/Users/victor.diaz/Documents/_AI/dragon-codex/data/raw/wiki/Egwene_al'Vere.txt")
+    # )
+    # print(result)

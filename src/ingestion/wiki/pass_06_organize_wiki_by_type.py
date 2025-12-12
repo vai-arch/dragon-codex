@@ -7,6 +7,9 @@ Processes ~6,000 wiki files and saves to:
 - wiki_character.json (~2,451 files)
 - wiki_chapter_summary.json (714 files)
 - wiki_concept.json (~2,867 files)
+
+Input:  - filename_to_categories.json
+        - all .txt wiki files in WIKI_PATH 
 """
 
 import json
@@ -18,28 +21,25 @@ from datetime import datetime
 
 # Import our parser
 from src.ingestion.wiki.pass_06_uses_this_markdown_wiki_parser import parse_wiki_file, classify_page_type
+from src.utils.logger import get_logger, set_global_log_level
+from src.utils.config import Config
+from src.utils.util_files_functions import load_json_from_file, save_json_to_file, find_files_in_folder, save_json_to_file
 
+wiki_path = Config().WIKI_PATH
+filename_to_categories_file = Config().FILE_FILENAME_TO_CATEGORIES
+output_dir = Config().PROCESSED_WIKI_PATH
+redirect_aliases_path = Config().FILE_REDIRECT_ALIASES_MAPPING
 
-def load_category_mappings(category_file):
-    """
-    Load filename to categories mapping.
-    
-    Args:
-        category_file: Path to filename_to_categories.json
-        
-    Returns:
-        dict: {filename: [categories]}
-    """
-    print(f"\n📂 Loading category mappings from: {category_file}")
-    
-    with open(category_file, 'r', encoding='utf-8') as f:
-        mappings = json.load(f)
-    
-    print(f"   ✓ Loaded mappings for {len(mappings)} files")
-    return mappings
+filename_map = {
+    'CHRONOLOGY': 'wiki_chronology.json',
+    'CHARACTER': 'wiki_character.json',
+    'CHAPTER_SUMMARY': 'wiki_chapter_summary.json',
+    'PROPHECIES': 'wiki_prophecies.json',
+    'MAGIC': 'wiki_magic.json', 
+    'CONCEPT': 'wiki_concept.json'
+}
 
-
-def group_files_by_type(wiki_dir, category_mappings):
+def group_files_by_type(wiki_path, filename_to_categories_file):
     """
     Group wiki files by page type.
     
@@ -50,12 +50,8 @@ def group_files_by_type(wiki_dir, category_mappings):
     Returns:
         dict: {page_type: [filepaths]}
     """
-    print(f"\n🔍 Scanning wiki directory: {wiki_dir}")
-    
-    wiki_path = Path(wiki_dir)
-    txt_files = list(wiki_path.glob('*.txt'))
-    
-    print(f"   Found {len(txt_files)} .txt files")
+
+    txt_files = find_files_in_folder(wiki_path, extension='.txt')    
     
     # Group by type
     files_by_type = defaultdict(list)
@@ -63,7 +59,7 @@ def group_files_by_type(wiki_dir, category_mappings):
     print("\n📊 Classifying files by type...")
     for filepath in tqdm(txt_files, desc="Classifying", unit="file"):
         filename = filepath.name
-        categories = category_mappings.get(filename, [])
+        categories = filename_to_categories_file.get(filename, [])
         
         page_type = classify_page_type(filename, categories)
         files_by_type[page_type].append(filepath)
@@ -74,11 +70,15 @@ def group_files_by_type(wiki_dir, category_mappings):
     print(f"   CHRONOLOGY:      {len(files_by_type['CHRONOLOGY']):5,} files")
     print(f"   CHARACTER:       {len(files_by_type['CHARACTER']):5,} files")
     print(f"   CHAPTER_SUMMARY: {len(files_by_type['CHAPTER_SUMMARY']):5,} files")
+    print(f"   PROPHECIES:      {len(files_by_type['PROPHECIES']):5,} files")
+    print(f"   MAGIC:           {len(files_by_type['MAGIC']):5,} files")
     print(f"   CONCEPT:         {len(files_by_type['CONCEPT']):5,} files")
-    
+
     parseable = (len(files_by_type['CHRONOLOGY']) + 
                  len(files_by_type['CHARACTER']) + 
                  len(files_by_type['CHAPTER_SUMMARY']) + 
+                 len(files_by_type['PROPHECIES']) + 
+                 len(files_by_type['MAGIC']) + 
                  len(files_by_type['CONCEPT']))
     print(f"\n   Total parseable: {parseable:5,} files")
     print(f"   Total skipped:   {len(files_by_type['SKIP']):5,} files")
@@ -102,6 +102,8 @@ def process_page_type(page_type, filepaths, category_mappings):
     errors = []
     skipped = []
     
+    redirect_aliases = load_json_from_file(redirect_aliases_path)
+
     print(f"\n{'='*80}")
     print(f"Processing {page_type} pages ({len(filepaths)} files)")
     print(f"{'='*80}")
@@ -112,7 +114,9 @@ def process_page_type(page_type, filepaths, category_mappings):
         
         try:
             result = parse_wiki_file(filepath, categories)
-            
+
+            result['aliases'] = redirect_aliases.get(result['page_name'], [])  # Placeholder for actual alias extraction logic
+
             if result:
                 parsed_pages[filename] = result
             else:
@@ -143,42 +147,6 @@ def process_page_type(page_type, filepaths, category_mappings):
         print(f"⏭️  Skipped: {skip_count:,} files")
     
     return parsed_pages, errors, skipped
-
-
-def save_results(page_type, parsed_pages, output_dir):
-    """
-    Save parsed pages to JSON file.
-    
-    Args:
-        page_type: Type of pages
-        parsed_pages: Dictionary of parsed page data
-        output_dir: Output directory path
-    """
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    filename_map = {
-        'CHRONOLOGY': 'wiki_chronology.json',
-        'CHARACTER': 'wiki_character.json',
-        'CHAPTER_SUMMARY': 'wiki_chapter_summary.json',
-        'CONCEPT': 'wiki_concept.json'
-    }
-    
-    output_file = output_path / filename_map[page_type]
-    
-    print(f"\n💾 Saving {len(parsed_pages)} pages to: {output_file.name}")
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(parsed_pages, f, indent=2, ensure_ascii=False)
-    
-    # Get file size
-    file_size = output_file.stat().st_size
-    size_mb = file_size / (1024 * 1024)
-    
-    print(f"   ✓ Saved {size_mb:.2f} MB")
-    
-    return output_file
-
 
 def save_error_log(all_errors, output_dir):
     """
@@ -220,7 +188,6 @@ def save_error_log(all_errors, output_dir):
                 f.write("-"*80 + "\n")
     
     print(f"   ✓ Logged {len(all_errors)} errors")
-
 
 def save_skip_log(files_by_type, all_skipped, output_dir):
     """
@@ -295,75 +262,6 @@ def save_skip_log(files_by_type, all_skipped, output_dir):
         f.write(f"Total files not parsed:      {len(skip_files) + len(all_skipped):5,}\n")
     
     print(f"   ✓ Logged {len(skip_files) + len(all_skipped):,} skipped files")
-
-
-def save_missing_concept_files(category_mappings, parsed_concept_files, output_dir):
-    """
-    Find and save a list of CONCEPT files that should exist but weren't parsed.
-    
-    Args:
-        category_mappings: All file categories
-        parsed_concept_files: List of successfully parsed concept filenames
-        output_dir: Output directory path
-    """
-    output_path = Path(output_dir)
-    missing_file = output_path / 'missing_concept_files.txt'
-    
-    print(f"\n🔍 Finding missing CONCEPT files...")
-    
-    # Determine which files SHOULD be CONCEPT
-    expected_concept_files = []
-    
-    for filename, categories in category_mappings.items():
-        if not categories:
-            continue
-        
-        # Check classification logic (same as classify_page_type)
-        is_chronology = 'Character_Chronologies' in categories
-        is_character = 'Men' in categories or 'Women' in categories
-        is_chapter_summary = any('chapter_summaries' in cat.lower() for cat in categories)
-        is_redirect = any('redirect' in cat.lower() or 'disambiguation' in cat.lower() 
-                         for cat in categories)
-        
-        # If none of the above, should be CONCEPT
-        if not (is_chronology or is_character or is_chapter_summary or is_redirect):
-            expected_concept_files.append(filename)
-    
-    # Find missing files
-    parsed_set = set(parsed_concept_files)
-    missing_files = [f for f in expected_concept_files if f not in parsed_set]
-    
-    print(f"   Expected CONCEPT files: {len(expected_concept_files):,}")
-    print(f"   Successfully parsed:    {len(parsed_concept_files):,}")
-    print(f"   Missing:                {len(missing_files):,}")
-    
-    # Save to file
-    with open(missing_file, 'w', encoding='utf-8') as f:
-        f.write("="*80 + "\n")
-        f.write("MISSING CONCEPT FILES\n")
-        f.write("="*80 + "\n\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        f.write(f"These files were classified as CONCEPT but were not parsed:\n\n")
-        f.write(f"Total missing: {len(missing_files)}\n\n")
-        f.write("="*80 + "\n")
-        f.write("FILENAME LIST (for manual checking)\n")
-        f.write("="*80 + "\n\n")
-        
-        for i, filename in enumerate(sorted(missing_files), 1):
-            f.write(f"{i:4d}. {filename}\n")
-            
-            # Add categories for context
-            cats = category_mappings.get(filename, [])
-            if cats and i <= 50:  # Show categories for first 50
-                f.write(f"       Categories: {', '.join(cats[:3])}")
-                if len(cats) > 3:
-                    f.write(f" (+ {len(cats)-3} more)")
-                f.write("\n")
-    
-    print(f"   ✓ Saved {len(missing_files)} missing filenames to: {missing_file.name}")
-    
-    return missing_files
-
 
 def generate_statistics(all_parsed_data, output_dir):
     """
@@ -481,7 +379,6 @@ def generate_statistics(all_parsed_data, output_dir):
     
     print(f"   ✓ Statistics report generated")
 
-
 def validate_parsed_data(all_parsed_data):
     """
     Validate parsed data quality.
@@ -567,33 +464,28 @@ def main():
     print("\n" + "="*80)
     print("DRAGON'S CODEX - BATCH WIKI PROCESSOR")
     print("="*80)
-    
-    from src.utils.config import Config
-    from src.utils.logger import get_logger
-    
-    wiki_dir = Config().WIKI_PATH
-    categories_file = Config().FILE_FILENAME_TO_CATEGORIES
-    output_dir = Config().PROCESSED_WIKI_PATH
 
     print(f"\n📂 Configuration:")
-    print(f"   Wiki directory:     {wiki_dir}")
-    print(f"   Categories file:    {categories_file}")
+    print(f"   Wiki directory:     {wiki_path}")
+    print(f"   Categories file:    {filename_to_categories_file}")
     print(f"   Output directory:   {output_dir}")
     
     start_time = datetime.now()
     
+    set_global_log_level('WARNING')  # Reduce logging verbosity for batch processing
+
     # Step 1: Load category mappings
-    category_mappings = load_category_mappings(categories_file)
+    category_mappings = load_json_from_file(filename_to_categories_file)
     
     # Step 2: Group files by type
-    files_by_type = group_files_by_type(wiki_dir, category_mappings)
+    files_by_type = group_files_by_type(wiki_path, category_mappings)
     
     # Step 3: Process each page type
     all_parsed_data = {}
     all_errors = []
     all_skipped = []
     
-    page_types_to_process = ['CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'CONCEPT']
+    page_types_to_process = ['CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'PROPHECIES', 'MAGIC', 'CONCEPT']
     
     for page_type in page_types_to_process:
         if page_type not in files_by_type or not files_by_type[page_type]:
@@ -608,8 +500,9 @@ def main():
         
         if parsed_pages:
             all_parsed_data[page_type] = parsed_pages
-            save_results(page_type, parsed_pages, output_dir)
-        
+            output_file = output_dir / filename_map[page_type]
+            save_json_to_file(parsed_pages, output_file, indent=2)
+
         # Track errors with page type
         for error in errors:
             error['page_type'] = page_type
@@ -620,20 +513,12 @@ def main():
             skip['page_type'] = page_type
         all_skipped.extend(skipped)
     
-    # Step 4: Save error log
+    # Step 4: Save error log 
     if all_errors:
         save_error_log(all_errors, output_dir)
     
     # Step 5: Save skip log
     save_skip_log(files_by_type, all_skipped, output_dir)
-    
-    # Step 5b: Find and save missing CONCEPT files
-    parsed_concept_files = list(all_parsed_data.get('CONCEPT', {}).keys())
-    missing_concept_files = save_missing_concept_files(
-        category_mappings, 
-        parsed_concept_files, 
-        output_dir
-    )
     
     # Step 6: Generate statistics
     generate_statistics(all_parsed_data, output_dir)
@@ -656,16 +541,14 @@ def main():
     print(f"   • wiki_chronology.json")
     print(f"   • wiki_character.json")
     print(f"   • wiki_chapter_summary.json")
+    print(f"   • wiki_prophecies.json")
+    print(f"   • wiki_magic.json")
     print(f"   • wiki_concept.json")
     print(f"   • wiki_parsing_stats.txt")
     print(f"   • wiki_skipped_files.log")
-    if missing_concept_files:
-        print(f"   • missing_concept_files.txt ({len(missing_concept_files)} files)")
     if all_errors:
         print(f"   • wiki_parsing_errors.log")
     
-    print("\n✅ Week 3 Goal 2: COMPLETE!\n")
-
 
 if __name__ == "__main__":
     main()

@@ -10,17 +10,17 @@ Example:
     python cleanup_duplicates.py C:\path\to\data\raw\wiki
 """
 
+import argparse
 import sys
 from pathlib import Path
 from collections import defaultdict
 import re
 
+from src.utils.util_files_functions import find_files_in_folder
 from src.utils.config import Config
 from src.utils.logger import get_logger
 
-wiki_dir = Config().WIKI_PATH
-
-def find_duplicate_groups(wiki_dir):
+def find_duplicate_groups():
     """
     Find all files that are case-variants of each other.
     
@@ -30,12 +30,13 @@ def find_duplicate_groups(wiki_dir):
     Returns:
         dict: {lowercase_name: [list of Path objects]}
     """
-    wiki_path = Path(wiki_dir)
     
     # Group files by lowercase name (case-insensitive matching)
     groups = defaultdict(list)
     
-    for file in wiki_path.glob('*.txt'):
+    files = find_files_in_folder(Config().WIKI_PATH)
+
+    for file in files:
         # Get name without extension
         name = file.stem
         
@@ -155,6 +156,8 @@ def execute_cleanup(actions, output_dir):
     print("EXECUTING CLEANUP")
     print("="*80)
     
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
     # Create deletion log
     log_file = Path(output_dir) / 'cleanup_log.txt'
     
@@ -199,25 +202,15 @@ def execute_cleanup(actions, output_dir):
     print(f"✓ Log saved to: {log_file}")
 
 
-def main():
+def main(ask_confirmation=False):
     """Main function."""
     print("\n" + "="*80)
     print("DUPLICATE FILE CLEANUP SCRIPT")
     print("="*80)
     
-    if not wiki_dir.exists():
-        print(f"\n✗ Error: Directory not found: {wiki_dir}")
-        sys.exit(1)
-    
-    if not wiki_dir.is_dir():
-        print(f"\n✗ Error: Not a directory: {wiki_dir}")
-        sys.exit(1)
-    
-    print(f"\nWiki directory: {wiki_dir}")
-    
     # Step 1: Find duplicate groups
     print("\n🔍 Scanning for duplicate files...")
-    duplicate_groups = find_duplicate_groups(wiki_dir)
+    duplicate_groups = find_duplicate_groups()
     
     if not duplicate_groups:
         print("\n✓ No duplicates found! Directory is clean.")
@@ -233,18 +226,25 @@ def main():
     print_analysis(actions)
     
     # Step 4: Confirm
-    print("\n" + "="*80)
-    response = input("\nProceed with cleanup? (yes/no): ").strip().lower()
-    
-    if response not in ['yes', 'y']:
-        print("\n✗ Cleanup cancelled")
-        return
+    if ask_confirmation:
+        print("\n" + "="*80)
+        response = input("\nProceed with cleanup? (yes/no): ").strip().lower()
+        
+        if response not in ['yes', 'y']:
+            print("\n✗ Cleanup cancelled")
+            return
     
     # Step 5: Execute
-    execute_cleanup(actions, wiki_dir)
+    execute_cleanup(actions, Config().AUXILIARY_WIKI_PATH)
     
     print("\n✓ Done!\n")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--confirm", action="store_true",
+                        help="Ask before performing the cleanup")
+
+    args = parser.parse_args()
+
+    main(ask_confirmation=args.confirm)

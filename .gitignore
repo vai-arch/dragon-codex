@@ -46,10 +46,13 @@ logs/
 
 # Data (too large for git)
 data/raw/
+data/chunks/
+data/embeddings/
 data/processed/
 data/auxiliary/
 data/metadata/
 vector_stores/
+
 
 # Keep structure but not content
 !data/raw/.gitkeep

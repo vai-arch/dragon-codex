@@ -1,142 +1,161 @@
 """
-Dragon's Codex - Character Index Builder
-Builds comprehensive character index with aliases, abilities, and book appearances.
+Dragon's Codex - Character Index Builder v2.0
+Builds comprehensive character index leveraging wiki categories.
 
 Extracts from:
-- wiki_character.json (2,450 character pages)
-- wiki_chronology.json (5 major character chronologies)
-- redirect_mapping.json (2,850+ redirects for aliases)
+- wiki_character.json (2,452 character pages with categories)
+- redirect_mapping.json (2,785+ redirects for aliases)
+
+New Approach:
+- Use categories directly instead of content parsing
+- Structured fields for fast lookups
+- Comprehensive coverage of all character attributes
+
+Input: data/processed/wiki/wiki_character.json
+Output: data/metadata/wiki/character_index.json
 """
 
-import json
-import re
 from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
+from typing import Dict, List, Set, Optional
 
-
-    #     print("    data/metadata/character_index.json")
-    #     sys.exit(1)
 from src.utils.config import Config
+from src.utils.util_files_functions import load_json_from_file, save_json_to_file
+from src.utils.wiki_constants import *
 
-character_file = Config().FILE_WIKI_CHARACTER
-chronology_file = Config().FILE_WIKI_CHRONOLOGY
-redirect_file = Config().FILE_REDIRECT_MAPPING
-output_file = Config().FILE_CHARACTER_INDEX
+config = Config()
 
-# Known major titles to look for
-MAJOR_TITLES = [
-    'Dragon Reborn',
-    'Amyrlin Seat',
-    "Car'a'carn",
-    'King of Illian',
-    'King of Andor',
-    'Queen of Andor',
-    'Lord of the Two Rivers',
-    'Prince of the Ravens',
-    'The Prophet',
-    'First Counsel',
-    'M\'Hael',
-    'Captain-General',
-]
+# File paths
+character_file = config.FILE_WIKI_CHARACTER
+output_file = config.FILE_CHARACTER_INDEX
 
-# Title acquisition keywords
-TITLE_KEYWORDS = [
-    'became', 'proclaimed', 'crowned', 'named', 'declared',
-    'raised', 'chosen', 'elected', 'appointed'
-]
+def normalize_name(name: str) -> str:
+    """Normalize character name for matching."""
+    return name.replace('.txt', '').replace('_', ' ')
 
 
-def load_data(character_file, chronology_file, redirect_file):
-    """
-    Load all required data files.
+def extract_gender(categories: List[str]) -> Optional[str]:
+    """Extract gender from categories."""
+    for category in categories:
+        if category in GENDER_CATEGORIES:
+            return GENDER_CATEGORIES[category]
+    return None
+
+
+def extract_channeling_info(categories: List[str], gender: Optional[str]) -> Dict:
+    """Extract channeling information from categories."""
+    channeling = {
+        'can_channel': False,
+        'type': None,
+        'affiliations': []
+    }
     
-    Args:
-        character_file: Path to wiki_character.json
-        chronology_file: Path to wiki_chronology.json
-        redirect_file: Path to redirect_mapping.json
+    # Check for channeling affiliations
+    affiliations = []
+    for category in categories:
+        if category in CHANNELING_AFFILIATIONS:
+            affiliations.append(category.replace('_', ' '))
+            channeling['can_channel'] = True
+    
+    if affiliations:
+        channeling['affiliations'] = sorted(affiliations)
         
-    Returns:
-        tuple: (characters, chronologies, redirects)
-    """
-    print(f"\n📂 Loading data files...")
+        # Determine channeling type from gender
+        if gender == 'male':
+            channeling['type'] = 'saidin'
+        elif gender == 'female':
+            channeling['type'] = 'saidar'
     
-    with open(character_file, 'r', encoding='utf-8') as f:
-        characters = json.load(f)
-    print(f"   ✓ Loaded {len(characters):,} character pages")
-    
-    with open(chronology_file, 'r', encoding='utf-8') as f:
-        chronologies = json.load(f)
-    print(f"   ✓ Loaded {len(chronologies):,} chronology pages")
-    
-    with open(redirect_file, 'r', encoding='utf-8') as f:
-        redirects = json.load(f)
-    print(f"   ✓ Loaded {len(redirects):,} redirects")
-    
-    return characters, chronologies, redirects
+    return channeling
 
 
-def normalize_name(name):
-    """
-    Normalize character name for matching.
-    
-    Args:
-        name: Character name string
-        
-    Returns:
-        str: Normalized name
-    """
-    # Remove file extension
-    name = name.replace('.txt', '')
-    # Replace underscores with spaces
-    name = name.replace('_', ' ')
-    return name
+def extract_ajah(categories: List[str]) -> Optional[str]:
+    """Extract Ajah from categories."""
+    for category in categories:
+        if category in AJAH_CATEGORIES:
+            return AJAH_CATEGORIES[category]
+    return None
 
 
-def build_reverse_redirect_map(redirects):
-    """
-    Build reverse mapping: character_name -> [list of aliases/redirects].
-    
-    Args:
-        redirects: Dict of redirect_from -> redirect_to
-        
-    Returns:
-        dict: character_name -> [aliases]
-    """
-    print(f"\n🔄 Building reverse redirect map...")
-    
-    reverse_map = defaultdict(list)
-    
-    for redirect_from, redirect_to in redirects.items():
-        # Normalize both names
-        target = normalize_name(redirect_to)
-        alias = normalize_name(redirect_from)
-        
-        # Don't add if alias is the same as target
-        if alias.lower() != target.lower():
-            reverse_map[target].append(alias)
-    
-    # Count how many characters have aliases
-    chars_with_aliases = sum(1 for aliases in reverse_map.values() if aliases)
-    print(f"   ✓ {chars_with_aliases:,} characters have aliases")
-    print(f"   ✓ Average aliases per character: {len(redirects) / max(chars_with_aliases, 1):.1f}")
-    
-    return dict(reverse_map)
+def extract_special_abilities(categories: List[str]) -> List[str]:
+    """Extract special abilities from categories."""
+    abilities = []
+    for category in categories:
+        if category in SPECIAL_ABILITIES:
+            abilities.append(SPECIAL_ABILITIES[category])
+    return sorted(abilities) if abilities else []
 
 
-def extract_books_appeared(char_data):
-    """
-    Extract list of book numbers where character appears.
-    
-    Args:
-        char_data: Parsed character data
-        
-    Returns:
-        list: Sorted list of book numbers
-    """
+def extract_nationalities(categories: List[str]) -> List[str]:
+    """Extract nationalities from categories (ending with '(people)')."""
+    nationalities = []
+    for category in categories:
+        if category.endswith('(people)'):
+            # Remove '_(people)' suffix
+            nationality = category.replace('_(people)', '').replace('_', ' ')
+            nationalities.append(nationality)
+    return sorted(nationalities) if nationalities else []
+
+
+def extract_organizations(categories: List[str]) -> List[str]:
+    """Extract organizations from categories."""
+    orgs = []
+    for category in categories:
+        if category in ORGANIZATIONS:
+            orgs.append(category.replace('_', ' '))
+    return sorted(orgs) if orgs else []
+
+
+def extract_military_groups(categories: List[str]) -> List[str]:
+    """Extract military groups from categories."""
+    groups = []
+    for category in categories:
+        if category in MILITARY_GROUPS:
+            groups.append(category.replace('_', ' '))
+    return sorted(groups) if groups else []
+
+
+def extract_social_roles(categories: List[str]) -> List[str]:
+    """Extract social roles from categories."""
+    roles = []
+    for category in categories:
+        if category in SOCIAL_ROLES or category in MILITARY_ROLES:
+            roles.append(category.replace('_', ' '))
+    return sorted(roles) if roles else []
+
+
+def extract_professions(categories: List[str]) -> List[str]:
+    """Extract professions from categories."""
+    profs = []
+    for category in categories:
+        if category in PROFESSIONS:
+            profs.append(category.replace('_', ' '))
+    return sorted(profs) if profs else []
+
+
+def extract_alignment(categories: List[str]) -> List[str]:
+    """Extract alignment (dark-side) from categories."""
+    alignment = []
+    for category in categories:
+        if category in ALIGNMENT_DARK:
+            alignment.append(category.replace('_', ' '))
+    return sorted(alignment) if alignment else []
+
+
+def extract_cultural_groups(categories: List[str]) -> List[str]:
+    """Extract cultural groups from categories."""
+    groups = []
+    for category in categories:
+        if category in CULTURAL_GROUPS:
+            groups.append(category.replace('_', ' '))
+    return sorted(groups) if groups else []
+
+
+def extract_books_appeared(char_data: Dict) -> List[int]:
+    """Extract list of book numbers where character appears."""
     books = set()
     
-    # From temporal sections
     for section in char_data.get('temporal_sections', []):
         book_num = section.get('book_number')
         if book_num is not None:
@@ -145,256 +164,207 @@ def extract_books_appeared(char_data):
     return sorted(list(books))
 
 
-def extract_abilities(char_data):
-    """
-    Extract character abilities from categories and content.
+def process_character(
+    filename: str,
+    char_data: Dict
+) -> Optional[Dict]:
+    """Process a single character and extract all information."""
     
-    Args:
-        char_data: Parsed character data
-        
-    Returns:
-        dict: Abilities dictionary (only non-empty)
-    """
-    abilities = {}
+    character_name = char_data.get('character_name')
+    if not character_name:
+        return None
+    
     categories = char_data.get('metadata', {}).get('categories', [])
     
-    # From categories
-    if 'Channelers' in categories or 'Aes_Sedai' in categories or 'Asha\'man' in categories:
-        # Determine channeling type
-        if 'Men' in categories:
-            abilities['channeling'] = 'saidin'
-        elif 'Women' in categories:
-            abilities['channeling'] = 'saidar'
-        else:
-            abilities['channeling'] = 'unknown'
+    # Build index entry
+    index_entry = {
+        'primary_name': character_name,
+        'filename': filename,
+    }
     
-    if 'Ta\'veren' in categories:
-        abilities['ta_veren'] = True
+    # Extract aliases from redirects
+    aliases = char_data.get('aliases', [])
+    aliases = sorted(list(set(aliases)))  # Remove duplicates
     
-    if 'Dreamers' in categories:
-        abilities['dreamer'] = True
+    if aliases:
+        index_entry['aliases'] = aliases
     
-    if 'Wolfbrothers' in categories:
-        abilities['wolfbrother'] = True
+    # Extract books appeared
+    books = extract_books_appeared(char_data)
+    if books:
+        index_entry['books_appeared'] = books
     
-    # Look for ability/power related sections
-    for section in char_data.get('non_temporal_sections', []):
-        section_title = section.get('section_title', '').lower()
-        content = section.get('content', '').lower()
-        
-        if 'abilit' in section_title or 'power' in section_title or 'channel' in section_title:
-            # Try to extract strength
-            if abilities.get('channeling'):
-                if 'very strong' in content or 'extremely strong' in content:
-                    abilities['strength'] = 'very strong'
-                elif 'strong' in content or 'powerful' in content:
-                    abilities['strength'] = 'strong'
-                elif 'weak' in content:
-                    abilities['strength'] = 'weak'
-            
-            # Look for specific talents
-            talents = []
-            if 'traveling' in content or 'gateway' in content:
-                talents.append('Traveling')
-            if 'healing' in content:
-                talents.append('Healing')
-            if 'balefire' in content:
-                talents.append('Balefire')
-            if 'compulsion' in content:
-                talents.append('Compulsion')
-            
-            if talents:
-                abilities['talents'] = talents
+    # Extract gender
+    gender = extract_gender(categories)
+    if gender:
+        index_entry['gender'] = gender
     
-    return abilities  # Returns empty dict if no abilities
+    # Extract channeling info
+    channeling = extract_channeling_info(categories, gender)
+    if channeling['can_channel']:
+        index_entry['can_channel'] = True
+        if channeling['type']:
+            index_entry['channeling_type'] = channeling['type']
+        if channeling['affiliations']:
+            index_entry['channeling_affiliations'] = channeling['affiliations']
+    
+    # Extract Ajah
+    ajah = extract_ajah(categories)
+    if ajah:
+        index_entry['ajah'] = ajah
+    
+    # Extract special abilities
+    abilities = extract_special_abilities(categories)
+    if abilities:
+        index_entry['special_abilities'] = abilities
+    
+    # Extract nationalities
+    nationalities = extract_nationalities(categories)
+    if nationalities:
+        index_entry['nationalities'] = nationalities
+    
+    # Extract organizations
+    organizations = extract_organizations(categories)
+    if organizations:
+        index_entry['organizations'] = organizations
+    
+    # Extract military groups
+    military = extract_military_groups(categories)
+    if military:
+        index_entry['military_groups'] = military
+    
+    # Extract social roles
+    social = extract_social_roles(categories)
+    if social:
+        index_entry['social_roles'] = social
+    
+    # Extract professions
+    professions = extract_professions(categories)
+    if professions:
+        index_entry['professions'] = professions
+    
+    # Extract alignment
+    alignment = extract_alignment(categories)
+    if alignment:
+        index_entry['alignment'] = alignment
+    
+    # Extract cultural groups
+    cultural = extract_cultural_groups(categories)
+    if cultural:
+        index_entry['cultural_groups'] = cultural
+    
+    return index_entry
 
 
-def extract_titles(char_data):
-    """
-    Extract character titles and when they were acquired.
+def process_all_characters(
+    characters: Dict
+) -> tuple:
+    """Process all characters to build index."""
     
-    Args:
-        char_data: Parsed character data
-        
-    Returns:
-        list: List of title dicts [{title, acquired_book, source}]
-    """
-    titles = []
-    
-    # Search in temporal sections for title mentions
-    for section in char_data.get('temporal_sections', []):
-        content = section.get('content', '')
-        book_number = section.get('book_number')
-        book_title = section.get('book_title', '')
-        
-        # Look for major titles
-        for major_title in MAJOR_TITLES:
-            # Check if title appears in content
-            if major_title.lower() in content.lower():
-                # Look for acquisition keywords nearby
-                for keyword in TITLE_KEYWORDS:
-                    pattern = f"{keyword}[^.]*{major_title}"
-                    if re.search(pattern, content, re.IGNORECASE):
-                        titles.append({
-                            'title': major_title,
-                            'acquired_book': book_number,
-                            'source': book_title
-                        })
-                        break  # Found acquisition, move to next title
-                else:
-                    # Title mentioned but no clear acquisition
-                    # Only add if not already in list
-                    if not any(t['title'] == major_title for t in titles):
-                        titles.append({
-                            'title': major_title,
-                            'source': book_title
-                        })
-    
-    # Also check non-temporal sections for title mentions
-    for section in char_data.get('non_temporal_sections', []):
-        section_title = section.get('section_title', '').lower()
-        content = section.get('content', '')
-        
-        # Look in titles/background sections
-        if 'title' in section_title or 'background' in section_title:
-            for major_title in MAJOR_TITLES:
-                if major_title.lower() in content.lower():
-                    # Don't duplicate
-                    if not any(t['title'] == major_title for t in titles):
-                        titles.append({'title': major_title})
-    
-    return titles  # Returns empty list if no titles
-
-
-def process_characters(characters, chronologies, reverse_redirects):
-    """
-    Process all characters to build index.
-    
-    Args:
-        characters: Dict of character pages
-        chronologies: Dict of chronology pages
-        reverse_redirects: Dict of character -> [aliases]
-        
-    Returns:
-        dict: Complete character index
-    """
     print(f"\n⚙️  Processing {len(characters):,} characters...")
     
     character_index = {}
     
-    # Track statistics
+    # Statistics
     stats = {
         'total': 0,
-        'with_chronology': 0,
-        'with_books': 0,
         'with_aliases': 0,
-        'with_abilities': 0,
-        'with_titles': 0,
+        'with_books': 0,
         'channelers': 0,
-        'ta_veren': 0
+        'male_channelers': 0,
+        'female_channelers': 0,
+        'ta_veren': 0,
+        'wolfbrothers': 0,
+        'dreamers': 0,
+        'with_ajah': 0,
+        'with_nationality': 0,
+        'with_organizations': 0,
+        'darkfriends': 0,
+        'with_professions': 0,
     }
     
     for filename, char_data in characters.items():
-        character_name = char_data.get('character_name')
-        if not character_name:
+        entry = process_character(filename, char_data)
+        
+        if not entry:
             continue
         
+        character_name = entry['primary_name']
+        character_index[character_name] = entry
+        
+        # Update statistics
         stats['total'] += 1
         
-        # Build index entry
-        index_entry = {
-            'primary_name': character_name,
-            'filename': filename,
-            'page_type': char_data.get('page_type', 'CHARACTER')
-        }
-        
-        # Extract books appeared
-        books = extract_books_appeared(char_data)
-        
-        # Check for chronology page
-        chronology_name = filename.replace('.txt', '_Chronology.txt')
-        if chronology_name in chronologies:
-            index_entry['has_chronology'] = True
-            index_entry['chronology_file'] = chronology_name
-            stats['with_chronology'] += 1
-            
-            # Merge books from chronology
-            chrono_books = extract_books_appeared(chronologies[chronology_name])
-            books = sorted(set(books + chrono_books))
-        
-        # Only add books if not empty
-        if books:
-            index_entry['books_appeared'] = books
-            stats['with_books'] += 1
-        
-        # Get aliases from redirects
-        normalized_name = normalize_name(character_name)
-        aliases = reverse_redirects.get(normalized_name, [])
-        
-        # Also check by filename
-        normalized_filename = normalize_name(filename)
-        if normalized_filename != normalized_name:
-            aliases.extend(reverse_redirects.get(normalized_filename, []))
-        
-        # Remove duplicates
-        aliases = list(set(aliases))
-        
-        if aliases:
-            index_entry['aliases'] = sorted(aliases)
+        if entry.get('aliases'):
             stats['with_aliases'] += 1
         
-        # Extract abilities
-        abilities = extract_abilities(char_data)
-        if abilities:
-            index_entry['abilities'] = abilities
-            stats['with_abilities'] += 1
-            
-            if abilities.get('channeling'):
-                stats['channelers'] += 1
-            if abilities.get('ta_veren'):
-                stats['ta_veren'] += 1
+        if entry.get('books_appeared'):
+            stats['with_books'] += 1
         
-        # Extract titles
-        titles = extract_titles(char_data)
-        if titles:
-            index_entry['titles'] = titles
-            stats['with_titles'] += 1
+        if entry.get('can_channel'):
+            stats['channelers'] += 1
+            if entry.get('channeling_type') == 'saidin':
+                stats['male_channelers'] += 1
+            elif entry.get('channeling_type') == 'saidar':
+                stats['female_channelers'] += 1
         
-        # Add categories
-        categories = char_data.get('metadata', {}).get('categories', [])
-        if categories:
-            index_entry['categories'] = categories
+        if entry.get('ajah'):
+            stats['with_ajah'] += 1
         
-        # Add to index
-        character_index[character_name] = index_entry
+        abilities = entry.get('special_abilities', [])
+        if 'ta_veren' in abilities:
+            stats['ta_veren'] += 1
+        if 'wolfbrother' in abilities:
+            stats['wolfbrothers'] += 1
+        if 'dreamer' in abilities or 'dreamwalker' in abilities:
+            stats['dreamers'] += 1
+        
+        if entry.get('nationalities'):
+            stats['with_nationality'] += 1
+        
+        if entry.get('organizations'):
+            stats['with_organizations'] += 1
+        
+        if entry.get('alignment'):
+            stats['darkfriends'] += 1
+        
+        if entry.get('professions'):
+            stats['with_professions'] += 1
         
         # Progress indicator
         if stats['total'] % 500 == 0:
             print(f"   Processed {stats['total']:,} characters...")
     
     print(f"\n✅ Processed all {stats['total']:,} characters")
-    print(f"\n📊 Statistics:")
-    print(f"   Characters with chronology pages:  {stats['with_chronology']:3,}")
-    print(f"   Characters with book appearances:  {stats['with_books']:3,}")
-    print(f"   Characters with aliases:           {stats['with_aliases']:3,}")
-    print(f"   Characters with abilities:         {stats['with_abilities']:3,}")
-    print(f"   Characters with titles:            {stats['with_titles']:3,}")
-    print(f"   Channelers:                        {stats['channelers']:3,}")
-    print(f"   Ta'veren:                          {stats['ta_veren']:3,}")
     
     return character_index, stats
 
 
-def validate_major_characters(character_index):
-    """
-    Deep validation of the 5 major characters.
+def print_statistics(stats: Dict):
+    """Print comprehensive statistics."""
+    print(f"\n📊 Character Index Statistics:")
+    print(f"   Total characters:              {stats['total']:5,}")
+    print(f"   Characters with aliases:       {stats['with_aliases']:5,}")
+    print(f"   Characters with book data:     {stats['with_books']:5,}")
+    print(f"\n   Channeling:")
+    print(f"   Total channelers:              {stats['channelers']:5,}")
+    print(f"   Male channelers (saidin):      {stats['male_channelers']:5,}")
+    print(f"   Female channelers (saidar):    {stats['female_channelers']:5,}")
+    print(f"   With Ajah affiliation:         {stats['with_ajah']:5,}")
+    print(f"\n   Special Abilities:")
+    print(f"   Ta'veren:                      {stats['ta_veren']:5,}")
+    print(f"   Wolfbrothers:                  {stats['wolfbrothers']:5,}")
+    print(f"   Dreamers/Dreamwalkers:         {stats['dreamers']:5,}")
+    print(f"\n   Other:")
+    print(f"   With nationality:              {stats['with_nationality']:5,}")
+    print(f"   With organizations:            {stats['with_organizations']:5,}")
+    print(f"   Dark-aligned:                  {stats['darkfriends']:5,}")
+    print(f"   With professions:              {stats['with_professions']:5,}")
+
+
+def validate_major_characters(character_index: Dict) -> bool:
+    """Validate the 5 major characters with detailed output."""
     
-    Args:
-        character_index: Complete character index
-        
-    Returns:
-        bool: Validation passed
-    """
     print(f"\n🔍 Validating major characters...")
     
     major_characters = [
@@ -417,40 +387,42 @@ def validate_major_characters(character_index):
         
         char = character_index[char_name]
         
-        # Check chronology
-        if char.get('has_chronology'):
-            print(f"      ✓ Has chronology page: {char['chronology_file']}")
-        else:
-            print(f"      ⚠️  No chronology page")
+        # Gender
+        if char.get('gender'):
+            print(f"      ✓ Gender: {char['gender']}")
         
-        # Check books
-        books = char.get('books_appeared', [])
-        if books:
+        # Channeling
+        if char.get('can_channel'):
+            print(f"      ✓ Can channel: {char.get('channeling_type', 'unknown')}")
+            if char.get('channeling_affiliations'):
+                print(f"         Affiliations: {', '.join(char['channeling_affiliations'])}")
+            if char.get('ajah'):
+                print(f"         Ajah: {char['ajah']}")
+        
+        # Special abilities
+        if char.get('special_abilities'):
+            print(f"      ✓ Special abilities: {', '.join(char['special_abilities'])}")
+        
+        # Aliases
+        if char.get('aliases'):
+            print(f"      ✓ {len(char['aliases'])} aliases: {', '.join(char['aliases'][:3])}...")
+        
+        # Books
+        if char.get('books_appeared'):
+            books = char['books_appeared']
             print(f"      ✓ Appears in {len(books)} books: {books}")
-        else:
-            print(f"      ⚠️  No book appearances recorded")
         
-        # Check aliases
-        aliases = char.get('aliases', [])
-        if aliases:
-            print(f"      ✓ {len(aliases)} aliases: {aliases[:3]}...")
-        else:
-            print(f"      ⚠️  No aliases found")
+        # Nationality
+        if char.get('nationalities'):
+            print(f"      ✓ Nationality: {', '.join(char['nationalities'])}")
         
-        # Check abilities
-        abilities = char.get('abilities', {})
-        if abilities:
-            print(f"      ✓ Abilities: {', '.join(abilities.keys())}")
-        else:
-            print(f"      ⚠️  No abilities detected")
+        # Organizations
+        if char.get('organizations'):
+            print(f"      ✓ Organizations: {', '.join(char['organizations'])}")
         
-        # Check titles
-        titles = char.get('titles', [])
-        if titles:
-            title_names = [t['title'] for t in titles]
-            print(f"      ✓ {len(titles)} titles: {title_names}")
-        else:
-            print(f"      ⚠️  No titles found")
+        # Social roles
+        if char.get('social_roles'):
+            print(f"      ✓ Roles: {', '.join(char['social_roles'])}")
     
     if validation_passed:
         print(f"\n   ✅ All major characters validated!")
@@ -460,89 +432,37 @@ def validate_major_characters(character_index):
     return validation_passed
 
 
-def save_character_index(character_index, stats, output_file):
-    """
-    Save character index to JSON file.
-    
-    Args:
-        character_index: Complete character index
-        stats: Statistics dict
-        output_file: Output file path
-    """
-    print(f"\n💾 Saving character index to: {output_file}")
-    
-    # Save main index
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(character_index, f, indent=2, ensure_ascii=False)
-    
-    file_size = Path(output_file).stat().st_size / (1024 * 1024)
-    print(f"   ✓ Saved {len(character_index):,} characters ({file_size:.2f} MB)")
-    
-    # Save summary statistics
-    stats_file = str(output_file).replace('.json', '_stats.txt')
-    with open(stats_file, 'w', encoding='utf-8') as f:
-        f.write("="*80 + "\n")
-        f.write("CHARACTER INDEX STATISTICS\n")
-        f.write("="*80 + "\n\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        
-        f.write(f"Total characters indexed:           {stats['total']:5,}\n")
-        f.write(f"Characters with chronology pages:   {stats['with_chronology']:5,}\n")
-        f.write(f"Characters with book appearances:   {stats['with_books']:5,}\n")
-        f.write(f"Characters with aliases:            {stats['with_aliases']:5,}\n")
-        f.write(f"Characters with abilities:          {stats['with_abilities']:5,}\n")
-        f.write(f"Characters with titles:             {stats['with_titles']:5,}\n")
-        f.write(f"Channelers:                         {stats['channelers']:5,}\n")
-        f.write(f"Ta'veren:                           {stats['ta_veren']:5,}\n")
-    
-    print(f"   ✓ Saved statistics to: {stats_file}")
-
-
 def main():
     """Main character indexing function."""
-    import sys
     
-    print("\n" + "="*80)
-    print("DRAGON'S CODEX - CHARACTER INDEX BUILDER")
-    print("="*80)
+    print("\n" + "=" * 80)
+    print("DRAGON'S CODEX - CHARACTER INDEX BUILDER v2.0")
+    print("Category-Based Extraction")
+    print("=" * 80)
     
     print(f"\n📂 Configuration:")
     print(f"   Character file:   {character_file}")
-    print(f"   Chronology file:  {chronology_file}")
-    print(f"   Redirect file:    {redirect_file}")
     print(f"   Output file:      {output_file}")
     
-    start_time = datetime.now()
-    
     # Step 1: Load data
-    characters, chronologies, redirects = load_data(
-        character_file, chronology_file, redirect_file
-    )
-    
-    # Step 2: Build reverse redirect map
-    reverse_redirects = build_reverse_redirect_map(redirects)
+    characters = load_json_from_file(character_file)
     
     # Step 3: Process all characters
-    character_index, stats = process_characters(
-        characters, chronologies, reverse_redirects
-    )
+    character_index, stats = process_all_characters(characters)
     
-    # Step 4: Validate major characters
+    # Step 4: Print statistics
+    print_statistics(stats)
+    
+    # Step 5: Validate major characters
     validate_major_characters(character_index)
     
-    # Step 5: Save index
-    save_character_index(character_index, stats, output_file)
+    # Step 6: Save index
+    save_json_to_file(character_index, output_file, indent=2)
     
-    # Final summary
-    end_time = datetime.now()
-    duration = end_time - start_time
-    
-    print("\n" + "="*80)
-    print("CHARACTER INDEX COMPLETE!")
-    print("="*80)
-    print(f"\n⏱️  Total time: {duration}")
+    print("\n" + "=" * 80)
+    print("CHARACTER INDEX BUILD COMPLETE!")
+    print("=" * 80)
     print(f"📊 Characters indexed: {len(character_index):,}")
-    print(f"\n✅ Week 3 Goal 3: COMPLETE!\n")
 
 
 if __name__ == "__main__":

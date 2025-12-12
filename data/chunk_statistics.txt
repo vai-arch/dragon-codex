@@ -1,0 +1,40 @@
+================================================================================
+DRAGON'S CODEX - FINAL CHUNK STATISTICS
+Week 4 - Complete Data Pipeline
+================================================================================
+
+OVERALL STATISTICS
+--------------------------------------------------------------------------------
+Total Chunks: 24,773
+Total Character Mentions: 69,996
+Total Concept Mentions: 77,716
+Total Magic Mentions: 4,495
+
+STATISTICS BY SOURCE
+--------------------------------------------------------------------------------
+Source                      Chunks    Char%   Concept%   Magic%    AvgSize
+--------------------------------------------------------------------------------
+Books                        7,374    99.4%      99.7%    29.6%     908 tok
+Wiki Chronology                 26   100.0%      96.2%    38.5%     398 tok
+Wiki Character              10,745    28.4%      33.6%     1.6%      56 tok
+Wiki Chapter Summary           756    98.1%      98.0%    29.0%     742 tok
+Wiki Concept                 5,872    35.8%      45.6%     7.1%     110 tok
+
+TEMPORAL DISTRIBUTION
+--------------------------------------------------------------------------------
+Temporal chunks (with book_number): 8,147 (32.9%)
+Non-temporal chunks (reference): 16,626 (67.1%)
+
+SIZE DISTRIBUTION
+--------------------------------------------------------------------------------
+Average: 1,376 chars (344 tokens)
+Minimum: 5 chars (1 tokens)
+Maximum: 7,958 chars (1990 tokens)
+
+MENTION DENSITY
+--------------------------------------------------------------------------------
+Average character mentions per chunk: 2.83
+Average concept mentions per chunk: 3.14
+Average magic mentions per chunk: 0.18
+
+================================================================================

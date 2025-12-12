@@ -18,16 +18,17 @@ import json
 import re
 import time
 from pathlib import Path
+from src.utils.config import Config
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-
+from src.utils.wiki_constants import CATEGORIES_TO_SKIP
 
 class WoTWikiScraper:
     """
     Enhanced scraper for WoT Fandom wiki using MediaWiki API
     """
     
-    def __init__(self, base_url="https://wot.fandom.com"):
+    def __init__(self, base_url=Config().WIKI_BASE_URL):
         self.base_url = base_url
         self.api_url = f"{base_url}/api.php"
         self.session = requests.Session()
@@ -151,8 +152,8 @@ class WoTWikiScraper:
             value_elem = item.find('div', class_='pi-data-value')
             
             if label_elem and value_elem:
-                label = label_elem.get_text(strip=True)
-                value = value_elem.get_text(strip=True)
+                label = label_elem.get_text(" ", strip=True)
+                value = value_elem.get_text(" ", strip=True)
                 
                 # Skip empty values
                 if not value:
@@ -172,7 +173,7 @@ class WoTWikiScraper:
             section_name = 'other'
             
             if header:
-                header_text = header.get_text(strip=True).lower()
+                header_text = header.get_text(" ", strip=True).lower()
                 if 'biographical' in header_text:
                     section_name = 'biographical'
                 elif 'physical' in header_text:
@@ -188,8 +189,8 @@ class WoTWikiScraper:
                 value_elem = item.find('div', class_='pi-data-value')
                 
                 if label_elem and value_elem:
-                    label = label_elem.get_text(strip=True)
-                    value = value_elem.get_text(strip=True)
+                    label = label_elem.get_text(" ", strip=True)
+                    value = value_elem.get_text(" ", strip=True)
                     
                     if value:
                         # Use the section name from the header
@@ -302,89 +303,127 @@ class WoTWikiScraper:
         return text
     
     def parse_html_content(self, html):
-        """
-        Parse HTML content into structured sections
+        from bs4 import BeautifulSoup
         
-        Args:
-            html: HTML content from API
-        
-        Returns:
-            dict with section names as keys, content as values
-        """
-        soup = BeautifulSoup(html, 'html.parser')
-        
+        soup = BeautifulSoup(html, "html.parser")
         sections = {}
-        current_section = 'Overview'
+        current_section = "Overview"
         current_content = []
-        
-        # Find the main content div
-        content = soup.find('div', class_='mw-parser-output')
-        if not content:
-            content = soup
-        
-        # Remove infobox from content (we handle it separately)
-        for infobox in content.find_all('aside', class_='portable-infobox'):
-            infobox.decompose()
-        
-        # Remove navigation boxes, tables, etc.
-        for nav in content.find_all('div', class_='navbox'):
-            nav.decompose()
-        for table in content.find_all('table', class_='wikitable'):
-            table.decompose()
-        
+        last_header = None
+
+        content = soup.find("div", class_="mw-parser-output") or soup
+
+        # Remove junk elements
+        for tag in content.find_all(["aside", "div", "table"], 
+                                class_=["portable-infobox", "navbox", "wikitable"]):
+            tag.decompose()
+
+        # Iterate through top-level children
         for elem in content.children:
-            if not hasattr(elem, 'name'):
+            if not hasattr(elem, "name"):
                 continue
-            
-            # Skip script, style tags
-            if elem.name in ['script', 'style']:
+            if elem.name in ("script", "style"):
                 continue
-            
-            # Section headers (h2, h3)
-            if elem.name == 'h2':
-                # Save previous section
+
+            # -------------------------------
+            # H2 — main section title
+            # -------------------------------
+            if elem.name == "h2":
                 if current_content:
-                    sections[current_section] = '\n\n'.join(current_content)
-                
-                # Start new section
-                span = elem.find('span', class_='mw-headline')
+                    sections[current_section] = "\n\n".join(current_content)
+
+                span = elem.find("span", class_="mw-headline")
                 if span:
-                    section_title = span.get_text(strip=True)
-                    # Skip "Contents" and "References" sections
-                    if section_title.lower() not in ['contents', 'references', 'notes']:
-                        current_section = section_title
+                    title = span.get_text(" ", strip=True)
+                    if title.lower() not in ["contents", "references", "notes"]:
+                        current_section = title
                         current_content = []
-            
-            elif elem.name == 'h3':
-                # Subsection - add as part of current section with header
-                span = elem.find('span', class_='mw-headline')
+                        last_header = None
+                continue
+
+            # -------------------------------
+            # H3 — subsection title
+            # -------------------------------
+            if elem.name == "h3":
+                span = elem.find("span", class_="mw-headline")
                 if span:
-                    subsection_title = span.get_text(strip=True)
-                    if subsection_title.lower() not in ['references', 'notes']:
-                        current_content.append(f"\n### {subsection_title}\n")
-            
-            # Content elements
-            elif elem.name == 'p':
-                text = elem.get_text(strip=True)
-                if text and len(text) > 10:  # Skip very short paragraphs
+                    subtitle = span.get_text(" ", strip=True)
+                    if subtitle.lower() not in ["references", "notes"]:
+                        current_content.append(f"### {subtitle}")
+                        last_header = "h3"
+                continue
+
+            # -------------------------------
+            # Paragraphs
+            # -------------------------------
+            if elem.name == "p":
+                text = elem.get_text(" ", strip=True)
+
+                # Remove numeric citations [9], [ 14 ], etc.
+                text = re.sub(r'\[\s*\d+\s*\]', '', text)
+
+                # Remove all bracketed citation-like text [citation needed], etc.
+                text = re.sub(r'\[\s*[^\]]+\s*\]', '', text)
+
+                # Collapse multiple spaces created after removing citations
+                text = re.sub(r'\s{2,}', ' ', text).strip()
+
+                # Fix leftover " ." / " ," / " ?" etc.
+                text = re.sub(r'\s+([.,!?;:])', r'\1', text)
+                
+                # Keep chapter titles + content after h3
+                if text and len(text) > 2:
                     current_content.append(text)
-            
-            elif elem.name in ['ul', 'ol']:
-                items = elem.find_all('li', recursive=False)
+
+                last_header = None
+                continue
+
+            # -------------------------------
+            # Lists (ul/ol)
+            # -------------------------------
+            if elem.name in ("ul", "ol"):
                 list_items = []
-                for item in items:
-                    text = item.get_text(strip=True)
-                    if text:
-                        list_items.append(f"- {text}")
+                for li in elem.find_all("li", recursive=False):
+                    t = li.get_text(" ", strip=True)
+                    if t:
+                        list_items.append(f"- {t}")
                 if list_items:
-                    current_content.append('\n'.join(list_items))
-        
-        # Save last section
+                    current_content.append("\n".join(list_items))
+                last_header = None
+                continue
+
+            # -------------------------------
+            # Definition Lists (dl)
+            # -------------------------------
+            if elem.name == "dl":
+                dl_items = []
+                for child in elem.children:
+                    if not hasattr(child, "name"):
+                        continue
+                    
+                    if child.name == "dt":
+                        # Definition term (usually bold labels)
+                        term = child.get_text(" ", strip=True)
+                        if term:
+                            dl_items.append(f"**{term}**")
+                    
+                    elif child.name == "dd":
+                        # Definition description (the actual content)
+                        desc = child.get_text(" ", strip=True)
+                        if desc:
+                            dl_items.append(desc)
+                
+                if dl_items:
+                    current_content.append("\n\n".join(dl_items))
+                last_header = None
+                continue
+
+        # Save final section
         if current_content:
-            sections[current_section] = '\n\n'.join(current_content)
-        
+            sections[current_section] = "\n\n".join(current_content)
+
         return sections
-    
+
     def save_as_markdown(self, page_data, output_path):
         """
         Save complete page data as enhanced markdown
@@ -403,7 +442,7 @@ class WoTWikiScraper:
         lines.append("<!-- Metadata -->")
         lines.append(f"<!-- Page ID: {page_data.get('pageid', 'unknown')} -->")
         if page_data['categories']:
-            lines.append(f"<!-- Categories: {', '.join(page_data['categories'][:10])} -->")
+            lines.append(f"<!-- Categories: {', '.join(page_data['categories'])} -->")
         lines.append("")
         
         # Infobox as structured data
@@ -508,6 +547,15 @@ class WoTWikiScraper:
                     stats['errors'].append(f"{char_name}: Page not found")
                     continue
                 
+                page_categories = {c.lower() for c in page_data.get("categories", [])}
+                skip_categories_lower = {c.lower() for c in CATEGORIES_TO_SKIP}
+
+                if page_categories & skip_categories_lower:
+                    # Found at least one category to skip
+                    stats["skipped"] += 1
+                    print(f"  → Skipped (blocked categories match): {char_name}")
+                    continue
+
                 # Update safe filename from actual title
                 safe_filename = page_data['title'].replace(' ', '_').replace('/', '_')
                 safe_filename = re.sub(r'[<>:"|?*]', '', safe_filename)
@@ -583,7 +631,7 @@ def main():
     print("Testing Enhanced WoT Wiki Scraper")
     print("="*60)
     
-    test_character = "Rand"
+    test_character = "Karaethon_Cycle"
     
     # Get data
     data = scraper.get_page_data(test_character)

@@ -16,13 +16,11 @@ Author: Dragon's Codex Project
 
 **What it does:**
 - Gets ALL page titles from WoT wiki via API
-- Saves to `data/auxiliary/wiki/wiki_all_page_titles.json`
-- You'll get ~15,000 page titles (not just 6,000 characters!)
 
-**Output you'll see:**
-```
-Total Pages: 15,234
-✓ Saved to: data/auxiliary/wiki/wiki_all_page_titles.json
+Input: None
+Output: - 'wiki_all_pages.json'
+        - 'wiki_all_categories.json'
+        - 'wiki_all_page_titles.json'
 """
 
 import requests
@@ -30,14 +28,15 @@ import json
 import time
 from pathlib import Path
 from tqdm import tqdm
-
+from src.utils.config import Config
+from src.utils.util_files_functions import load_json_from_file, remove_file, save_json_to_file
 
 class WikiPageListDownloader:
     """
     Downloads complete list of all pages from a MediaWiki wiki
     """
     
-    def __init__(self, base_url="https://wot.fandom.com"):
+    def __init__(self, base_url=Config().WIKI_BASE_URL):
         self.base_url = base_url
         self.api_url = f"{base_url}/api.php"
         self.session = requests.Session()
@@ -109,8 +108,16 @@ class WikiPageListDownloader:
                     # No more pages
                     break
         
+        if(len(all_pages) == 0):
+            raise ValueError(f"No pages were downloaded from namespace {namespace}.")
+
         print(f"\n✓ Downloaded {len(all_pages)} pages from namespace {namespace}")
-        return all_pages
+
+        save_json_to_file(all_pages, Config().FILE_WIKI_ALL_PAGES, 2)
+
+        # Create simple page title list for batch scraper
+        page_titles = [page['title'] for page in all_pages]
+        save_json_to_file(page_titles, Config().FILE_WIKI_ALL_PAGE_TITLES, 2)  
     
     def get_all_categories(self, delay=0.5):
         """
@@ -160,197 +167,14 @@ class WikiPageListDownloader:
                 else:
                     break
         
-        print(f"\n✓ Downloaded {len(all_categories)} categories")
-        return all_categories
-    
-    def get_category_members(self, category_name, delay=0.5):
-        """
-        Get all pages in a specific category
-        
-        Args:
-            category_name: Name of category (with or without "Category:" prefix)
-            delay: Seconds between requests
-        
-        Returns:
-            list of page titles in the category
-        """
-        # Ensure category name has proper prefix
-        if not category_name.startswith('Category:'):
-            category_name = f'Category:{category_name}'
-        
-        members = []
-        continue_token = None
-        
-        print(f"Fetching members of: {category_name}")
-        
-        with tqdm(desc="Downloading members", unit=" pages") as pbar:
-            while True:
-                params = {
-                    'action': 'query',
-                    'list': 'categorymembers',
-                    'cmtitle': category_name,
-                    'cmlimit': 500,
-                    'format': 'json'
-                }
-                
-                if continue_token:
-                    params.update(continue_token)
-                
-                try:
-                    response = self.session.get(self.api_url, params=params)
-                    response.raise_for_status()
-                    data = response.json()
-                    
-                except Exception as e:
-                    print(f"\n✗ Error: {e}")
-                    break
-                
-                if 'query' in data and 'categorymembers' in data['query']:
-                    pages = data['query']['categorymembers']
-                    
-                    for page in pages:
-                        members.append({
-                            'title': page['title'],
-                            'pageid': page['pageid'],
-                            'category': category_name
-                        })
-                    
-                    pbar.update(len(pages))
-                
-                if 'continue' in data:
-                    continue_token = data['continue']
-                    time.sleep(delay)
-                else:
-                    break
-        
-        print(f"✓ Found {len(members)} members")
-        return members
-    
-    def download_complete_wiki(self, output_dir='data/auxiliary/wiki'):
-        """
-        Download complete page list from wiki
-        
-        Downloads:
-        1. All main namespace pages (articles)
-        2. All categories
-        3. Category memberships for major categories
-        
-        Args:
-            output_dir: Where to save the JSON files
-        """
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        results = {
-            'all_pages': [],
-            'categories': [],
-            'category_members': {},
-            'statistics': {}
-        }
-        
-        print("="*60)
-        print("WoT Wiki Complete Download")
-        print("="*60)
-        print()
-        
-        # 1. Get all main namespace pages (articles)
-        print("STEP 1: Getting all article pages...")
-        print("-"*60)
-        results['all_pages'] = self.get_all_pages(namespace=0)
-        
-        # Save immediately
-        pages_file = output_dir / 'wiki_all_pages.json'
-        with open(pages_file, 'w', encoding='utf-8') as f:
-            json.dump(results['all_pages'], f, indent=2, ensure_ascii=False)
-        print(f"✓ Saved to: {pages_file}\n")
-        
-        # 2. Get all categories
-        print("STEP 2: Getting all categories...")
-        print("-"*60)
-        results['categories'] = self.get_all_categories()
-        
-        # Save
-        cats_file = output_dir / 'wiki_all_categories.json'
-        with open(cats_file, 'w', encoding='utf-8') as f:
-            json.dump(results['categories'], f, indent=2, ensure_ascii=False)
-        print(f"✓ Saved to: {cats_file}\n")
-        
-        # 3. Get members of major categories
-        print("STEP 3: Getting category memberships...")
-        print("-"*60)
-        
-        major_categories = [
-            'Characters',
-            'Locations',
-            'Objects',
-            'Events',
-            'Organizations',
-            'Books',
-            'Aes Sedai',
-            'Prophecies'
-        ]
-        
-        for cat_name in major_categories:
-            print(f"\n{cat_name}:")
-            members = self.get_category_members(cat_name)
-            results['category_members'][cat_name] = members
-        
-        # Save category members
-        cat_members_file = output_dir / 'wiki_category_members.json'
-        with open(cat_members_file, 'w', encoding='utf-8') as f:
-            json.dump(results['category_members'], f, indent=2, ensure_ascii=False)
-        print(f"\n✓ Saved to: {cat_members_file}\n")
-        
-        # 4. Calculate statistics
-        print("="*60)
-        print("STATISTICS")
-        print("="*60)
-        
-        results['statistics'] = {
-            'total_pages': len(results['all_pages']),
-            'total_categories': len(results['categories']),
-            'category_breakdown': {}
-        }
-        
-        for cat_name, members in results['category_members'].items():
-            results['statistics']['category_breakdown'][cat_name] = len(members)
-        
-        print(f"\nTotal Pages: {results['statistics']['total_pages']:,}")
-        print(f"Total Categories: {results['statistics']['total_categories']:,}")
-        print("\nMajor Categories:")
-        for cat_name, count in results['statistics']['category_breakdown'].items():
-            print(f"  {cat_name:.<30} {count:>6,} pages")
-        
-        # Save complete results
-        complete_file = output_dir / 'wiki_complete_index.json'
-        with open(complete_file, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        
-        print(f"\n✓ Complete index saved to: {complete_file}")
-        
-        # Create simple page title list for batch scraper
-        page_titles = [page['title'] for page in results['all_pages']]
-        titles_file = output_dir / 'wiki_all_page_titles.json'
-        with open(titles_file, 'w', encoding='utf-8') as f:
-            json.dump(page_titles, f, indent=2, ensure_ascii=False)
-        
-        print(f"✓ Page titles list saved to: {titles_file}")
-        
-        print("\n" + "="*60)
-        print("DOWNLOAD COMPLETE!")
-        print("="*60)
-        print(f"\nFiles created in {output_dir}:")
-        print(f"  1. wiki_all_pages.json - Complete page list with IDs")
-        print(f"  2. wiki_all_categories.json - All category names")
-        print(f"  3. wiki_category_members.json - Major category memberships")
-        print(f"  4. wiki_complete_index.json - Everything combined")
-        print(f"  5. wiki_all_page_titles.json - Simple title list for scraping")
-        print()
-        print("Next step: Use wiki_all_page_titles.json with batch_scraper.py")
-        print(f"to scrape all {results['statistics']['total_pages']:,} pages!")
-        
-        return results
+        if(len(all_categories) == 0):
+            raise ValueError(f"No categories were downloaded.")
 
+        print(f"\n✓ Downloaded {len(all_categories)} categories")
+
+        save_json_to_file(all_categories, Config().FILE_WIKI_ALL_CATEGORIES, 2)
+
+        return all_categories
 
 def main():
     """
@@ -363,40 +187,19 @@ def main():
     print()
     print("This will download the complete list of ALL pages from the")
     print("Wheel of Time Fandom wiki using the MediaWiki API.")
-    print()
-    print("What you'll get:")
-    print("  • All article pages (10,000-20,000 pages)")
-    print("  • All categories")
-    print("  • Category memberships for major categories")
-    print()
     print("Time: ~2-5 minutes")
     print("Output: JSON files in data/ directory")
-    print()
-    
-    response = input("Continue? (y/n): ").strip().lower()
-    
-    if response != 'y':
-        print("\nCancelled.")
-        return
-    
     print()
     
     # Create downloader
     downloader = WikiPageListDownloader()
     
     # Download everything
-    results = downloader.download_complete_wiki()
+    downloader.get_all_pages()
+        
+    downloader.get_all_categories()
     
     print("\n✓ SUCCESS!")
-    print(f"\nYou now have the complete wiki index with {results['statistics']['total_pages']:,} pages.")
-    print("\nTo scrape all pages with enhanced data:")
-    print("  python scripts/batch_scraper.py")
-    print()
-    print("When prompted:")
-    print("  • Choose option 2 (custom list)")
-    print("  • List file: data/wiki_all_page_titles.json")
-    print("  • Output: data/raw/wiki_complete")
-    print()
 
 
 if __name__ == "__main__":

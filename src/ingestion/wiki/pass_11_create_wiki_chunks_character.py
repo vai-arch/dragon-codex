@@ -2,31 +2,32 @@
 Week 4 - Goal 1: Create Wiki Chunks (Character)
 Creates chunks from character wiki pages (2,452 files)
 Each section becomes one chunk (combining subsections if present)
+Input: wiki_character.json
+Output: wiki_chunks_character.jsonl
 """
 
-import json
-from pathlib import Path
 from src.utils.config import get_config
+from src.utils.util_files_functions import load_json_from_file, remove_file, save_jsonl_to_file
+from src.utils.util_chunking_functions import split_into_paragraphs, split_paragraph_into_chunks, chunk_statistics
+from src.utils.config import Config
 
 def chunk_character_pages():
     """
     Chunk the 2,452 character pages.
-    Each section (or combined subsections) becomes one chunk.
+    Groups sections together to reach target size, preserving structure.
     """
-    config = get_config()
-    
-    # Load character data
-    character_file = config.FILE_WIKI_CHARACTER
-    with open(character_file, 'r', encoding='utf-8') as f:
-        character_data = json.load(f)
-    
-    chunks = []
+    character_data = load_json_from_file(Config().FILE_WIKI_CHARACTER)
+    config = Config()
+    all_chunks = []
     
     # Process each character page
     for filename, page_data in character_data.items():
         character_name = page_data['character_name']
         
-        # Process non-temporal sections
+        # Build list of section texts
+        section_texts = []
+        section_titles = []
+        
         for section in page_data['non_temporal_sections']:
             section_title = section['section_title']
             
@@ -49,47 +50,97 @@ def chunk_character_pages():
             if not text.strip():
                 continue
             
+            section_texts.append(text)
+            section_titles.append(section_title)
+        
+        if not section_texts:
+            continue
+        
+        # Group sections into chunks
+        chunks = []
+        current_chunk_sections = []
+        current_chunk_titles = []
+        current_size = 0
+        
+        for section_text, section_title in zip(section_texts, section_titles):
+            section_size = len(section_text)
+            
+            # If single section exceeds max, split it
+            if section_size > config.MAX_CHUNK_SIZE:
+                # Save current chunk if exists
+                if current_chunk_sections:
+                    chunks.append({
+                        'text': "\n\n".join(current_chunk_sections),
+                        'section_title': ", ".join(current_chunk_titles)
+                    })
+                    current_chunk_sections = []
+                    current_chunk_titles = []
+                    current_size = 0
+                
+                # Split oversized section
+                section_chunks = split_into_paragraphs(section_text)
+                for chunk_text in section_chunks:
+                    chunks.append({
+                        'text': chunk_text,
+                        'section_title': section_title
+                    })
+                continue
+            
+            # Check if adding this section would exceed max
+            separator_size = 2 if current_chunk_sections else 0
+            new_size = current_size + separator_size + section_size
+            
+            if new_size <= config.MAX_CHUNK_SIZE:
+                # Fits - add to current chunk
+                current_chunk_sections.append(section_text)
+                current_chunk_titles.append(section_title)
+                current_size = new_size
+            else:
+                # Doesn't fit - start new chunk
+                if current_chunk_sections:
+                    chunks.append({
+                        'text': "\n\n".join(current_chunk_sections),
+                        'section_title': ", ".join(current_chunk_titles)
+                    })
+                
+                current_chunk_sections = [section_text]
+                current_chunk_titles = [section_title]
+                current_size = section_size
+        
+        # Add final chunk
+        if current_chunk_sections:
+            chunks.append({
+                'text': "\n\n".join(current_chunk_sections),
+                'section_title': ", ".join(current_chunk_titles)
+            })
+        
+        # Create chunk objects with metadata
+        total_chunks = len(chunks)
+        for idx, chunk_data in enumerate(chunks):
             chunk = {
                 'source': 'wiki',
                 'wiki_type': 'character',
                 'character_name': character_name,
                 'filename': filename,
-                'section_title': section_title,
+                'section_title': chunk_data['section_title'],
                 'temporal_order': None,
-                'text': text
+                'chunk_index': idx + 1,
+                'total_chunks': total_chunks,
+                'text': chunk_data['text']
             }
-            chunks.append(chunk)
+            all_chunks.append(chunk)
     
     # Save chunks
-    output_file = config.FILE_WIKI_CHUNKS_CHARACTER
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for chunk in chunks:
-            f.write(json.dumps(chunk, ensure_ascii=False) + '\n')
-    
+    save_jsonl_to_file(all_chunks, config.FILE_WIKI_CHUNKS_CHARACTER)
+
     # Print statistics
     print(f"✅ Character Chunking Complete")
-    print(f"   Total chunks: {len(chunks)}")
+    print(f"   Total chunks: {len(all_chunks)}")
     print(f"   Characters processed: {len(character_data)}")
-    print(f"   Average chunks per character: {len(chunks)/len(character_data):.1f}")
-    print(f"   Output: {output_file}")
+    print(f"   Average chunks per character: {len(all_chunks)/len(character_data):.1f}")
+    print(f"   Output: {config.FILE_WIKI_CHUNKS_CHARACTER}")
     
-    # Size analysis
-    chunk_sizes = [len(chunk['text']) for chunk in chunks]
-    avg_size = sum(chunk_sizes) / len(chunk_sizes)
-    min_size = min(chunk_sizes)
-    max_size = max(chunk_sizes)
-    
-    print(f"\n📏 Chunk size statistics (characters):")
-    print(f"   Average: {avg_size:.0f}")
-    print(f"   Min: {min_size}")
-    print(f"   Max: {max_size}")
-    print(f"   Approx tokens (÷4): avg={avg_size/4:.0f}, max={max_size/4:.0f}")
-    
-    # Check for oversized chunks
-    oversized = [size for size in chunk_sizes if size > 8000]  # 2000 tokens
-    if oversized:
-        print(f"\n⚠️  WARNING: {len(oversized)} chunks exceed 2000 tokens:")
-        print(f"   Sizes: {sorted(oversized, reverse=True)[:5]}")  # Show top 5
+    chunk_statistics(all_chunks)
 
 if __name__ == "__main__":
     chunk_character_pages()
