@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 import ahocorasick
 import re
@@ -5,8 +6,16 @@ from pathlib import Path
 from typing import Set
 from tqdm import tqdm
 from src.utils.config import get_config
-from src.utils.util_files_functions import load_json_from_file, save_jsonl_to_file, load_line_by_line
-from src.utils.util_statistics import log_results, log_results_table, print_results
+from src.utils.util_files_functions import load_json_from_file, save_jsonl_to_file, load_json_line_by_line
+from src.utils.util_statistics import (
+    log_processed_time,
+    log_results,
+    log_results_table,
+    print_processed_time,
+    print_results_table,
+    reset_log,
+)
+
 
 class ConceptMagicProphecyTagger:
     """Tag chunks with WoT concepts, magic system, and prophecy mentions."""
@@ -37,6 +46,7 @@ class ConceptMagicProphecyTagger:
     def normalize_text_for_ac(self, text: str) -> str:
         """Normalize text for AC: lowercase, replace punctuation, pad with spaces."""
         import string
+
         text_lower = text.lower()
         text_clean = re.sub(f"[{re.escape(string.punctuation)}]", " ", text_lower)
         text_padded = f" {text_clean} "
@@ -101,16 +111,21 @@ class ConceptMagicProphecyTagger:
 
         return sorted(found)
 
-
     def enrich_chunk_file(self, file_path: Path, chunk_type: str):
         """Add mentions to all chunks in a JSONL file."""
         print(f"\n📂 Processing {chunk_type} ({file_path.name})")
-        chunks = load_line_by_line(file_path)
+        chunks = load_json_line_by_line(file_path)
 
         # Counters
         counters = {
-            "characters": 0, "concepts": 0, "magic": 0, "prophecies": 0,
-            "total_characters": 0, "total_concepts": 0, "total_magic": 0, "total_prophecies": 0
+            "characters": 0,
+            "concepts": 0,
+            "magic": 0,
+            "prophecies": 0,
+            "total_characters": 0,
+            "total_concepts": 0,
+            "total_magic": 0,
+            "total_prophecies": 0,
         }
 
         pbar = tqdm(chunks, desc="Processing chunks", dynamic_ncols=True, leave=False, file=sys.stderr)
@@ -122,9 +137,9 @@ class ConceptMagicProphecyTagger:
 
             topic_name = chunk.get("page_name") or chunk.get("character_name")
             character_mentions = self.extract_mentions(text, self.ac_characters, topic_name)
-            concept_mentions   = self.extract_mentions(text, self.ac_concepts, topic_name)
-            magic_mentions     = self.extract_mentions(text, self.ac_magic, topic_name)
-            prophecy_mentions  = self.extract_mentions(text, self.ac_prophecy, topic_name)
+            concept_mentions = self.extract_mentions(text, self.ac_concepts, topic_name)
+            magic_mentions = self.extract_mentions(text, self.ac_magic, topic_name)
+            prophecy_mentions = self.extract_mentions(text, self.ac_prophecy, topic_name)
 
             # Update chunk
             chunk["character_mentions"] = character_mentions
@@ -151,13 +166,12 @@ class ConceptMagicProphecyTagger:
         print(f"   ✅ Enriched {len(chunks):,} chunks")
         return counters
 
+
 # Main execution
 def main():
-    config = get_config()
+    start_time = datetime.now()
 
-    print("=" * 80)
-    print("CONCEPT, MAGIC & PROPHECY TAGGING - Week 4 Goal 4 (v2.0)")
-    print("=" * 80)
+    config = get_config()
 
     tagger = ConceptMagicProphecyTagger()
 
@@ -180,29 +194,35 @@ def main():
 
     resultados = []
     for chunk_type, stats in results.items():
-
-        total_chunks = max(stats.get('characters',0),
-                        stats.get('concepts',0),
-                        stats.get('magic',0),
-                        stats.get('prophecies',0))
+        total_chunks = max(
+            stats.get("characters", 0), stats.get("concepts", 0), stats.get("magic", 0), stats.get("prophecies", 0)
+        )
         if total_chunks == 0:
             total_chunks = 1
         resultado = {
             "name": chunk_type,
             "metrics": {
-                "Characters": (stats.get('characters', 0), stats.get('characters',0)/total_chunks*100),
-                "Concepts": (stats.get('concepts', 0), stats.get('concepts',0)/total_chunks*100),
-                "Magic": (stats.get('magic', 0), stats.get('magic',0)/total_chunks*100),
-                "Prophecies": (stats.get('prophecies', 0), stats.get('prophecies',0)/total_chunks*100),
-                "Total Chunks": total_chunks
-            }
+                "Characters": (stats.get("characters", 0), stats.get("characters", 0) / total_chunks * 100),
+                "Concepts": (stats.get("concepts", 0), stats.get("concepts", 0) / total_chunks * 100),
+                "Magic": (stats.get("magic", 0), stats.get("magic", 0) / total_chunks * 100),
+                "Prophecies": (stats.get("prophecies", 0), stats.get("prophecies", 0) / total_chunks * 100),
+                "Total Chunks": total_chunks,
+            },
         }
 
         resultados.append(resultado)
-    
-    print_results(resultados, "CHUNK ENRICHMENT STATISTICS")
+
+    total_time = (datetime.now() - start_time).total_seconds()
+
+    print_results_table(resultados, "CHUNK ENRICHMENT STATISTICS")
+    print_processed_time(total_time)
+
+    reset_log("chunk_enrichment")
+
     log_results(resultados, "chunk_enrichment", "CHUNK ENRICHMENT STATISTICS")
     log_results_table(resultados, "chunk_enrichment", "CHUNK ENRICHMENT STATISTICS")
+    log_processed_time("chunk_enrichment", total_time)
+
 
 if __name__ == "__main__":
     main()

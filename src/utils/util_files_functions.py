@@ -1,31 +1,31 @@
+import json
 import os
 import pickle
+import shutil
 import subprocess
 import sys
-from src.utils.logger import get_logger
-import json
-from pathlib import Path
-import shutil
-from typing import List, Dict, Set
 from datetime import datetime
-
 from pathlib import Path
-import shutil
+from typing import Dict, List
+
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 def get_object_size_mb(filepath):
     return os.path.getsize(filepath) / (1024 * 1024)
 
-def serialize_object(data, output_file, log: False):
 
-    if (log):
+def serialize_object(data, output_file, log: False):
+    if log:
         logger.debug(f"\n💾 Saving object to: {output_file}")
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_file, 'wb') as f:
+
+    with open(output_file, "wb") as f:
         pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 def remove_file(filepath: str):
     """Remove a file safely with proper checks."""
@@ -50,15 +50,16 @@ def remove_file(filepath: str):
         print(f"❌ Unexpected error removing file: {e}")
         return False
 
-def find_files_in_folder(path_folder, extension=".txt", exception=True, recursive=False, ):
+
+def find_files_in_folder(path_folder, extension=".txt", exception=True, recursive=False, sort=True):
     """
     Find files in a folder with a given extension.
-    
+
     Args:
         path_folder (str | Path): Folder to search
         extension (str): Extension filter, e.g. ".txt" or "txt"
         recursive (bool): If True, use rglob() to include subfolders
-        
+
     Returns:
         List[Path]: List of file paths found
     """
@@ -74,6 +75,9 @@ def find_files_in_folder(path_folder, extension=".txt", exception=True, recursiv
     # Choose search strategy
     files = folder.rglob(pattern) if recursive else folder.glob(pattern)
 
+    if sort:
+        files = sorted(files)
+
     found_files = list(files)
 
     if not found_files:
@@ -85,6 +89,7 @@ def find_files_in_folder(path_folder, extension=".txt", exception=True, recursiv
 
     return found_files
 
+
 def copy_files(
     src_folder,
     dst_folder,
@@ -94,7 +99,7 @@ def copy_files(
 ):
     """
     Copy files from src_folder to dst_folder.
-    
+
     Args:
         src_folder (str | Path): Source folder
         dst_folder (str | Path): Destination folder
@@ -144,110 +149,149 @@ def copy_files(
 
     return True
 
-def load_line_by_line(file):
+
+def load_json_line_by_line(file, log: True):
     """
     Load a file line by line as JSON objects.
-    
+
     Args:
-        file (str or Path): Path to the JSONL file. 
+        file (str or Path): Path to the JSONL file.
     """
     lines = []
 
     input_file = Path(file)
-    
+
     if not input_file.exists():
         raise FileNotFoundError(f"❌ Error: Text file not found: {file}")
-    
-    logger.debug(f"📂 Loading file: {file}")
-    
-    with open(file, 'r', encoding='utf-8') as f:
+
+    if log:
+        logger.debug(f"📂 Loading file: {file}")
+
+    with open(file, "r", encoding="utf-8") as f:
         for line in f:
             lines.append(json.loads(line))
 
-    print(f"   Loaded: {len(lines):,} lines")
+    if log:
+        logger.info(f"   Loaded: {len(lines):,} lines")
 
     return lines
-    
 
-def load_text_from_file(file):
+
+def load_txt_line_by_line(file, log: True):
     """
-    Load text data from a file. Raises FileNotFoundError if the file does not exist.
-    
+    Load a file line by line as JSON objects.
+
     Args:
-        file (str or Path): Path to the text file.  
-    """ 
-    
+        file (str or Path): Path to the JSONL file.
+    """
+    lines = []
+
     input_file = Path(file)
-    
+
     if not input_file.exists():
         raise FileNotFoundError(f"❌ Error: Text file not found: {file}")
-    
-    logger.debug(f"📂 Loading file: {file}")
-    
-    with open(input_file, 'r', encoding='utf-8') as f:
+
+    if log:
+        logger.debug(f"📂 Loading file: {file}")
+
+    with open(file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    if log:
+        logger(f"   Loaded: {len(lines):,} lines")
+
+    return lines
+
+
+def load_text_from_file(file, log=True):
+    """
+    Load text data from a file. Raises FileNotFoundError if the file does not exist.
+
+    Args:
+        file (str or Path): Path to the text file.
+    """
+
+    input_file = Path(file)
+
+    if not input_file.exists():
+        raise FileNotFoundError(f"❌ Error: Text file not found: {file}")
+
+    if log:
+        logger.debug(f"📂 Loading file: {file}")
+
+    with open(input_file, "r", encoding="utf-8") as f:
         text_data = f.read()
 
-    logger.info(f"📂 Loaded file: {file}")
-    return text_data 
-   
-def load_json_from_file(file):
+    if log:
+        logger.info(f"📂 Loaded file: {file}")
+
+    return text_data
+
+
+def load_json_from_file(file, log=True):
     """
     Load JSON data from a file. Raises FileNotFoundError if the file does not exist.
-    
+
     Args:
         file (str or Path): Path to the JSON file.
-        
+
     Returns:
         dict or list: Loaded JSON data.
     """
     input_file = Path(file)
-    
+
     if not input_file.exists():
         raise FileNotFoundError(f"❌ Error: Books file not found: {file}")
-    
-    logger.debug(f"📂 Loading file: {file}")
-    
-    with open(input_file, 'r', encoding='utf-8') as f:
+
+    if log:
+        logger.debug(f"📂 Loading file: {file}")
+
+    with open(input_file, "r", encoding="utf-8") as f:
         json_data = json.load(f)
 
-    logger.info(f"📂 Loaded file: {file}")
+    if log:
+        logger.info(f"📂 Loaded file: {file}")
     return json_data
-    
+
+
 def save_jsonl_to_file(data: List[Dict], output_file, indent: int = None):
     # Save to JSONL
     logger.debug(f"\n💾 Saving {len(data)} chunks to: {output_file}")
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
+
+    with open(output_file, "w", encoding="utf-8") as f:
         for json_element in data:
-            f.write(json.dumps(json_element, indent= indent, ensure_ascii=False) + '\n')
-    
+            f.write(json.dumps(json_element, indent=indent, ensure_ascii=False) + "\n")
+
     logger.info(f"\n💾 Saved {len(data)} json elements to: {output_file}")
 
-def save_json_to_file(data: List[Dict], output_file, indent: int = None):
+
+def save_json_to_file(data: List[Dict], output_file, indent: int = None, log=True):
     # Save to JSON
-    logger.debug(f"\n💾 Saving {len(data)} chunks to: {output_file}")
+    if log:
+        logger.debug(f"\n💾 Saving {len(data)} chunks to: {output_file}")
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent= indent, ensure_ascii=False)
-    
-    logger.info(f"\n💾 Saved {len(data)} json elements to: {output_file}")
-    
-def run_command(command, step):
 
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=indent, ensure_ascii=False)
+
+    if log:
+        logger.info(f"\n💾 Saved {len(data)} json elements to: {output_file}")
+
+
+def run_command(command, step):
     start_time = datetime.now()
 
-    logger.info("="*70)
+    logger.info("=" * 70)
     logger.info(f"Running: {command}")
 
     python_exe = r"C:/Users/victor.diaz/AppData/Local/miniconda3/envs/dragon/python.exe"
 
     process = subprocess.Popen(
-        [python_exe, "-u", str(command.resolve())],      # -u = unbuffered
+        [python_exe, "-u", str(command.resolve())],  # -u = unbuffered
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        text=False
+        text=False,
     )
 
     while True:

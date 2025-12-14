@@ -1,38 +1,19 @@
 """
-Create books_structured.json with all processed book data.
+Book Parser Module
+Parses WoT book JSON files and extracts structured data with metadata
 
-Week 2 Session 2 - Dragon's Codex
-Consolidates all 15 books into a single structured JSON file.
-
-'output_path': 'data/processed/books_structured.json'
-
+Based on parse_all_books.py but as a reusable class
 """
 
-import sys
-import traceback
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
-from tqdm import tqdm
-
-from src.utils.config import get_config
+from src.utils.config import Config
 from src.utils.logger import get_logger
-from src.utils.util_files_functions import (
-    find_files_in_folder,
-    load_json_from_file,
-    save_json_to_file,
-)
-from src.utils.util_statistics import print_results_table, total_statistics_logging
+from src.utils.util_files_functions import load_json_from_file
 from src.utils.wot_constants import BOOK_TITLES
 
 logger = get_logger(__name__)
-
-in_auxiliary_books_folder = None
-out_processed_books_path = None
-out_file_books_all_parsed = None
-out_all_chapters = None
-out_unified_glossary = None
 
 
 class BookParser:
@@ -40,14 +21,14 @@ class BookParser:
     Parses WoT book JSON files into structured format
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[Config] = None):
         """
         Initialize parser
 
         Args:
             config: Configuration object (uses default if None)
         """
-        self.config = config
+        self.config = config or Config()
         self.books_path = Path(self.config.AUXILIARY_BOOKS_PATH)
         logger.info(f"BookParser initialized. Books path: {self.books_path}")
 
@@ -74,7 +55,7 @@ class BookParser:
             "paragraphs": len(paragraphs),
             "min_chars": min(lengths),
             "max_chars": max(lengths),
-            "avg_chars": round(sum(lengths) / len(lengths)),
+            "avg_chars": sum(lengths) / len(lengths),
         }
 
     def parse_book(self, json_filepath: int) -> Optional[Dict]:
@@ -129,15 +110,20 @@ class BookParser:
             chapters.append(chapter_with_meta)
             chapters_statistics.append(
                 {
-                    "name": str(book_number) + "-" + metadata["book_title"],
-                    "metrics": {"chapter": chapter["type"] + " " + str(chapter["number"]), "number_of_chars": len(chapter["content"]), "word_count": len(chapter["content"].split()), **para_stats},
+                    "name": chapter["type"],
+                    "metrics": {
+                        "word_count": len(chapter["content"].split()),
+                        "paragraph_stats": para_stats,
+                    },
                 }
             )
         # Process glossary with metadata
         glossary = []
         for entry in book_data.get("glossary", []):
             glossary_with_meta = {
-                "term": (" ".join(entry["term"]) if isinstance(entry["term"], list) else str(entry["term"])).rstrip(":"),  # remove trailing colon
+                "term": (" ".join(entry["term"]) if isinstance(entry["term"], list) else str(entry["term"])).rstrip(
+                    ":"
+                ),  # remove trailing colon
                 "pronunciation": entry.get("pronunciation", ""),
                 "description": entry.get("description", ""),
                 "metadata": {
@@ -154,6 +140,9 @@ class BookParser:
             "glossary": glossary,
             "chapters_statistics": chapters_statistics,
         }
+
+        # logger.info(f"Parsed book {book_number}: {metadata['total_chapters']} chapters, "
+        #            f"{metadata['glossary_entries']} glossary entries")
 
         return result
 
@@ -215,76 +204,74 @@ class BookParser:
         return unified
 
 
-def process_json_files():
-    parser = BookParser(config)
+def main():
+    """Test the parser"""
+    from src.utils.logger import setup_logging
 
-    # Parse all books
-    all_books = []
+    setup_logging()
+    logger.info("=" * 70)
+    logger.info("Testing BookParser")
+    logger.info("=" * 70)
 
-    json_files_paths = find_files_in_folder(in_auxiliary_books_folder, ".json")
+    parser = BookParser()
 
-    books_stats = []
-    for json_filepath in tqdm(json_files_paths, desc="Processing Json files"):
-        book_data = parser.parse_book(json_filepath)
-        all_books.append(book_data)
-        book_stats = book_data["chapters_statistics"]
-        books_stats.extend(book_stats)
+    # Test: Parse book 1
+    print("\nTest 1: Parse Book 1 (Eye of the World)")
+    print("-" * 70)
+    book1 = parser.parse_book(1)
 
-    # Save individual books
+    if book1:
+        meta = book1["book_metadata"]
+        print(f"✓ Title: {meta['book_title']}")
+        print(f"✓ Chapters: {meta['total_chapters']}")
+        print(f"✓ Prologue: {meta['has_prologue']}")
+        print(f"✓ Epilogue: {meta['has_epilogue']}")
+        print(f"✓ Glossary entries: {meta['glossary_entries']}")
+
+        # Show first chapter
+        first_ch = book1["chapters"][0]
+        print("\nFirst chapter:")
+        print(f"  Type: {first_ch['chapter_type']}")
+        print(f"  Number: {first_ch['chapter_number']}")
+        print(f"  Title: {first_ch['chapter_title']}")
+        print(f"  Content length: {first_ch['metadata']['content_length']} chars")
+        print(f"  Word count: {first_ch['metadata']['word_count']} words")
+
+    # Test: Get specific chapter
+    print("\n\nTest 2: Get specific chapter")
+    print("-" * 70)
+    chapter = parser.get_chapter_by_number(1, 1)
+    if chapter:
+        print(f"✓ Book 1, Chapter 1: {chapter['chapter_title']}")
+        print(f"  First 200 chars: {chapter['content'][:200]}...")
+
+    # Test: Parse all books
+    print("\n\nTest 3: Parse all books")
+    print("-" * 70)
+    all_books = parser.parse_all_books()
+    print(f"✓ Parsed {len(all_books)} books")
+
     for book in all_books:
         meta = book["book_metadata"]
-        filename = meta["book_filename"]
-        # Save individual book
-        save_json_to_file(
-            book,
-            out_processed_books_path / f"{Path(filename).stem}_parsed.json",
-            indent=2,
-        )
+        print(f"  Book {meta['book_number']:2}: {meta['book_title']:35} - {meta['total_chapters']:3} chapters")
 
-    # Save combined file
-    save_json_to_file(all_books, out_file_books_all_parsed, indent=2)
+    # Test: Unified glossary
+    print("\n\nTest 4: Build unified glossary")
+    print("-" * 70)
+    unified_glossary = parser.build_unified_glossary()
+    print(f"✓ Unified glossary: {len(unified_glossary)} unique terms")
 
-    # Save all chapters flat
-    all_chapters = []
-    for book in all_books:
-        all_chapters.extend(book["chapters"])
+    # Show sample terms
+    print("\nSample terms:")
+    for i, (term, data) in enumerate(list(unified_glossary.items())[:5], 1):
+        sources = len(data["sources"])
+        pron = f" ({data['pronunciation']})" if data["pronunciation"] else ""
+        print(f"  {i}. {term}{pron} - appears in {sources} book(s)")
 
-    save_json_to_file(all_chapters, out_all_chapters, indent=2)
-
-    # Save unified glossary
-    unified_glossary = parser.build_unified_glossary(all_books)
-
-    save_json_to_file(unified_glossary, out_unified_glossary, indent=2)
-
-    print_results_table(books_stats)
-
-    return books_stats
-
-
-def main():
-    start_time = datetime.now()
-
-    statistics = process_json_files()
-
-    total_time = (datetime.now() - start_time).total_seconds()
-
-    total_statistics_logging(statistics, total_time, "PARSING JSON BOOKS", "json_books_parsing")
+    print("\n" + "=" * 70)
+    print("✓✓✓ BookParser tests complete!")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
-    config = get_config()
-    in_auxiliary_books_folder = config.AUXILIARY_BOOKS_PATH
-    out_processed_books_path = config.PROCESSED_BOOKS_PATH
-    out_file_books_all_parsed = config.FILE_BOOKS_ALL_PARSED
-    out_all_chapters = config.FILE_ALL_CHAPTERS
-    out_unified_glossary = config.FILE_UNIFIED_GLOSSARY
-
-    try:
-        exit_code = main()
-        exit_code = 0
-    except Exception as e:
-        print("❌ An error occurred in the script:", str(e))
-        traceback.print_exc()  # optional: prints full stack trace
-        exit_code = 1  # non-zero signals failure
-
-    sys.exit(exit_code)
+    main()
