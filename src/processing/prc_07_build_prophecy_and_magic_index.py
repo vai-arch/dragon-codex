@@ -12,31 +12,24 @@ Output:
 
 """
 
-import json
-from pathlib import Path
+import sys
+import traceback
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional
-from src.utils.util_files_functions import load_json_from_file, save_json_to_file
+from typing import Dict, List
 
-from src.utils.config import Config
+from src.utils.paths import get_paths
+from src.utils.util_files_functions import load_json_from_file, save_json_to_file
+from src.utils.util_statistics import total_statistics_logging
 from src.utils.wiki_constants import (
-    PROPHECY_CATEGORIES,
-    POWER_OBJECTS,
-    ONE_POWER_CONCEPTS,
-    MAGIC_PLACES,
-    MAGIC_ENTITIES,
-    MAGIC_WEAPONS,
     classify_magic_page,
 )
 
-config = Config()
-
 # File paths
-prophecies_file = config.FILE_WIKI_PROPHECIES
-magic_file = config.FILE_WIKI_MAGIC
-prophecy_output = config.FILE_PROPHECY_INDEX
-magic_output = config.FILE_MAGIC_SYSTEM_INDEX
+in_file_wiki_prophecies = None
+in_file_wiki_magic = None
+out_file_prophecy_index = None
+out_file_magic_index = None
 
 
 def extract_overview(sections: List[Dict]) -> str:
@@ -162,7 +155,13 @@ def process_all_prophecies(prophecies: Dict) -> tuple:
     print(f"\n🔮 Processing {len(prophecies):,} prophecy pages...")
 
     prophecy_index = {}
-    stats = {"total": 0, "with_aliases": 0, "with_description": 0, "by_type": defaultdict(int)}
+    # fmt: off
+    stats = {"total_prophecies": 0, 
+             "prophecies_with_aliases": 0, 
+             "prophecies_with_description": 0, 
+             "by_type": defaultdict(int)
+             }
+    # fmt: on
 
     for filename, page_data in prophecies.items():
         entry = process_prophecy(filename, page_data)
@@ -171,16 +170,22 @@ def process_all_prophecies(prophecies: Dict) -> tuple:
         prophecy_index[page_name] = entry
 
         # Update statistics
-        stats["total"] += 1
+        stats["total_prophecies"] += 1
         if entry.get("aliases"):
-            stats["with_aliases"] += 1
+            stats["prophecies_with_aliases"] += 1
         if entry.get("description"):
-            stats["with_description"] += 1
+            stats["prophecies_with_description"] += 1
         stats["by_type"][entry["type"]] += 1
 
-    print(f"   ✓ Processed {stats['total']:,} prophecies")
+    print(f"   ✓ Processed {stats['total_prophecies']:,} prophecies")
 
-    return prophecy_index, stats
+    # fmt: off
+    statistics = {
+        "name": "prophecies",
+        "metrics": stats
+    }
+    # fmt: on
+    return prophecy_index, statistics
 
 
 def process_all_magic(magic: Dict) -> tuple:
@@ -224,39 +229,22 @@ def process_all_magic(magic: Dict) -> tuple:
 
     print(f"   ✓ Processed {stats['total']:,} magic pages")
 
-    return magic_index, stats
+    # fmt: off
+    statistics = {
+        "name": "magic",
+        "metrics": stats
+    }
+    # fmt: on
 
-
-def print_statistics(prophecy_stats: Dict, magic_stats: Dict):
-    """Print comprehensive statistics."""
-    print(f"\n📊 Prophecy Index Statistics:")
-    print(f"   Total prophecies:              {prophecy_stats['total']:5,}")
-    print(f"   With aliases:                  {prophecy_stats['with_aliases']:5,}")
-    print(f"   With descriptions:             {prophecy_stats['with_description']:5,}")
-    print(f"\n   By Type:")
-    for ptype, count in sorted(prophecy_stats["by_type"].items()):
-        print(f"   {ptype:30s} {count:5,}")
-
-    print(f"\n📊 Magic System Index Statistics:")
-    print(f"   Total magic pages:             {magic_stats['total']:5,}")
-    print(f"   With aliases:                  {magic_stats['with_aliases']:5,}")
-    print(f"   With descriptions:             {magic_stats['with_description']:5,}")
-    print(f"\n   By Type:")
-    for mtype, count in sorted(magic_stats["by_type"].items()):
-        print(f"   {mtype:30s} {count:5,}")
-    print(f"\n   Special Classifications:")
-    print(f"   Power objects:                 {magic_stats['power_objects']:5,}")
-    print(f"   Weaves:                        {magic_stats['weaves']:5,}")
-    print(f"   Talents:                       {magic_stats['talents']:5,}")
-    print(f"   Shadowspawn:                   {magic_stats['shadowspawn']:5,}")
+    return magic_index, statistics
 
 
 def validate_indexes(prophecy_index: Dict, magic_index: Dict):
     """Validate the indexes with sample checks."""
-    print(f"\n🔍 Validating indexes...")
+    print("\n🔍 Validating indexes...")
 
     # Check prophecy entries
-    print(f"\n   Sample Prophecy Entries:")
+    print("\n   Sample Prophecy Entries:")
     for i, (name, entry) in enumerate(list(prophecy_index.items())[:3]):
         print(f"      {name}:")
         print(f"         Type: {entry.get('type', 'N/A')}")
@@ -264,63 +252,58 @@ def validate_indexes(prophecy_index: Dict, magic_index: Dict):
         print(f"         Has description: {bool(entry.get('description'))}")
 
     # Check magic entries
-    print(f"\n   Sample Magic Entries:")
+    print("\n   Sample Magic Entries:")
     for i, (name, entry) in enumerate(list(magic_index.items())[:3]):
         print(f"      {name}:")
         print(f"         Type: {entry.get('type', 'N/A')}")
         print(f"         Object type: {entry.get('object_type', 'N/A')}")
         print(f"         Has description: {bool(entry.get('description'))}")
 
-    print(f"\n   ✅ Validation complete!")
+    print("\n   ✅ Validation complete!")
 
 
 def main():
-    """Main indexing function."""
-
-    print("\n" + "=" * 80)
-    print("DRAGON'S CODEX - PROPHECY & MAGIC INDEX BUILDER v2.0")
-    print("Category-Based Extraction")
-    print("=" * 80)
-
-    print(f"\n📂 Configuration:")
-    print(f"   Prophecy file:    {prophecies_file}")
-    print(f"   Magic file:       {magic_file}")
-    print(f"   Prophecy output:  {prophecy_output}")
-    print(f"   Magic output:     {magic_output}")
-
     start_time = datetime.now()
 
+    statistics = []
+
     # Step 1: Load data
-    prophecies = load_json_from_file(prophecies_file)
-    magic = load_json_from_file(magic_file)
+    prophecies = load_json_from_file(in_file_wiki_prophecies)
+    magic = load_json_from_file(in_file_wiki_magic)
 
     # Step 2: Process prophecies
     prophecy_index, prophecy_stats = process_all_prophecies(prophecies)
+    statistics.append(prophecy_stats)
 
     # Step 3: Process magic
     magic_index, magic_stats = process_all_magic(magic)
+    statistics.append(magic_stats)
 
-    # Step 4: Print statistics
-    print_statistics(prophecy_stats, magic_stats)
-
-    # Step 5: Validate
+    # Step 4: Validate
     validate_indexes(prophecy_index, magic_index)
 
-    save_json_to_file(prophecy_index, prophecy_output, indent=2)
-    save_json_to_file(magic_index, magic_output, indent=2)
+    save_json_to_file(prophecy_index, out_file_prophecy_index, indent=2)
+    save_json_to_file(magic_index, out_file_magic_index, indent=2)
 
-    # Final summary
-    end_time = datetime.now()
-    duration = end_time - start_time
+    total_time = datetime.now() - start_time
 
-    print("\n" + "=" * 80)
-    print("PROPHECY & MAGIC INDEX BUILD COMPLETE!")
-    print("=" * 80)
-    print(f"\n⏱️  Total time: {duration}")
-    print(f"📊 Prophecies indexed: {len(prophecy_index):,}")
-    print(f"📊 Magic pages indexed: {len(magic_index):,}")
-    print(f"\n✅ Week 3 Goal 4: COMPLETE (v2.0)!\n")
+    total_statistics_logging(total_time=total_time, log_name="prc_07_build_prophecy_and_magic_index", statistics=statistics, title="PROPHECY & MAGIC INDEX", tables=False)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+
+    in_file_wiki_prophecies = paths.FILE_WIKI_PROPHECIES
+    in_file_wiki_magic = paths.FILE_WIKI_MAGIC
+    out_file_prophecy_index = paths.FILE_PROPHECY_INDEX
+    out_file_magic_index = paths.FILE_MAGIC_SYSTEM_INDEX
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

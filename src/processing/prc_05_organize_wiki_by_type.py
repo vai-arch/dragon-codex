@@ -12,37 +12,39 @@ Input:  - filename_to_categories.json
         - all .txt wiki files in WIKI_PATH
 """
 
-import json
 import sys
-from pathlib import Path
+import traceback
 from collections import defaultdict
-from tqdm import tqdm
 from datetime import datetime
+from pathlib import Path
 
-# Import our parser
-from src.ingestion.wiki.pass_06_uses_this_markdown_wiki_parser import parse_wiki_file, classify_page_type
-from src.utils.logger import get_logger, set_global_log_level
-from src.utils.config import Config
+from tqdm import tqdm
+
+from src.utils.logger import set_global_log_level
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import (
-    load_json_from_file,
-    save_json_to_file,
     find_files_in_folder,
+    load_json_from_file,
     save_json_to_file,
 )
 
-wiki_path = Config().WIKI_PATH
-filename_to_categories_file = Config().FILE_FILENAME_TO_CATEGORIES
-output_dir = Config().PROCESSED_WIKI_PATH
-redirect_aliases_path = Config().FILE_REDIRECT_ALIASES_MAPPING
+# Import our parser
+from src.utils.util_markdown_wiki_parser import classify_page_type, parse_wiki_file
+from src.utils.util_statistics import total_statistics_logging
 
-filename_map = {
-    "CHRONOLOGY": "wiki_chronology.json",
-    "CHARACTER": "wiki_character.json",
-    "CHAPTER_SUMMARY": "wiki_chapter_summary.json",
-    "PROPHECIES": "wiki_prophecies.json",
-    "MAGIC": "wiki_magic.json",
-    "CONCEPT": "wiki_concept.json",
-}
+in_wiki_path = None
+in_file_filename_to_categories = None
+in_file_redirect_aliases_mapping = None
+
+out_processed_wiki_path = None
+out_file_wiki_chronology = None
+out_file_wiki_character = None
+out_file_wiki_chapter_summary = None
+out_file_wiki_prophecies = None
+out_file_wiki_magic = None
+out_file_wiki_concept = None
+
+out_filename_map = None
 
 
 def group_files_by_type(wiki_path, filename_to_categories_file):
@@ -71,7 +73,7 @@ def group_files_by_type(wiki_path, filename_to_categories_file):
         files_by_type[page_type].append(filepath)
 
     # Print distribution
-    print(f"\n📋 File Distribution:")
+    print("\n📋 File Distribution:")
     print(f"   SKIP:            {len(files_by_type['SKIP']):5,} files (redirects, empty)")
     print(f"   CHRONOLOGY:      {len(files_by_type['CHRONOLOGY']):5,} files")
     print(f"   CHARACTER:       {len(files_by_type['CHARACTER']):5,} files")
@@ -110,7 +112,7 @@ def process_page_type(page_type, filepaths, category_mappings):
     errors = []
     skipped = []
 
-    redirect_aliases = load_json_from_file(redirect_aliases_path)
+    redirect_aliases = load_json_from_file(in_file_redirect_aliases_mapping)
 
     print(f"\n{'=' * 80}")
     print(f"Processing {page_type} pages ({len(filepaths)} files)")
@@ -123,9 +125,7 @@ def process_page_type(page_type, filepaths, category_mappings):
         try:
             result = parse_wiki_file(filepath, categories)
 
-            result["aliases"] = redirect_aliases.get(
-                result["page_name"], []
-            )  # Placeholder for actual alias extraction logic
+            result["aliases"] = redirect_aliases.get(result["page_name"], [])  # Placeholder for actual alias extraction logic
 
             if result:
                 parsed_pages[filename] = result
@@ -268,123 +268,6 @@ def save_skip_log(files_by_type, all_skipped, output_dir):
     print(f"   ✓ Logged {len(skip_files) + len(all_skipped):,} skipped files")
 
 
-def generate_statistics(all_parsed_data, output_dir):
-    """
-    Generate comprehensive statistics report.
-
-    Args:
-        all_parsed_data: Dict of {page_type: parsed_pages}
-        output_dir: Output directory path
-    """
-    output_path = Path(output_dir)
-    stats_file = output_path / "wiki_parsing_stats.txt"
-
-    print(f"\n📊 Generating statistics report: {stats_file.name}")
-
-    with open(stats_file, "w", encoding="utf-8") as f:
-        f.write("=" * 80 + "\n")
-        f.write("WIKI PARSING STATISTICS\n")
-        f.write("=" * 80 + "\n\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-
-        # Overall summary
-        total_pages = sum(len(pages) for pages in all_parsed_data.values())
-        f.write(f"Total pages parsed: {total_pages:,}\n\n")
-
-        # By page type
-        f.write("=" * 80 + "\n")
-        f.write("PAGES BY TYPE\n")
-        f.write("=" * 80 + "\n\n")
-
-        for page_type, pages in all_parsed_data.items():
-            f.write(f"{page_type:20s}: {len(pages):5,} pages\n")
-
-        # Detailed statistics per type
-        for page_type, pages in all_parsed_data.items():
-            f.write("\n" + "=" * 80 + "\n")
-            f.write(f"{page_type} DETAILED STATISTICS\n")
-            f.write("=" * 80 + "\n\n")
-
-            f.write(f"Total pages: {len(pages):,}\n\n")
-
-            # Temporal sections statistics
-            temporal_counts = []
-            non_temporal_counts = []
-
-            for filename, page_data in pages.items():
-                temporal = len(page_data.get("temporal_sections", []))
-                non_temporal = len(page_data.get("non_temporal_sections", []))
-
-                temporal_counts.append(temporal)
-                non_temporal_counts.append(non_temporal)
-
-            if temporal_counts:
-                avg_temporal = sum(temporal_counts) / len(temporal_counts)
-                f.write(f"Average temporal sections per page: {avg_temporal:.1f}\n")
-                f.write(f"Pages with temporal sections: {sum(1 for c in temporal_counts if c > 0):,}\n")
-
-            if non_temporal_counts:
-                avg_non_temporal = sum(non_temporal_counts) / len(non_temporal_counts)
-                f.write(f"Average non-temporal sections per page: {avg_non_temporal:.1f}\n")
-
-            # Book coverage (for temporal sections)
-            if page_type in ["CHRONOLOGY", "CHARACTER"]:
-                book_coverage = defaultdict(int)
-
-                for page_data in pages.values():
-                    for section in page_data.get("temporal_sections", []):
-                        book_num = section.get("book_number")
-                        if book_num is not None:
-                            book_coverage[book_num] += 1
-
-                if book_coverage:
-                    f.write(f"\nBook coverage (temporal sections):\n")
-                    for book_num in sorted(book_coverage.keys()):
-                        count = book_coverage[book_num]
-                        f.write(f"  Book {book_num:2d}: {count:4,} sections\n")
-
-            # Sample filenames
-            f.write(f"\nSample files (first 10):\n")
-            for i, filename in enumerate(list(pages.keys())[:10], 1):
-                f.write(f"  {i:2d}. {filename}\n")
-
-        # Content statistics
-        f.write("\n" + "=" * 80 + "\n")
-        f.write("CONTENT STATISTICS\n")
-        f.write("=" * 80 + "\n\n")
-
-        total_sections = 0
-        total_content_length = 0
-
-        for pages in all_parsed_data.values():
-            for page_data in pages.values():
-                # Count temporal sections
-                for section in page_data.get("temporal_sections", []):
-                    total_sections += 1
-                    content = section.get("content", "")
-                    total_content_length += len(content)
-
-                # Count non-temporal sections
-                for section in page_data.get("non_temporal_sections", []):
-                    total_sections += 1
-                    content = section.get("content", "")
-                    total_content_length += len(content)
-
-                # Count sections in concept pages
-                for section in page_data.get("sections", []):
-                    total_sections += 1
-                    content = section.get("content", "")
-                    total_content_length += len(content)
-
-        f.write(f"Total sections across all pages: {total_sections:,}\n")
-        f.write(f"Total content length: {total_content_length:,} characters\n")
-        if total_sections > 0:
-            avg_content = total_content_length / total_sections
-            f.write(f"Average content per section: {avg_content:.0f} characters\n")
-
-    print(f"   ✓ Statistics report generated")
-
-
 def validate_parsed_data(all_parsed_data):
     """
     Validate parsed data quality.
@@ -395,7 +278,7 @@ def validate_parsed_data(all_parsed_data):
     Returns:
         dict: Validation results
     """
-    print(f"\n🔍 Validating parsed data quality...")
+    print("\n🔍 Validating parsed data quality...")
 
     validation = {
         "total_pages": 0,
@@ -458,33 +341,102 @@ def validate_parsed_data(all_parsed_data):
         validation["valid"] = False
 
     if validation["valid"]:
-        print(f"\n   ✅ Validation PASSED")
+        print("\n   ✅ Validation PASSED")
     else:
-        print(f"\n   ⚠️  Validation FAILED - review warnings above")
+        print("\n   ⚠️  Validation FAILED - review warnings above")
 
     return validation
 
 
+def generate_statistics(all_parsed_data, output_dir):
+    pages_by_type = {}
+    per_type_stats = {}
+
+    # ---------- Per-type statistics ----------
+    for page_type, pages in all_parsed_data.items():
+        pages_by_type[page_type] = len(pages)
+
+        temporal_counts = []
+        non_temporal_counts = []
+
+        for page_data in pages.values():
+            temporal_counts.append(len(page_data.get("temporal_sections", [])))
+            non_temporal_counts.append(len(page_data.get("non_temporal_sections", [])))
+
+        type_stats = {}
+
+        if temporal_counts:
+            type_stats["avg_temporal_sections"] = sum(temporal_counts) / len(temporal_counts)
+            type_stats["pages_with_temporal_sections"] = sum(1 for c in temporal_counts if c > 0)
+
+        if non_temporal_counts:
+            type_stats["avg_non_temporal_sections"] = sum(non_temporal_counts) / len(non_temporal_counts)
+
+        # Book coverage (only numeric)
+        if page_type in ["CHRONOLOGY", "CHARACTER"]:
+            book_coverage = defaultdict(int)
+
+            for page_data in pages.values():
+                for section in page_data.get("temporal_sections", []):
+                    book_num = section.get("book_number")
+                    if book_num is not None:
+                        book_coverage[book_num] += 1
+
+            if book_coverage:
+                type_stats["book_coverage"] = dict(book_coverage)
+
+        per_type_stats[page_type] = type_stats
+
+    # ---------- Global content statistics ----------
+    total_sections = 0
+    total_content_length = 0
+
+    for pages in all_parsed_data.values():
+        for page_data in pages.values():
+            for section in page_data.get("temporal_sections", []):
+                total_sections += 1
+                total_content_length += len(section.get("content", ""))
+
+            for section in page_data.get("non_temporal_sections", []):
+                total_sections += 1
+                total_content_length += len(section.get("content", ""))
+
+            for section in page_data.get("sections", []):
+                total_sections += 1
+                total_content_length += len(section.get("content", ""))
+
+    content_stats = {
+        "total_sections": total_sections,
+        "total_content_length": total_content_length,
+    }
+
+    if total_sections > 0:
+        content_stats["avg_content_per_section"] = total_content_length / total_sections
+
+    # ---------- Final statistics object ----------
+    statistics = {
+        "name": "wiki_organization",
+        "metrics": {
+            "total_pages": sum(pages_by_type.values()),
+            "pages_by_type": pages_by_type,
+            "per_type_statistics": per_type_stats,
+            "content_statistics": content_stats,
+        },
+    }
+
+    return statistics
+
+
 def main():
-    """Main batch processing function."""
-    print("\n" + "=" * 80)
-    print("DRAGON'S CODEX - BATCH WIKI PROCESSOR")
-    print("=" * 80)
-
-    print(f"\n📂 Configuration:")
-    print(f"   Wiki directory:     {wiki_path}")
-    print(f"   Categories file:    {filename_to_categories_file}")
-    print(f"   Output directory:   {output_dir}")
-
     start_time = datetime.now()
 
     set_global_log_level("WARNING")  # Reduce logging verbosity for batch processing
 
     # Step 1: Load category mappings
-    category_mappings = load_json_from_file(filename_to_categories_file)
+    category_mappings = load_json_from_file(in_file_filename_to_categories)
 
     # Step 2: Group files by type
-    files_by_type = group_files_by_type(wiki_path, category_mappings)
+    files_by_type = group_files_by_type(in_wiki_path, category_mappings)
 
     # Step 3: Process each page type
     all_parsed_data = {}
@@ -502,7 +454,7 @@ def main():
 
         if parsed_pages:
             all_parsed_data[page_type] = parsed_pages
-            output_file = output_dir / filename_map[page_type]
+            output_file = out_filename_map[page_type]
             save_json_to_file(parsed_pages, output_file, indent=2)
 
         # Track errors with page type
@@ -517,40 +469,57 @@ def main():
 
     # Step 4: Save error log
     if all_errors:
-        save_error_log(all_errors, output_dir)
+        save_error_log(all_errors, out_processed_wiki_path)
 
     # Step 5: Save skip log
-    save_skip_log(files_by_type, all_skipped, output_dir)
+    save_skip_log(files_by_type, all_skipped, out_processed_wiki_path)
 
     # Step 6: Generate statistics
-    generate_statistics(all_parsed_data, output_dir)
+    statistics = generate_statistics(all_parsed_data, out_processed_wiki_path)
 
     # Step 7: Validate data
     validation = validate_parsed_data(all_parsed_data)
 
+    statistics["metrics"]["validation"] = validation
+
     # Final summary
     end_time = datetime.now()
-    duration = end_time - start_time
+    total_time = end_time - start_time
 
-    print("\n" + "=" * 80)
-    print("PROCESSING COMPLETE!")
-    print("=" * 80)
-    print(f"\n⏱️  Total time: {duration}")
-    print(f"📊 Total pages parsed: {validation['total_pages']:,}")
-    print(f"⚠️  Total errors: {len(all_errors):,}")
-
-    print(f"\n📁 Output files in: {output_dir}")
-    print(f"   • wiki_chronology.json")
-    print(f"   • wiki_character.json")
-    print(f"   • wiki_chapter_summary.json")
-    print(f"   • wiki_prophecies.json")
-    print(f"   • wiki_magic.json")
-    print(f"   • wiki_concept.json")
-    print(f"   • wiki_parsing_stats.txt")
-    print(f"   • wiki_skipped_files.log")
-    if all_errors:
-        print(f"   • wiki_parsing_errors.log")
+    total_statistics_logging(total_time=total_time, log_name="prc_05_organize_wiki_by_type", statistics=statistics, title="WIKI ORGANIZATION", tables=False)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+
+    in_wiki_path = paths.WIKI_PATH
+    in_file_filename_to_categories = paths.FILE_FILENAME_TO_CATEGORIES
+    in_file_redirect_aliases_mapping = paths.FILE_REDIRECT_ALIASES_MAPPING
+
+    out_processed_wiki_path = paths.PROCESSED_WIKI_PATH
+
+    out_file_wiki_chronology = paths.FILE_WIKI_CHRONOLOGY
+    out_file_wiki_character = paths.FILE_WIKI_CHARACTER
+    out_file_wiki_chapter_summary = paths.FILE_WIKI_CHAPTER_SUMMARY
+    out_file_wiki_prophecies = paths.FILE_WIKI_PROPHECIES
+    out_file_wiki_magic = paths.FILE_WIKI_MAGIC
+    out_file_wiki_concept = paths.FILE_WIKI_CONCEPT
+
+    out_filename_map = {
+        "CHRONOLOGY": out_file_wiki_chronology,
+        "CHARACTER": out_file_wiki_character,
+        "CHAPTER_SUMMARY": out_file_wiki_chapter_summary,
+        "PROPHECIES": out_file_wiki_prophecies,
+        "MAGIC": out_file_wiki_magic,
+        "CONCEPT": out_file_wiki_concept,
+    }
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

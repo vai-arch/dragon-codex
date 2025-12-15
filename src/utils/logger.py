@@ -5,11 +5,14 @@ Provides consistent logging across the project.
 
 import logging
 import sys
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
 from src.utils.config import get_config
+from src.utils.paths import get_paths
 
 config = get_config()
+paths = get_paths()
 
 
 # Color codes for console output
@@ -54,9 +57,6 @@ class ColoredFormatter(logging.Formatter):
         record.levelname = levelname
 
         return result
-
-
-import logging
 
 
 def set_global_log_level(level: str):
@@ -162,7 +162,7 @@ def get_logger(name, log_level=None):
     # Try to load configuration
     try:
         default_level = config.LOG_LEVEL
-        default_file = config.LOG_FILE
+        default_file = paths.FILE_LOG
         max_bytes = config.LOG_MAX_BYTES
         backup_count = config.LOG_BACKUP_COUNT
     except (ImportError, Exception):
@@ -179,9 +179,7 @@ def get_logger(name, log_level=None):
 
     # If no handlers, set up logging
     if not logger.handlers:
-        logger = setup_logging(
-            name=name, log_file=default_file, log_level=level, max_bytes=max_bytes, backup_count=backup_count
-        )
+        logger = setup_logging(name=name, log_file=default_file, log_level=level, max_bytes=max_bytes, backup_count=backup_count)
 
     return logger
 
@@ -274,4 +272,4 @@ if __name__ == "__main__":
         time.sleep(1)
 
     print("\n✓ Logging test complete!")
-    print(f"  Check logs/dragon_codex.log for file output")
+    print("  Check logs/dragon_codex.log for file output")

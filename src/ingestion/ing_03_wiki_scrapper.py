@@ -1,27 +1,44 @@
 """
-Enhanced WoT Wiki Scraper using MediaWiki API
-Gets complete information including infoboxes, categories, and full content
+Batch Scraper for All WoT Characters using the results of download_all_wiki_page_titles.py
 
-This script uses the Fandom MediaWiki API to extract:
-- Main article content (HTML and wikitext)
-- Infobox data (biographical, physical, chronological)
-- Categories
-- All sections and subsections
-- Templates used
+Uses the enhanced scraper from the script wiki_scraper.py to get all character data with infoboxes
 
-Author: Dragon's Codex Project
-Date: Week 1 Session 2
+This script will scrape all characters from a list and save enhanced markdown files.
+
+Input: data/raw/wiki_all_page_titles.json
+Output: - data/raw/wiki/*.txt
+        - data/raw/wiki_original/*.txt
+
 """
 
-import requests
-import json
 import re
+import sys
 import time
+import traceback
+from datetime import datetime
 from pathlib import Path
-from src.utils.config import Config
+from tempfile import NamedTemporaryFile
+from typing import Dict, Optional
+
+import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from src.utils.wiki_constants import CATEGORIES_TO_SKIP
+
+from src.utils.config import get_config
+from src.utils.paths import get_paths
+from src.utils.util_files_functions import copy_files, deserialize_object, find_files_in_folder, load_json_from_file, save_json_to_file, serialize_object
+from src.utils.util_statistics import total_statistics_logging
+from src.utils.wiki_constants import CATEGORIES_TO_SKIP, REDIRECT_CATEGORIES, extract_categories, extract_page_name
+
+cfg_wiki_base_url = None
+
+in_file_wiki_all_pages_titles_file = None
+in_wiki_glossary_path = None
+out_wiki_original_path = None
+out_wiki_path = None
+out_log_path = None
+out_redirect_mapping_path = None
+out_redirect_aliases_mapping_path = None
 
 
 class WoTWikiScraper:
@@ -29,11 +46,77 @@ class WoTWikiScraper:
     Enhanced scraper for WoT Fandom wiki using MediaWiki API
     """
 
-    def __init__(self, base_url=Config().WIKI_BASE_URL):
-        self.base_url = base_url
-        self.api_url = f"{base_url}/api.php"
+    def __init__(self, cfg_wiki_base_url):
+        self.base_url = cfg_wiki_base_url
+        self.api_url = f"{cfg_wiki_base_url}/api.php"
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "DragonCodex/1.0 (Educational RAG Project)"})
+
+    def is_redirect_page(self, file_path: Path) -> bool:
+        """Check if a wiki file is a redirect page (ANY type)."""
+
+        # Regex to find any [[Category:Something]] tags
+        categories = extract_categories(file_path, None)
+
+        if not categories:
+            # No categories at all
+            return True
+
+        # Check if any category matches your redirect categories
+        return any(rtype.lower() in (cat.lower() for cat in categories) for rtype in REDIRECT_CATEGORIES)
+
+    def invert_redirect_mapping(self, mapping: str):
+        """Invert redirect mapping so that each canonical page lists all its redirect aliases."""
+
+        inverted = {}
+
+        # Build inverted mapping
+        for redirect, canonical in mapping.items():
+            inverted.setdefault(canonical, []).append(redirect)
+
+        # Sort lists for consistency
+        inverted = {k: sorted(v) for k, v in inverted.items()}
+
+        return inverted
+
+    def query_redirect_target(self, page_name: str) -> Optional[str]:
+        """Query Fandom API to get redirect target for a page."""
+
+        try:
+            serialized_name = out_wiki_original_path / f"{page_name}_REDIRECTED.bin"
+
+            # 🔹 Load from cache if exists
+            if serialized_name.exists():
+                data = deserialize_object(serialized_name, log=True)
+            else:
+                params = {"action": "query", "titles": "", "redirects": 1, "format": "json"}
+                params["titles"] = page_name
+
+                response = requests.get(f"{cfg_wiki_base_url}/api.php", params=params, timeout=10)
+                response.raise_for_status()
+
+                data = response.json()
+
+                time.sleep(0.5)
+                serialize_object(data=data, output_file=serialized_name, log=True)
+
+            # 🔹 Process response (same logic as before)
+            if "query" in data and "redirects" in data["query"]:
+                redirects = data["query"]["redirects"]
+                if redirects:
+                    target = redirects[0].get("to")
+                    if target:
+                        return target
+
+            # print(f"  API returned no redirect for {page_name}")
+            return None
+
+        except requests.RequestException as e:
+            print(f"  API request failed for {page_name}: {e}")
+            return None
+        except Exception as e:
+            print(f"  Error processing API response for {page_name}: {e}")
+            return None
 
     def get_page_data(self, page_title):
         """
@@ -45,7 +128,7 @@ class WoTWikiScraper:
         Returns:
             dict with all page data, or None if page doesn't exist
         """
-        print(f"Fetching: {page_title}")
+        # print(f"Fetching: {page_title}")
 
         # Request 1: Get parsed HTML, categories, templates, sections
         params_html = {
@@ -66,7 +149,7 @@ class WoTWikiScraper:
             return None
 
         if "parse" not in data_html:
-            print(f"  ✗ No parse data returned")
+            print("  ✗ No parse data returned")
             return None
 
         parse_data = data_html["parse"]
@@ -101,11 +184,7 @@ class WoTWikiScraper:
         # Parse HTML content into structured sections
         result["structured_content"] = self.parse_html_content(result["html"])
 
-        print(
-            f"  ✓ Success: {len(result['categories'])} categories, "
-            f"{len(result['infobox'])} infobox fields, "
-            f"{len(result['structured_content'])} sections"
-        )
+        # print(f"  ✓ Success: {len(result['categories'])} categories, {len(result['infobox'])} infobox fields, {len(result['structured_content'])} sections")
 
         return result
 
@@ -336,7 +415,6 @@ class WoTWikiScraper:
         sections = {}
         current_section = "Overview"
         current_content = []
-        last_header = None
 
         content = soup.find("div", class_="mw-parser-output") or soup
 
@@ -364,7 +442,6 @@ class WoTWikiScraper:
                     if title.lower() not in ["contents", "references", "notes"]:
                         current_section = title
                         current_content = []
-                        last_header = None
                 continue
 
             # -------------------------------
@@ -376,7 +453,6 @@ class WoTWikiScraper:
                     subtitle = span.get_text(" ", strip=True)
                     if subtitle.lower() not in ["references", "notes"]:
                         current_content.append(f"### {subtitle}")
-                        last_header = "h3"
                 continue
 
             # -------------------------------
@@ -401,7 +477,6 @@ class WoTWikiScraper:
                 if text and len(text) > 2:
                     current_content.append(text)
 
-                last_header = None
                 continue
 
             # -------------------------------
@@ -415,7 +490,6 @@ class WoTWikiScraper:
                         list_items.append(f"- {t}")
                 if list_items:
                     current_content.append("\n".join(list_items))
-                last_header = None
                 continue
 
             # -------------------------------
@@ -441,7 +515,6 @@ class WoTWikiScraper:
 
                 if dl_items:
                     current_content.append("\n\n".join(dl_items))
-                last_header = None
                 continue
 
         # Save final section
@@ -513,7 +586,7 @@ class WoTWikiScraper:
         markdown_text = "\n".join(lines)
         output_path.write_text(markdown_text, encoding="utf-8")
 
-    def scrape_character_list(self, character_names, output_dir, delay=1.0):
+    def scrape_wiki_pages(self, page_names, output_dir, delay=1.0):
         """
         Scrape a list of pages and save as markdown
 
@@ -533,21 +606,24 @@ class WoTWikiScraper:
         existing_files_lower = {name.lower(): name for name in existing_files}
 
         stats = {
-            "total": len(character_names),
+            "total": len(page_names),
             "success": 0,
             "failed": 0,
+            "existing": 0,
             "skipped": 0,
-            "collisions": 0,
-            "errors": [],
-            "collision_log": [],
+            "collision": 0,
+            "lower_size": 0,
         }
 
-        print(f"\nScraping {len(character_names)} pages...")
+        errors = []
+        collision_log = []
+
+        print(f"\nScraping {len(page_names)} pages...")
         if existing_files:
             print(f"Found {len(existing_files)} existing files - will skip those")
         print(f"Output directory: {output_dir}\n")
 
-        for char_name in tqdm(character_names, desc="Scraping"):
+        for char_name in tqdm(page_names, desc="Scraping"):
             try:
                 # Handle both plain names and dicts with 'name' or 'title' key
                 if isinstance(char_name, dict):
@@ -562,6 +638,10 @@ class WoTWikiScraper:
 
                 # Check if already exists
                 if safe_filename in existing_files:
+                    stats["existing"] += 1
+                    continue
+
+                if f"{safe_filename}_SKIPPED" in existing_files:
                     stats["skipped"] += 1
                     continue
 
@@ -570,8 +650,14 @@ class WoTWikiScraper:
 
                 if page_data is None:
                     stats["failed"] += 1
-                    stats["errors"].append(f"{char_name}: Page not found")
+                    errors.append(f"{char_name}: Page not found")
                     continue
+
+                # Update safe filename from actual title
+                safe_filename = page_data["title"].replace(" ", "_").replace("/", "_")
+                safe_filename = re.sub(r'[<>:"|?*]', "", safe_filename)
+
+                safe_filename_lower = safe_filename.lower()
 
                 page_categories = {c.lower() for c in page_data.get("categories", [])}
                 skip_categories_lower = {c.lower() for c in CATEGORIES_TO_SKIP}
@@ -579,38 +665,41 @@ class WoTWikiScraper:
                 if page_categories & skip_categories_lower:
                     # Found at least one category to skip
                     stats["skipped"] += 1
-                    print(f"  → Skipped (blocked categories match): {char_name}")
-                    continue
+                    # print(f"  → Skipped (blocked categories match): {char_name}")
+                    safe_filename_lower = f"{safe_filename_lower}_SKIPPED.txt"
+                    final_path = output_dir / f"{safe_filename}_SKIPPED.txt"
+                else:
+                    final_path = output_dir / f"{safe_filename}.txt"
 
-                # Update safe filename from actual title
-                safe_filename = page_data["title"].replace(" ", "_").replace("/", "_")
-                safe_filename = re.sub(r'[<>:"|?*]', "", safe_filename)
-
-                # Check for case-insensitive collision (Windows issue)
-                safe_filename_lower = safe_filename.lower()
+                # If file already exists (case-insensitive)
                 if safe_filename_lower in existing_files_lower:
-                    # Collision detected! Add duplicate suffix
                     original_name = existing_files_lower[safe_filename_lower]
-                    collision_info = f"{char_name} -> {safe_filename} (collides with {original_name})"
+                    final_path = output_dir / f"{original_name}.txt"
 
-                    # Find next available suffix number
-                    suffix_num = 1
-                    while True:
-                        test_name = f"{safe_filename}_DUPLICATE_{suffix_num}"
-                        if test_name.lower() not in existing_files_lower:
-                            safe_filename = test_name
-                            break
-                        suffix_num += 1
+                    # Write new content to temp file first
+                    with NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+                        tmp_path = Path(tmp.name)
 
-                    stats["collisions"] += 1
-                    stats["collision_log"].append(collision_info + f" -> saved as {safe_filename}")
-                    print(f"\n  ⚠️  COLLISION: {collision_info}")
-                    print(f"      Saving as: {safe_filename}.txt")
+                    self.save_as_markdown(page_data, tmp_path)
 
-                output_path = output_dir / f"{safe_filename}.txt"
+                    new_size = tmp_path.stat().st_size
+                    existing_size = final_path.stat().st_size
 
-                # Save markdown
-                self.save_as_markdown(page_data, output_path)
+                    if new_size <= existing_size:
+                        # Skip if new file is smaller or equal
+                        tmp_path.unlink()
+                        stats["collision"] += 1
+                        collision_log.append(f"{char_name} -> {safe_filename} skipped ({new_size} <= {existing_size})")
+                        continue
+
+                    # Overwrite existing file (atomic)
+                    tmp_path.replace(final_path)
+
+                    stats["collision"] += 1
+                    collision_log.append(f"{char_name} -> {safe_filename} overwritten ({new_size} > {existing_size})")
+                else:
+                    # No collision → write directly
+                    self.save_as_markdown(page_data, final_path)
 
                 # Update tracking (add new filename to existing files)
                 existing_files.add(safe_filename)
@@ -623,86 +712,136 @@ class WoTWikiScraper:
 
             except Exception as e:
                 stats["failed"] += 1
-                stats["errors"].append(f"{char_name}: {str(e)}")
                 print(f"\n  ✗ Error with {char_name}: {e}")
+                traceback.print_exc()  # optional: prints full stack trace
                 continue
 
         if stats["skipped"] > 0:
             print(f"\n✓ Skipped {stats['skipped']} existing files")
 
-        if stats["collisions"] > 0:
-            print(f"\n⚠️  {stats['collisions']} case collisions detected and resolved")
+        if stats["collision"] > 0:
+            print(f"\n⚠️  {stats['collision']} case collisions detected and resolved")
 
             # Save collision log
-            collision_log_file = output_dir / "case_collisions.log"
+            collision_log_file = out_log_path / "case_collision.log"
             with open(collision_log_file, "w", encoding="utf-8") as f:
                 f.write("CASE COLLISION LOG\n")
                 f.write("=" * 80 + "\n\n")
-                f.write(f"Total collisions: {stats['collisions']}\n\n")
-                for entry in stats["collision_log"]:
+                f.write(f"Total collisions: {stats['collision']}\n\n")
+                for entry in collision_log:
                     f.write(entry + "\n")
             print(f"   Collision log saved to: {collision_log_file}")
 
         return stats
 
+    def build_redirect_mapping(self, wiki_path: Path) -> Dict[str, str]:
+        """Build complete redirect mapping from wiki files."""
+        mapping = {}
+        errors = []
+
+        wiki_files = find_files_in_folder(wiki_path, ".txt", recursive=False)
+
+        redirect_count = 0
+        processed_count = 0
+
+        pbar = tqdm(
+            total=len(wiki_files),
+            desc="Scanning wiki files",
+            unit="file",
+            file=sys.stderr,  # 👈 IMPORTANT
+            mininterval=0.0,  # 👈 FORCE refresh
+        )
+
+        for file_path in wiki_files:
+            pbar.update(1)
+            if not self.is_redirect_page(file_path):
+                continue
+
+            redirect_count += 1
+
+            page_name = extract_page_name(file_path)
+            if not page_name:
+                errors.append({"file": file_path.name, "error": "Could not extract page name"})
+                continue
+
+            target = self.query_redirect_target(page_name)
+
+            if target:
+                mapping[page_name] = target
+                processed_count += 1
+            else:
+                errors.append({"file": file_path.name, "page_name": page_name, "error": "API query failed or returned no redirect"})
+
+        if errors:
+            print(f"\n{len(errors)} errors occurred:")
+            for error in errors[:10000]:
+                print(f"  {error}")
+            if len(errors) > 10000:
+                print(f"  ... and {len(errors) - 10000} more errors")
+
+        # fmt: off
+        statistics = {
+            "redirected_pages": redirect_count,
+            "redirections_mapped": processed_count,
+            "redirections_errors": len(errors)
+        }
+        # fmt: on
+        return dict(sorted(mapping.items())), statistics
+
 
 def main():
-    """
-    Main function - test scraper with example character
-    """
-    scraper = WoTWikiScraper()
+    start_time = datetime.now()
 
-    # Test with Ailil Riatin (the problematic example)
-    print("=" * 60)
-    print("Testing Enhanced WoT Wiki Scraper")
-    print("=" * 60)
+    pages = load_json_from_file(in_file_wiki_all_pages_titles_file)
 
-    test_character = "Karaethon_Cycle"
+    # Create scraper
+    scraper = WoTWikiScraper(cfg_wiki_base_url)
 
-    # Get data
-    data = scraper.get_page_data(test_character)
+    # Scrape all pages
+    metrics = scraper.scrape_wiki_pages(page_names=pages, output_dir=out_wiki_original_path, delay=1.0)
+    # build redirects
+    redirect_mapping, redirect_statistics = scraper.build_redirect_mapping(out_wiki_original_path)
 
-    if data:
-        print("\n" + "=" * 60)
-        print("EXTRACTION RESULTS")
-        print("=" * 60)
+    save_json_to_file(redirect_mapping, out_redirect_mapping_path, indent=2)
+    aliases = scraper.invert_redirect_mapping(redirect_mapping)
+    save_json_to_file(aliases, out_redirect_aliases_mapping_path, indent=2)
 
-        print(f"\nTitle: {data['title']}")
-        print(f"Page ID: {data.get('pageid')}")
+    # fmt:off
+    statistics = {
+        "name": "scrapped_pages", 
+        "metrics": metrics
+    }
 
-        print(f"\nCategories ({len(data['categories'])}):")
-        for cat in data["categories"][:10]:  # First 10
-            print(f"  - {cat}")
-        if len(data["categories"]) > 10:
-            print(f"  ... and {len(data['categories']) - 10} more")
+    statistics["metrics"] = {**statistics["metrics"], **redirect_statistics}
 
-        print("\nInfobox Data:")
-        for section_name, section_data in data["infobox"].items():
-            if section_data:
-                print(f"\n  {section_name.title()} ({len(section_data)} fields):")
-                for key, value in list(section_data.items())[:5]:  # First 5
-                    print(f"    {key}: {value}")
-                if len(section_data) > 5:
-                    print(f"    ... and {len(section_data) - 5} more fields")
+    # fmt:on
+    # After scraping, copy files to final directory
+    copy_files(out_wiki_original_path, out_wiki_path, extension=".txt", log=False, exclude_pattern="*_SKIPPED.txt")
+    copy_files(in_wiki_glossary_path, out_wiki_path, extension=".txt", log=False)
+    total_time = datetime.now() - start_time
 
-        print(f"\nContent Sections ({len(data['structured_content'])}):")
-        for section in data["structured_content"].keys():
-            print(f"  - {section}")
-
-        # Save example
-        output_path = Path("test_rand.txt")
-        scraper.save_as_markdown(data, output_path)
-        print(f"\n✓ Saved enhanced markdown to: {output_path}")
-
-        print("\n" + "=" * 60)
-        print("SUCCESS!")
-        print("=" * 60)
-        print("\nThe enhanced scraper is working correctly.")
-        print("You can now use it to scrape all your characters.")
-
-    else:
-        print("\n✗ Failed to get data")
+    total_statistics_logging(total_time=total_time, log_name="ing_03_wiki_scrapper", statistics=statistics, title="SCRAPPED PAGES")
 
 
 if __name__ == "__main__":
-    main()
+    config = get_config()
+    paths = get_paths()
+
+    cfg_wiki_base_url = config.WIKI_BASE_URL
+    in_file_wiki_all_pages_titles_file = paths.FILE_WIKI_ALL_PAGE_TITLES
+    in_wiki_glossary_path = paths.WIKI_GLOSSARY_PATH
+    out_wiki_original_path = paths.WIKI_ORIGINAL_PATH
+    out_wiki_path = paths.WIKI_PATH
+    out_log_path = paths.LOG_PATH
+    out_redirect_mapping_path = paths.FILE_REDIRECT_MAPPING
+    out_redirect_aliases_mapping_path = paths.FILE_REDIRECT_ALIASES_MAPPING
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

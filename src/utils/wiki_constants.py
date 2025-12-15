@@ -1,8 +1,9 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Optional
-from src.utils.util_files_functions import load_json_from_file
+
 from src.utils.logger import get_logger
+from src.utils.util_files_functions import load_json_from_file
 
 logger = get_logger(__name__)
 
@@ -1327,7 +1328,7 @@ def check_fist_level_key_in_json(filepath: str, key_to_check: str) -> bool:
         filename: Path to JSON file
         key_to_check: Key to check for
     """
-    data = load_json_from_file(filepath)
+    data = load_json_from_file(filepath, log=False)
 
     # Ensure it's a dictionary
     if isinstance(data, dict):

@@ -22,18 +22,16 @@ from typing import Dict, List
 
 from tqdm import tqdm
 
-from src.utils.config import get_config
 from src.utils.logger import get_logger
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
-
-config = get_config()
 
 # Paths
 cfg_wiki_glossary_path = None
 
 # Input/Output files
-in_unified_glossary = None
-out_glossary_wiki_mapping = None
+in_file_unified_glossary = None
+out_file_glossary_wiki_mapping = None
 
 logger = get_logger(__name__)
 
@@ -176,7 +174,7 @@ def main():
 
     # Load glossary
 
-    glossary = load_json_from_file(in_unified_glossary)
+    glossary = load_json_from_file(in_file_unified_glossary)
 
     # Get terms to process (from TERM_CATEGORIES)
     terms_to_create = list(TERM_CATEGORIES.keys())
@@ -232,9 +230,10 @@ def main():
 
 
 if __name__ == "__main__":
-    in_unified_glossary = config.FILE_UNIFIED_GLOSSARY
-    out_glossary_wiki_mapping = config.FILE_GLOSSARY_WIKI_MAPPING
-    cfg_wiki_glossary_path = config.WIKI_GLOSSARY_PATH
+    paths = get_paths()
+    in_file_unified_glossary = paths.FILE_UNIFIED_GLOSSARY
+    out_file_glossary_wiki_mapping = paths.FILE_GLOSSARY_WIKI_MAPPING
+    cfg_wiki_glossary_path = paths.WIKI_GLOSSARY_PATH
 
     try:
         exit_code = main()

@@ -16,17 +16,18 @@ Usage:
     python embed_all_chunks_v2.py --reset   # Start fresh
 """
 
-import argparse
 import json
 import os
 import pickle
+import sys
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Tuple
 
 from tqdm import tqdm
 
-from src.utils.config import get_config
+from src.utils.paths import get_paths
 from src.utils.util_embedding import VectorStoreManager
 from src.utils.util_files_functions import get_object_size_mb, load_json_line_by_line, remove_file, serialize_object
 from src.utils.util_statistics import (
@@ -38,15 +39,17 @@ from src.utils.util_statistics import (
     reset_log,
 )
 
-config = get_config()
+in_files_to_embed = None
+out_embedding_path = None
+aux_partial_results_paths_map = None
+aux_file_embedding_checklpoint = None
 
 
 class ImprovedCheckpoint:
     """Enhanced checkpoint with per-batch progress tracking"""
 
-    def __init__(self, config):
-        self.config = config
-        self.checkpoint_file = str(config.FILE_EMBEDDING_CHECKPOINT)
+    def __init__(self):
+        self.checkpoint_file = str(aux_file_embedding_checklpoint)
         self.state = self._load_checkpoint()
 
     def _load_checkpoint(self) -> Dict:
@@ -131,36 +134,11 @@ class ImprovedCheckpoint:
         print("✅ Checkpoint reset. Starting fresh.")
 
 
-def get_embedding_path(source_path: Path, config) -> str:
-    """Get output path for embedding file using config"""
-
-    return str(config.EMBEDDINGS_PATH / f"{source_path.name}.embeddings.pkl")
-
-
-def get_temp_embedding_path(source_path: Path, config) -> str:
-    """Get temporary path for partial embeddings using config"""
-    filename = source_path.name
-
-    # Map source files to their partial output paths
-    path_map = {
-        "book_chunks.jsonl": config.FILE_BOOK_PARTIAL,
-        "wiki_chunks_character.jsonl": config.FILE_WIKI_CHARACTER_PARTIAL,
-        "wiki_chunks_concept.jsonl": config.FILE_WIKI_CONCEPT_PARTIAL,
-        "wiki_chunks_magic.jsonl": config.FILE_WIKI_MAGIC_PARTIAL,
-        "wiki_chunks_prophecies.jsonl": config.FILE_WIKI_PROPHECIES_PARTIAL,
-        "wiki_chunks_chapter_summary.jsonl": config.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL,
-        "wiki_chunks_chronology.jsonl": config.FILE_WIKI_CHRONOLOGY_PARTIAL,
-    }
-
-    return str(path_map.get(filename, config.EMBEDDINGS_PATH / f"{filename}.partial.pkl"))
-
-
 def embed_file_resumable(
     source_path: Path,
     output_path: str,
     manager: VectorStoreManager,
     checkpoint: ImprovedCheckpoint,
-    config,
     batch_size: int = 100,
 ) -> Tuple[int, float]:
     """
@@ -183,7 +161,7 @@ def embed_file_resumable(
     # batch_size = 2
 
     filename = source_path.name
-    temp_path = get_temp_embedding_path(source_path, config)
+    temp_path = str(aux_partial_results_paths_map.get(source_path.stem))
 
     print(f"\n{'=' * 70}")
     print(f"Embedding: {filename}")
@@ -322,36 +300,23 @@ def main(reset: bool = False):
     start_time = datetime.now()
 
     # Initialize
-    config = get_config()
     manager = VectorStoreManager()
-    checkpoint = ImprovedCheckpoint(config)
+    checkpoint = ImprovedCheckpoint()
 
     reset = True
 
     if reset:
         checkpoint.reset()
 
-    # Define all source files with their chunk counts (from Week 4)
-
-    files_to_embed = [
-        (config.FILE_BOOK_CHUNKS, 80000, "Books"),
-        (config.FILE_WIKI_CHUNKS_CHRONOLOGY, 80000, "Wiki Chronology"),
-        (config.FILE_WIKI_CHUNKS_CHARACTER, 80000, "Wiki Character"),
-        (config.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY, 80000, "Wiki Chapter Summary"),
-        (config.FILE_WIKI_CHUNKS_CONCEPT, 80000, "Wiki Concept"),
-        (config.FILE_WIKI_CHUNKS_PROPHECIES, 80000, "Wiki Prophecy"),
-        (config.FILE_WIKI_CHUNKS_MAGIC, 80000, "Wiki Magic"),
-    ]
-
     # Check status
     pending_files = []
     completed_files = []
     current_file_info = None
 
-    for filepath, expected_count, description in files_to_embed:
+    for filepath, expected_count, description in in_files_to_embed:
         filename = filepath.name
 
-        output_path = str(config.EMBEDDINGS_PATH / f"{filename}.embeddings.pkl")
+        output_path = str(out_embedding_path / f"{filepath.stem}.embeddings.pkl")
 
         progress = checkpoint.get_file_progress(filename)
 
@@ -364,12 +329,6 @@ def main(reset: bool = False):
         else:
             # Not started
             pending_files.append((filepath, expected_count, description, output_path))
-
-    # Display status
-    print("=" * 70)
-    print("STATUS")
-    print("=" * 70)
-    print()
 
     if checkpoint.state["started_at"]:
         print(f"Started: {checkpoint.state['started_at']}")
@@ -433,7 +392,7 @@ def main(reset: bool = False):
         print(f"{'#' * 70}")
 
         try:
-            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, config, batch_size=100)
+            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, batch_size=100)
 
             full_statistics.append(statistics)
 
@@ -445,17 +404,17 @@ def main(reset: bool = False):
     # Process pending files
     for i, (filepath, expected_count, description, output_path) in enumerate(pending_files, 1):
         print(f"\n\n{'#' * 70}")
-        print(f"FILE {len(completed_files) + (1 if current_file_info else 0) + i}/{len(files_to_embed)}")
+        print(f"FILE {len(completed_files) + (1 if current_file_info else 0) + i}/{len(in_files_to_embed)}")
         print(f"{'#' * 70}")
 
         try:
-            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, config, batch_size=100)
+            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, batch_size=100)
 
             full_statistics.append(statistics)
 
             # Show overall progress
             total_completed = len(checkpoint.state["completed_files"])
-            print(f"\n📊 Overall: {total_completed}/{len(files_to_embed)} files complete")
+            print(f"\n📊 Overall: {total_completed}/{len(in_files_to_embed)} files complete")
             print(f"   Total embedded: {checkpoint.state['total_chunks_embedded']:,} chunks")
 
         except Exception as e:
@@ -488,16 +447,39 @@ def main(reset: bool = False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Embed all chunks with per-batch checkpointing")
-    parser.add_argument("--reset", action="store_true", help="Reset and start fresh")
-    args = parser.parse_args()
+    # Initialize paths from config
+    paths = get_paths()
+
+    out_embedding_path = paths.EMBEDDINGS_PATH
+    aux_file_embedding_checklpoint = paths.FILE_EMBEDDING_CHECKPOINT
+
+    in_files_to_embed = [
+        (paths.FILE_BOOK_CHUNKS, 80000, "Books"),
+        (paths.FILE_WIKI_CHUNKS_CHRONOLOGY, 80000, "Wiki Chronology"),
+        (paths.FILE_WIKI_CHUNKS_CHARACTER, 80000, "Wiki Character"),
+        (paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY, 80000, "Wiki Chapter Summary"),
+        (paths.FILE_WIKI_CHUNKS_CONCEPT, 80000, "Wiki Concept"),
+        (paths.FILE_WIKI_CHUNKS_PROPHECIES, 80000, "Wiki Prophecy"),
+        (paths.FILE_WIKI_CHUNKS_MAGIC, 80000, "Wiki Magic"),
+    ]
+
+    # Map source files to their partial output paths
+    aux_partial_results_paths_map = {
+        "book_chunks.jsonl": paths.FILE_BOOK_PARTIAL,
+        "wiki_chunks_character.jsonl": paths.FILE_WIKI_CHARACTER_PARTIAL,
+        "wiki_chunks_concept.jsonl": paths.FILE_WIKI_CONCEPT_PARTIAL,
+        "wiki_chunks_magic.jsonl": paths.FILE_WIKI_MAGIC_PARTIAL,
+        "wiki_chunks_prophecies.jsonl": paths.FILE_WIKI_PROPHECIES_PARTIAL,
+        "wiki_chunks_chapter_summary.jsonl": paths.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL,
+        "wiki_chunks_chronology.jsonl": paths.FILE_WIKI_CHRONOLOGY_PARTIAL,
+    }
 
     try:
-        main(reset=args.reset)
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Stopped by user")
-        print("✅ Progress saved! Run script again to resume from last checkpoint.")
+        main()
+        exit_code = 0
     except Exception as e:
-        print(f"\n\n❌ Error: {e}")
-        print("✅ Progress saved! Fix error and run again to resume.")
-        raise
+        print(f"\n❌ An error occurred in the script: {str(e)}")
+        traceback.print_exc()
+        exit_code = 1
+
+    sys.exit(exit_code)

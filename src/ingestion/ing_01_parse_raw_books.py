@@ -48,7 +48,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from src.utils.config import get_config
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import (
     find_files_in_folder,
     load_txt_line_by_line,
@@ -284,13 +284,13 @@ def main():
 
     total_time = (datetime.now() - start_time).total_seconds()
 
-    total_statistics_logging(statistics, total_time, "PARSING RAW BOOKS", "raw_books_parsing")
+    total_statistics_logging(statistics, total_time, "PARSING RAW BOOKS", "ing_01_parse_raw_books")
 
 
 if __name__ == "__main__":
-    config = get_config()
-    in_raw_books_folder = config.BOOKS_PATH
-    out_auxiliary_books_folder = config.AUXILIARY_BOOKS_PATH
+    paths = get_paths()  # noqa: F821
+    in_raw_books_folder = paths.BOOKS_PATH
+    out_auxiliary_books_folder = paths.AUXILIARY_BOOKS_PATH
 
     try:
         exit_code = main()

@@ -1,19 +1,17 @@
-from datetime import datetime
-import sys
-import ahocorasick
 import re
+import sys
+import traceback
+from datetime import datetime
 from pathlib import Path
-from typing import Set
+
+import ahocorasick
 from tqdm import tqdm
+
 from src.utils.config import get_config
-from src.utils.util_files_functions import load_json_from_file, save_jsonl_to_file, load_json_line_by_line
+from src.utils.paths import get_paths
+from src.utils.util_files_functions import load_json_from_file, load_json_line_by_line, save_jsonl_to_file
 from src.utils.util_statistics import (
-    log_processed_time,
-    log_results,
-    log_results_table,
-    print_processed_time,
-    print_results_table,
-    reset_log,
+    total_statistics_logging,
 )
 
 
@@ -53,9 +51,6 @@ class ConceptMagicProphecyTagger:
         return text_padded
 
     def _load_indexes(self):
-        """Load all indexes and build Aho–Corasick automatons."""
-        config = get_config()
-
         # Helper to load a JSON index and normalize
         def load_index(file_path):
             index = load_json_from_file(file_path)
@@ -66,10 +61,10 @@ class ConceptMagicProphecyTagger:
                     terms[alias.lower()] = page_name
             return terms, index
 
-        self.character_terms, char_index = load_index(config.FILE_CHARACTER_INDEX)
-        self.concept_terms, concept_index = load_index(config.FILE_CONCEPT_INDEX)
-        self.magic_terms, magic_index = load_index(config.FILE_MAGIC_SYSTEM_INDEX)
-        self.prophecy_terms, prophecy_index = load_index(config.FILE_PROPHECY_INDEX)
+        self.character_terms, char_index = load_index(in_file_character_index)
+        self.concept_terms, concept_index = load_index(in_file_concept_index)
+        self.magic_terms, magic_index = load_index(in_file_magic_index)
+        self.prophecy_terms, prophecy_index = load_index(in_file_prophecy_index)
 
         print(f"✓ Loaded {len(char_index)} characters ({len(self.character_terms)} with aliases)")
         print(f"✓ Loaded {len(concept_index)} concepts ({len(self.concept_terms)} with aliases)")
@@ -157,10 +152,7 @@ class ConceptMagicProphecyTagger:
             counters["total_magic"] += len(magic_mentions)
             counters["total_prophecies"] += len(prophecy_mentions)
 
-            pbar.set_postfix_str(
-                f"Characters: {counters['characters']}, Concepts: {counters['concepts']}, "
-                f"Magic: {counters['magic']}, Prophecies: {counters['prophecies']}"
-            )
+            pbar.set_postfix_str(f"Characters: {counters['characters']}, Concepts: {counters['concepts']}, Magic: {counters['magic']}, Prophecies: {counters['prophecies']}")
 
         save_jsonl_to_file(chunks, file_path)
         print(f"   ✅ Enriched {len(chunks):,} chunks")
@@ -171,18 +163,16 @@ class ConceptMagicProphecyTagger:
 def main():
     start_time = datetime.now()
 
-    config = get_config()
-
     tagger = ConceptMagicProphecyTagger()
 
     chunk_files = [
-        (config.FILE_BOOK_CHUNKS, "Books"),
-        (config.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY, "Wiki Chapter Summary"),
-        (config.FILE_WIKI_CHUNKS_CHRONOLOGY, "Wiki Chronology"),
-        (config.FILE_WIKI_CHUNKS_CHARACTER, "Wiki Character"),
-        (config.FILE_WIKI_CHUNKS_CONCEPT, "Wiki Concept"),
-        (config.FILE_WIKI_CHUNKS_MAGIC, "Wiki Magic"),
-        (config.FILE_WIKI_CHUNKS_PROPHECIES, "Wiki Prophecy"),
+        (inout_file_book_chunks, "Books"),
+        (inout_file_wiki_chunks_chapter_summary, "Wiki Chapter Summary"),
+        (inout_file_wiki_chunks_chronology, "Wiki Chronology"),
+        (inout_file_wiki_chunks_character, "Wiki Character"),
+        (inout_file_wiki_chunks_concept, "Wiki Concept"),
+        (inout_file_wiki_chunks_magic, "Wiki Magic"),
+        (inout_file_wiki_chunks_prophecies, "Wiki Prophecy"),
     ]
 
     results = {}
@@ -192,11 +182,9 @@ def main():
             continue
         results[chunk_type] = tagger.enrich_chunk_file(file_path, chunk_type)
 
-    resultados = []
+    statistics = []
     for chunk_type, stats in results.items():
-        total_chunks = max(
-            stats.get("characters", 0), stats.get("concepts", 0), stats.get("magic", 0), stats.get("prophecies", 0)
-        )
+        total_chunks = max(stats.get("characters", 0), stats.get("concepts", 0), stats.get("magic", 0), stats.get("prophecies", 0))
         if total_chunks == 0:
             total_chunks = 1
         resultado = {
@@ -210,19 +198,36 @@ def main():
             },
         }
 
-        resultados.append(resultado)
+        statistics.append(resultado)
 
     total_time = (datetime.now() - start_time).total_seconds()
 
-    print_results_table(resultados, "CHUNK ENRICHMENT STATISTICS")
-    print_processed_time(total_time)
-
-    reset_log("chunk_enrichment")
-
-    log_results(resultados, "chunk_enrichment", "CHUNK ENRICHMENT STATISTICS")
-    log_results_table(resultados, "chunk_enrichment", "CHUNK ENRICHMENT STATISTICS")
-    log_processed_time("chunk_enrichment", total_time)
+    total_statistics_logging(total_time=total_time, log_name="emb_02_enrich_chunks", statistics=statistics, title="CHUNK ENRICHMENT STATISTICS", tables=True)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+    config = get_config()
+
+    in_file_character_index = paths.FILE_CHARACTER_INDEX
+    in_file_concept_index = paths.FILE_CONCEPT_INDEX
+    in_file_magic_index = paths.FILE_MAGIC_SYSTEM_INDEX
+    in_file_prophecy_index = paths.FILE_PROPHECY_INDEX
+
+    inout_file_wiki_chunks_chapter_summary = paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY
+    inout_file_wiki_chunks_character = paths.FILE_WIKI_CHUNKS_CHARACTER
+    inout_file_wiki_chunks_chronology = paths.FILE_WIKI_CHUNKS_CHRONOLOGY
+    inout_file_book_chunks = paths.FILE_BOOK_CHUNKS
+    inout_file_wiki_chunks_concept = paths.FILE_WIKI_CHUNKS_CONCEPT
+    inout_file_wiki_chunks_prophecies = paths.FILE_WIKI_CHUNKS_PROPHECIES
+    inout_file_wiki_chunks_magic = paths.FILE_WIKI_CHUNKS_MAGIC
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

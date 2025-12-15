@@ -16,8 +16,8 @@ from typing import Dict, Optional
 
 from tqdm import tqdm
 
-from src.utils.config import get_config
 from src.utils.logger import get_logger
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import (
     find_files_in_folder,
     load_json_from_file,
@@ -28,11 +28,11 @@ from src.utils.wot_constants import BOOK_TITLES
 
 logger = get_logger(__name__)
 
-in_auxiliary_books_folder = None
+in_auxiliary_books_path = None
 out_processed_books_path = None
 out_file_books_all_parsed = None
-out_all_chapters = None
-out_unified_glossary = None
+out_file_all_chapters = None
+out_file_unified_glossary = None
 
 
 class BookParser:
@@ -40,15 +40,13 @@ class BookParser:
     Parses WoT book JSON files into structured format
     """
 
-    def __init__(self, config=None):
+    def __init__(self, auxiliary_books_path=None):
         """
         Initialize parser
 
         Args:
-            config: Configuration object (uses default if None)
         """
-        self.config = config
-        self.books_path = Path(self.config.AUXILIARY_BOOKS_PATH)
+        self.books_path = auxiliary_books_path
         logger.info(f"BookParser initialized. Books path: {self.books_path}")
 
     def paragraph_stats(self, text: str) -> Dict[str, float]:
@@ -216,12 +214,12 @@ class BookParser:
 
 
 def process_json_files():
-    parser = BookParser(config)
+    parser = BookParser(in_auxiliary_books_path)
 
     # Parse all books
     all_books = []
 
-    json_files_paths = find_files_in_folder(in_auxiliary_books_folder, ".json")
+    json_files_paths = find_files_in_folder(in_auxiliary_books_path, ".json")
 
     books_stats = []
     for json_filepath in tqdm(json_files_paths, desc="Processing Json files"):
@@ -249,12 +247,12 @@ def process_json_files():
     for book in all_books:
         all_chapters.extend(book["chapters"])
 
-    save_json_to_file(all_chapters, out_all_chapters, indent=2)
+    save_json_to_file(all_chapters, out_file_all_chapters, indent=2)
 
     # Save unified glossary
     unified_glossary = parser.build_unified_glossary(all_books)
 
-    save_json_to_file(unified_glossary, out_unified_glossary, indent=2)
+    save_json_to_file(unified_glossary, out_file_unified_glossary, indent=2)
 
     print_results_table(books_stats)
 
@@ -268,16 +266,16 @@ def main():
 
     total_time = (datetime.now() - start_time).total_seconds()
 
-    total_statistics_logging(statistics, total_time, "PARSING JSON BOOKS", "json_books_parsing")
+    total_statistics_logging(statistics, total_time, "PARSING JSON BOOKS", "prc_01_process_books")
 
 
 if __name__ == "__main__":
-    config = get_config()
-    in_auxiliary_books_folder = config.AUXILIARY_BOOKS_PATH
-    out_processed_books_path = config.PROCESSED_BOOKS_PATH
-    out_file_books_all_parsed = config.FILE_BOOKS_ALL_PARSED
-    out_all_chapters = config.FILE_ALL_CHAPTERS
-    out_unified_glossary = config.FILE_UNIFIED_GLOSSARY
+    paths = get_paths()
+    in_auxiliary_books_path = paths.AUXILIARY_BOOKS_PATH
+    out_processed_books_path = paths.PROCESSED_BOOKS_PATH
+    out_file_books_all_parsed = paths.FILE_BOOKS_ALL_PARSED
+    out_file_all_chapters = paths.FILE_ALL_CHAPTERS
+    out_file_unified_glossary = paths.FILE_UNIFIED_GLOSSARY
 
     try:
         exit_code = main()

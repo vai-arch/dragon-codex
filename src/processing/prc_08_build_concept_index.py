@@ -9,37 +9,40 @@ USAGE:
   Then run: python src/ingestion/wiki/pass_16_build_concept_index.py
 """
 
-import json
 import sys
-from pathlib import Path
+import traceback
+from datetime import datetime
 
-from src.utils.config import Config
+from tqdm import tqdm
+
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
+from src.utils.util_statistics import total_statistics_logging
 from src.utils.wiki_constants import (
-    LOCATION_CATEGORIES,
-    CREATURE_CATEGORIES,
-    ITEM_CATEGORIES,
-    HISTORICAL_CATEGORIES,
-    CULTURAL_CATEGORIES,
     CONCEPT_CATEGORIES,
-    ORGANIZATION_CATEGORIES,
+    CREATURE_CATEGORIES,
+    CULTURAL_CATEGORIES,
     EXCLUDE_CATEGORIES,
+    HISTORICAL_CATEGORIES,
+    ITEM_CATEGORIES,
+    LOCATION_CATEGORIES,
+    ORGANIZATION_CATEGORIES,
 )
 
+in_file_wiki_concept = None
+in_file_filename_to_categories = None
+out_file_concept_index = None
 
-def define_taxonomy():
-    """Define concept taxonomy - which categories belong to which groups"""
-
-    return {
-        "LOCATION": LOCATION_CATEGORIES,
-        "CREATURE": CREATURE_CATEGORIES,
-        "ITEM": ITEM_CATEGORIES,
-        "HISTORICAL": HISTORICAL_CATEGORIES,
-        "CULTURAL": CULTURAL_CATEGORIES,
-        "CONCEPT": CONCEPT_CATEGORIES,
-        "ORGANIZATION": ORGANIZATION_CATEGORIES,
-        "EXCLUDE": EXCLUDE_CATEGORIES,
-    }
+TAXONOMY = {
+    "LOCATION": LOCATION_CATEGORIES,
+    "CREATURE": CREATURE_CATEGORIES,
+    "ITEM": ITEM_CATEGORIES,
+    "HISTORICAL": HISTORICAL_CATEGORIES,
+    "CULTURAL": CULTURAL_CATEGORIES,
+    "CONCEPT": CONCEPT_CATEGORIES,
+    "ORGANIZATION": ORGANIZATION_CATEGORIES,
+    "EXCLUDE": EXCLUDE_CATEGORIES,
+}
 
 
 def classify_concept(categories, taxonomy):
@@ -131,7 +134,7 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
     excluded_count = 0
     unclassified_count = 0
 
-    stats = {
+    stats_concept_types = {
         "location": 0,
         "creature": 0,
         "item": 0,
@@ -143,7 +146,7 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
 
     print("\nProcessing concepts...")
 
-    for page in wiki_concepts:
+    for page in tqdm(wiki_concepts, desc="Processing wiki concepts"):
         filename = page.get("filename", "")
         name = page.get("page_name", "")
 
@@ -180,66 +183,60 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
             concept_entry["aliases"] = page["aliases"]
 
         concepts.append(concept_entry)
-        stats[concept_type] += 1
+        stats_concept_types[concept_type] += 1
 
-    return concepts, stats, excluded_count, unclassified_count
+    # fmt: off
+    statistics = {
+        "name": "concept_statistics",
+        "metrics": {
+            "total_concepts": len(concepts),
+            "excluded_count": excluded_count,
+            "unclassified_count": unclassified_count,
+            "concept_types": stats_concept_types
+        }
+    }
+    # fmt: on
+    return concepts, statistics, stats_concept_types
 
 
-def save_concept_index(concepts, stats, excluded_count, unclassified_count):
-    """Save concept index to file"""
+def main():
+    start_time = datetime.now()
 
-    # Create output structure - dict with name as key (like magic_index)
+    # Load data
+    wiki_concepts_dict = load_json_from_file(in_file_wiki_concept)
+    wiki_concepts = list(wiki_concepts_dict.values())
+
+    category_mappings = load_json_from_file(in_file_filename_to_categories)
+
+    # Build index
+    concepts, statistics, concept_types = build_concept_index(wiki_concepts, category_mappings, TAXONOMY)
+
+    # Save
     concepts_dict = {}
     for concept in concepts:
         concept_name = concept["name"]
         concepts_dict[concept_name] = concept
 
-    # Save to file
-    output_file = Config().FILE_CONCEPT_INDEX
+    save_json_to_file(concepts_dict, out_file_concept_index, indent=2)
 
-    save_json_to_file(concepts_dict, output_file, indent=2)
+    total_time = datetime.now() - start_time
 
-    print(f"\n{'=' * 60}")
-    print(f"✓ Concept index saved: {output_file}")
-    print(f"{'=' * 60}")
-
-    # Print statistics
-    print("\nCONCEPT INDEX STATISTICS:")
-    print(f"  Total concepts: {len(concepts)}")
-    print(f"  Excluded (character/meta): {excluded_count}")
-    print(f"  Unclassified: {unclassified_count}")
-    print(f"\nBy Type:")
-    for concept_type, count in sorted(stats.items()):
-        print(f"  {concept_type.capitalize()}: {count}")
-
-    return output_file
-
-
-def main():
-    """Main execution"""
-    print("=" * 60)
-    print("BUILDING CONCEPT INDEX")
-    print("=" * 60)
-
-    # Load data
-    wiki_concepts_dict = load_json_from_file(Config().FILE_WIKI_CONCEPT)
-    wiki_concepts = list(wiki_concepts_dict.values())
-    category_mappings = load_json_from_file(Config().FILE_FILENAME_TO_CATEGORIES)
-
-    # Define taxonomy
-    taxonomy = define_taxonomy()
-    print(f"\n✓ Taxonomy defined with {len(taxonomy)} groups")
-
-    # Build index
-    concepts, stats, excluded_count, unclassified_count = build_concept_index(
-        wiki_concepts, category_mappings, taxonomy
-    )
-
-    # Save
-    save_concept_index(concepts, stats, excluded_count, unclassified_count)
-
-    print("\n✓ Concept index build complete!")
+    total_statistics_logging(total_time=total_time, log_name="prc_08_build_concept_index", statistics=statistics, title="CONCEPTS INDEX", tables=False)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+
+    in_file_wiki_concept = paths.FILE_WIKI_CONCEPT
+    in_file_filename_to_categories = paths.FILE_FILENAME_TO_CATEGORIES
+    out_file_concept_index = paths.FILE_CONCEPT_INDEX
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

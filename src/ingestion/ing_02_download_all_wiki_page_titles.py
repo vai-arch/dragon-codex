@@ -23,13 +23,23 @@ Output: - 'wiki_all_pages.json'
         - 'wiki_all_page_titles.json'
 """
 
-import requests
-import json
+import sys
 import time
-from pathlib import Path
+import traceback
+from datetime import datetime
+
+import requests
 from tqdm import tqdm
-from src.utils.config import Config
-from src.utils.util_files_functions import load_json_from_file, remove_file, save_json_to_file
+
+from src.utils.config import get_config
+from src.utils.paths import get_paths
+from src.utils.util_files_functions import save_json_to_file
+from src.utils.util_statistics import total_statistics_logging
+
+cfg_wiki_base_url = None
+out_file_wiki_all_pages = None
+out_file_wiki_all_page_titles = None
+out_file_wiki_all_categories = None
 
 
 class WikiPageListDownloader:
@@ -37,11 +47,15 @@ class WikiPageListDownloader:
     Downloads complete list of all pages from a MediaWiki wiki
     """
 
-    def __init__(self, base_url=Config().WIKI_BASE_URL):
-        self.base_url = base_url
-        self.api_url = f"{base_url}/api.php"
+    def __init__(self, cfg_wiki_base_url, out_file_wiki_all_pages, out_file_wiki_all_page_titles, out_file_wiki_all_categories):
+        self.base_url = cfg_wiki_base_url
+        self.api_url = f"{cfg_wiki_base_url}/api.php"
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "DragonCodex/1.0 (Educational RAG Project)"})
+
+        self.file_wiki_all_pages = out_file_wiki_all_pages
+        self.file_wiki_all_page_titles = out_file_wiki_all_page_titles
+        self.file_wiki_all_categories = out_file_wiki_all_categories
 
     def get_all_pages(self, namespace=0, delay=0.5):
         """
@@ -108,11 +122,13 @@ class WikiPageListDownloader:
 
         print(f"\n✓ Downloaded {len(all_pages)} pages from namespace {namespace}")
 
-        save_json_to_file(all_pages, Config().FILE_WIKI_ALL_PAGES, 2)
+        save_json_to_file(all_pages, self.file_wiki_all_pages, 2)
 
         # Create simple page title list for batch scraper
         page_titles = [page["title"] for page in all_pages]
-        save_json_to_file(page_titles, Config().FILE_WIKI_ALL_PAGE_TITLES, 2)
+        save_json_to_file(page_titles, self.file_wiki_all_page_titles, 2)
+
+        return all_pages
 
     def get_all_categories(self, delay=0.5):
         """
@@ -124,7 +140,7 @@ class WikiPageListDownloader:
         all_categories = []
         continue_token = None
 
-        print(f"Fetching all categories...")
+        print("Fetching all categories...")
         print()
 
         with tqdm(desc="Downloading categories", unit=" cats") as pbar:
@@ -158,40 +174,49 @@ class WikiPageListDownloader:
                     break
 
         if len(all_categories) == 0:
-            raise ValueError(f"No categories were downloaded.")
+            raise ValueError("No categories were downloaded.")
 
         print(f"\n✓ Downloaded {len(all_categories)} categories")
 
-        save_json_to_file(all_categories, Config().FILE_WIKI_ALL_CATEGORIES, 2)
+        save_json_to_file(all_categories, self.file_wiki_all_categories, 2)
 
         return all_categories
 
 
 def main():
-    """
-    Main function
-    """
-    print("\n")
-    print("=" * 60)
-    print("WoT Wiki - Complete Page List Downloader")
-    print("=" * 60)
-    print()
-    print("This will download the complete list of ALL pages from the")
-    print("Wheel of Time Fandom wiki using the MediaWiki API.")
-    print("Time: ~2-5 minutes")
-    print("Output: JSON files in data/ directory")
-    print()
+    start_time = datetime.now()
 
     # Create downloader
-    downloader = WikiPageListDownloader()
+    downloader = WikiPageListDownloader(cfg_wiki_base_url, out_file_wiki_all_pages, out_file_wiki_all_page_titles, out_file_wiki_all_categories)
 
     # Download everything
-    downloader.get_all_pages()
+    all_pages = downloader.get_all_pages()
 
-    downloader.get_all_categories()
+    all_categories = downloader.get_all_categories()
+
+    statistics = {"name": "wiki_iniventory", "metrics": {"number_of_pages": len(all_pages), "number_of_categories": len(all_categories)}}
+
+    total_time = datetime.now() - start_time
+    total_statistics_logging(log_name="ing_02_download_all_wiki_page_titles", statistics=statistics, title="WIKI INVENTORY", total_time=total_time)
 
     print("\n✓ SUCCESS!")
 
 
 if __name__ == "__main__":
-    main()
+    config = get_config()
+    paths = get_paths()
+
+    cfg_wiki_base_url = config.WIKI_BASE_URL
+    out_file_wiki_all_pages = paths.FILE_WIKI_ALL_PAGES
+    out_file_wiki_all_page_titles = paths.FILE_WIKI_ALL_PAGE_TITLES
+    out_file_wiki_all_categories = paths.FILE_WIKI_ALL_CATEGORIES
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

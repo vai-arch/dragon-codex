@@ -15,20 +15,31 @@ Input: data/processed/wiki/wiki_character.json
 Output: data/metadata/wiki/character_index.json
 """
 
-from pathlib import Path
-from collections import defaultdict
+import sys
+import traceback
 from datetime import datetime
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Optional
 
-from src.utils.config import Config
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
-from src.utils.wiki_constants import *
-
-config = Config()
+from src.utils.util_statistics import total_statistics_logging
+from src.utils.wiki_constants import (
+    AJAH_CATEGORIES,
+    ALIGNMENT_DARK,
+    CHANNELING_AFFILIATIONS,
+    CULTURAL_GROUPS,
+    GENDER_CATEGORIES,
+    MILITARY_GROUPS,
+    MILITARY_ROLES,
+    ORGANIZATIONS,
+    PROFESSIONS,
+    SOCIAL_ROLES,
+    SPECIAL_ABILITIES,
+)
 
 # File paths
-character_file = config.FILE_WIKI_CHARACTER
-output_file = config.FILE_CHARACTER_INDEX
+in_file_wiki_character = None
+out_file_character_index = None
 
 
 def normalize_name(name: str) -> str:
@@ -149,18 +160,6 @@ def extract_cultural_groups(categories: List[str]) -> List[str]:
     return sorted(groups) if groups else []
 
 
-def extract_books_appeared(char_data: Dict) -> List[int]:
-    """Extract list of book numbers where character appears."""
-    books = set()
-
-    for section in char_data.get("temporal_sections", []):
-        book_num = section.get("book_number")
-        if book_num is not None:
-            books.add(book_num)
-
-    return sorted(list(books))
-
-
 def process_character(filename: str, char_data: Dict) -> Optional[Dict]:
     """Process a single character and extract all information."""
 
@@ -182,11 +181,6 @@ def process_character(filename: str, char_data: Dict) -> Optional[Dict]:
 
     if aliases:
         index_entry["aliases"] = aliases
-
-    # Extract books appeared
-    books = extract_books_appeared(char_data)
-    if books:
-        index_entry["books_appeared"] = books
 
     # Extract gender
     gender = extract_gender(categories)
@@ -261,7 +255,6 @@ def process_all_characters(characters: Dict) -> tuple:
     stats = {
         "total": 0,
         "with_aliases": 0,
-        "with_books": 0,
         "channelers": 0,
         "male_channelers": 0,
         "female_channelers": 0,
@@ -289,9 +282,6 @@ def process_all_characters(characters: Dict) -> tuple:
 
         if entry.get("aliases"):
             stats["with_aliases"] += 1
-
-        if entry.get("books_appeared"):
-            stats["with_books"] += 1
 
         if entry.get("can_channel"):
             stats["channelers"] += 1
@@ -332,32 +322,10 @@ def process_all_characters(characters: Dict) -> tuple:
     return character_index, stats
 
 
-def print_statistics(stats: Dict):
-    """Print comprehensive statistics."""
-    print(f"\n📊 Character Index Statistics:")
-    print(f"   Total characters:              {stats['total']:5,}")
-    print(f"   Characters with aliases:       {stats['with_aliases']:5,}")
-    print(f"   Characters with book data:     {stats['with_books']:5,}")
-    print(f"\n   Channeling:")
-    print(f"   Total channelers:              {stats['channelers']:5,}")
-    print(f"   Male channelers (saidin):      {stats['male_channelers']:5,}")
-    print(f"   Female channelers (saidar):    {stats['female_channelers']:5,}")
-    print(f"   With Ajah affiliation:         {stats['with_ajah']:5,}")
-    print(f"\n   Special Abilities:")
-    print(f"   Ta'veren:                      {stats['ta_veren']:5,}")
-    print(f"   Wolfbrothers:                  {stats['wolfbrothers']:5,}")
-    print(f"   Dreamers/Dreamwalkers:         {stats['dreamers']:5,}")
-    print(f"\n   Other:")
-    print(f"   With nationality:              {stats['with_nationality']:5,}")
-    print(f"   With organizations:            {stats['with_organizations']:5,}")
-    print(f"   Dark-aligned:                  {stats['darkfriends']:5,}")
-    print(f"   With professions:              {stats['with_professions']:5,}")
-
-
 def validate_major_characters(character_index: Dict) -> bool:
     """Validate the 5 major characters with detailed output."""
 
-    print(f"\n🔍 Validating major characters...")
+    print("\n🔍 Validating major characters...")
 
     major_characters = ["Rand al'Thor", "Mat Cauthon", "Perrin Aybara", "Egwene al'Vere", "Elayne Trakand"]
 
@@ -367,7 +335,7 @@ def validate_major_characters(character_index: Dict) -> bool:
         print(f"\n   {char_name}:")
 
         if char_name not in character_index:
-            print(f"      ❌ NOT FOUND in index!")
+            print("      ❌ NOT FOUND in index!")
             validation_passed = False
             continue
 
@@ -393,11 +361,6 @@ def validate_major_characters(character_index: Dict) -> bool:
         if char.get("aliases"):
             print(f"      ✓ {len(char['aliases'])} aliases: {', '.join(char['aliases'][:3])}...")
 
-        # Books
-        if char.get("books_appeared"):
-            books = char["books_appeared"]
-            print(f"      ✓ Appears in {len(books)} books: {books}")
-
         # Nationality
         if char.get("nationalities"):
             print(f"      ✓ Nationality: {', '.join(char['nationalities'])}")
@@ -411,45 +374,52 @@ def validate_major_characters(character_index: Dict) -> bool:
             print(f"      ✓ Roles: {', '.join(char['social_roles'])}")
 
     if validation_passed:
-        print(f"\n   ✅ All major characters validated!")
+        print("\n   ✅ All major characters validated!")
     else:
-        print(f"\n   ⚠️  Some validation issues found")
+        print("\n   ⚠️  Some validation issues found")
 
     return validation_passed
 
 
 def main():
-    """Main character indexing function."""
-
-    print("\n" + "=" * 80)
-    print("DRAGON'S CODEX - CHARACTER INDEX BUILDER v2.0")
-    print("Category-Based Extraction")
-    print("=" * 80)
-
-    print(f"\n📂 Configuration:")
-    print(f"   Character file:   {character_file}")
-    print(f"   Output file:      {output_file}")
+    start_time = datetime.now()
 
     # Step 1: Load data
-    characters = load_json_from_file(character_file)
+    characters = load_json_from_file(in_file_wiki_character)
 
     # Step 3: Process all characters
     character_index, stats = process_all_characters(characters)
 
-    # Step 4: Print statistics
-    print_statistics(stats)
-
-    # Step 5: Validate major characters
+    # Step 4: Validate major characters
     validate_major_characters(character_index)
 
-    # Step 6: Save index
-    save_json_to_file(character_index, output_file, indent=2)
+    # Step 5: Save index
+    save_json_to_file(character_index, out_file_character_index, indent=2)
 
-    print("\n" + "=" * 80)
-    print("CHARACTER INDEX BUILD COMPLETE!")
-    print("=" * 80)
-    print(f"📊 Characters indexed: {len(character_index):,}")
+    # fmt: off
+    statistics = {
+        "name": "character_index",
+        "metrics": stats
+    }
+    # fmt: on
+
+    total_time = datetime.now() - start_time
+
+    total_statistics_logging(total_time=total_time, log_name="prc_06_build_character_index", statistics=statistics, title="CHARACTER INDEX", tables=False)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+
+    in_file_wiki_character = paths.FILE_WIKI_CHARACTER
+    out_file_character_index = paths.FILE_CHARACTER_INDEX
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

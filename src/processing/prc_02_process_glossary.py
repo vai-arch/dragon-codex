@@ -56,14 +56,14 @@ from typing import Dict, Optional, Set
 
 from tqdm import tqdm
 
-from src.utils.config import get_config
 from src.utils.logger import get_logger
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import find_files_in_folder, load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
 
 cfg_wiki_path = None
-in_unified_glossay = None
-out_glossary_wiki_mapping = None
+in_file_unified_glossay = None
+out_file_glossary_wiki_mapping = None
 
 logger = get_logger(__name__)
 
@@ -279,7 +279,7 @@ def main():
     start_time = datetime.now()
 
     # Load data
-    glossary = load_json_from_file(in_unified_glossay)
+    glossary = load_json_from_file(in_file_unified_glossay)
     wiki_filepaths = find_files_in_folder(cfg_wiki_path, ".txt")
     wiki_filenames = [p.name for p in wiki_filepaths]
 
@@ -289,20 +289,20 @@ def main():
     print_unmatched(mapping, max_display=50)
 
     # Save mapping
-    save_json_to_file(mapping, out_glossary_wiki_mapping)
+    save_json_to_file(mapping, out_file_glossary_wiki_mapping)
 
     total_time = (datetime.now() - start_time).total_seconds()
 
     # Print reports
-    total_statistics_logging(statistics=statistics, log_name="glossary_to_wiki", title="GLOSSARY TO WIKI", total_time=total_time)
+    total_statistics_logging(statistics=statistics, log_name="prc_02_process_glossary", title="GLOSSARY TO WIKI", total_time=total_time)
 
 
 if __name__ == "__main__":
-    config = get_config()
+    paths = get_paths()
 
-    in_unified_glossay = config.FILE_UNIFIED_GLOSSARY
-    out_glossary_wiki_mapping = config.FILE_GLOSSARY_WIKI_MAPPING
-    cfg_wiki_path = config.WIKI_PATH
+    in_file_unified_glossay = paths.FILE_UNIFIED_GLOSSARY
+    out_file_glossary_wiki_mapping = paths.FILE_GLOSSARY_WIKI_MAPPING
+    cfg_wiki_path = paths.WIKI_PATH
 
     try:
         exit_code = main()

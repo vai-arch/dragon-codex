@@ -62,7 +62,8 @@ class VectorStoreManager:
         Proxy for the embed method. For the moment we are doing everything with embed_batchs but down the road we may want to
         make this configurable, depending enviroment, etc
         """
-        return self.embed_batch(texts, batch_size, show_progress)
+        # return self.embed_batch(texts, batch_size, show_progress)
+        return self.embed_texts(texts)
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """
@@ -106,7 +107,7 @@ class VectorStoreManager:
                 f"{self.ollama_url}/api/embed",
                 json={
                     "model": self.model,
-                    "input": texts,  # Send list instead of single string
+                    "input": text,  # Send list instead of single string
                 },
             )
 
@@ -118,7 +119,7 @@ class VectorStoreManager:
             this_chunk_tokens = data.get("prompt_eval_count", 0)
 
             if this_chunk_tokens == self.config.MAX_TOKENS:
-                raise ValueError(f"Maximum number of tokens ({self.config.EMBEDDING_MAX_TOKENS}) reached!. We need to rechunk everything with safer parameters")
+                raise ValueError(f"Maximum number of tokens ({self.config.MAX_TOKENS}) reached!. We need to rechunk everything with safer parameters")
 
             # update max
             if this_chunk_tokens > max_tokens:

@@ -6,8 +6,10 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 from src.utils.config import get_config
+from src.utils.paths import get_paths
 
 config = get_config()
+paths = get_paths()
 
 
 def format_metric(key, value):
@@ -15,8 +17,12 @@ def format_metric(key, value):
     Smart formatting based on metric name.
     Extend or override easily.
     """
+
     if value is None:
         return "—"
+
+    # Convert key to string for safe string operations
+    key_str = str(key)
 
     # --- SPECIAL CASE: (value, percentage) ---
     if isinstance(value, (tuple, list)) and len(value) == 2 and all(isinstance(v, (int, float)) for v in value):
@@ -28,7 +34,7 @@ def format_metric(key, value):
         value = value.total_seconds()
 
     # --- TIME METRICS ---
-    if key.endswith("_time"):
+    if key_str.endswith("_time"):
         seconds = float(value)
 
         # Break apart
@@ -52,14 +58,12 @@ def format_metric(key, value):
 
         return " ".join(parts)
 
-    if key.startswith("avg_"):
+    # --- AVERAGE METRICS ---
+    if key_str.startswith("avg_"):
         return f"{value:.3f}"
 
     # --- TOKEN METRICS ---
-    if key.endswith("_tokens"):
-        return f"{int(value)}"
-
-    if key.startswith("max_"):
+    if key_str.endswith("_tokens") or key_str.startswith("max_"):
         return f"{int(value)}"
 
     # --- AUTO HANDLE NUMBERS ---
@@ -69,36 +73,63 @@ def format_metric(key, value):
     return str(value)
 
 
-def tabulate_2_levels(results):
-    """
-    Tabulate a list of books, each with a 'name' and 'metrics' per chapter.
+# def format_metric(key, value):
+#     """
+#     Smart formatting based on metric name.
+#     Extend or override easily.
+#     """
+#     if value is None:
+#         return "—"
 
-    books_results: list of dicts
-        Each dict represents a book:
-        {
-            "book_name": "Book Title",
-            "chapters": [
-                {
-                    "name": "chapter 1",
-                    "metrics": {...}
-                },
-                ...
-            ]
-        }
-    """
-    for book in results:
-        book_name = book.get("level_1", "")
-        chapters = book.get("level_2", [])
+#     # --- SPECIAL CASE: (value, percentage) ---
+#     if isinstance(value, (tuple, list)) and len(value) == 2 and all(isinstance(v, (int, float)) for v in value):
+#         val, pct = value
+#         return f"{int(val)} ({pct:.1f}%)"
 
-        print(f"\n=== {book_name} ===\n")
+#     # Convert timedelta automatically
+#     if isinstance(value, timedelta):
+#         value = value.total_seconds()
 
-        if not chapters:
-            print("No chapters found.")
-            continue
+#     # --- TIME METRICS ---
+#     if key.endswith("_time"):
+#         seconds = float(value)
 
-        # Use your existing tabulate_results logic
-        headers, table = tabulate_results(chapters)
-        print(tabulate(table, headers=headers, tablefmt="grid"))
+#         # Break apart
+#         days, seconds = divmod(seconds, 86400)  # 24*60*60
+#         hours, seconds = divmod(seconds, 3600)
+#         minutes, seconds = divmod(seconds, 60)
+
+#         seconds_str = f"{seconds:.1f}".rstrip("0").rstrip(".")  # pretty seconds
+
+#         parts = []
+#         if days >= 1:
+#             parts.append(f"{int(days)}d")
+#         if hours >= 1 or days > 0:
+#             parts.append(f"{int(hours)}h")
+#         if minutes >= 1 or hours > 0 or days > 0:
+#             parts.append(f"{int(minutes)}m")
+
+#         # Always show seconds if everything else is zero
+#         if seconds > 0 or not parts:
+#             parts.append(f"{seconds_str}s")
+
+#         return " ".join(parts)
+
+#     if key.startswith("avg_"):
+#         return f"{value:.3f}"
+
+#     # --- TOKEN METRICS ---
+#     if key.endswith("_tokens"):
+#         return f"{int(value)}"
+
+#     if key.startswith("max_"):
+#         return f"{int(value)}"
+
+#     # --- AUTO HANDLE NUMBERS ---
+#     if isinstance(value, float):
+#         return f"{value:.3f}"
+
+#     return str(value)
 
 
 def tabulate_results(results):
@@ -129,42 +160,6 @@ def print_processed_time(total_time):
     print(f"Total Duration: {formatted_time}")
 
 
-# def print_results_table(results, main_message=""):
-#     """
-#     Print a table of results. Automatically detects:
-#     - Single-level: list of chapters with 'name' and 'metrics'
-#     - Multi-level: list of books, each containing 'book_name' and chapters
-
-#     Args:
-#         results: list or dict
-#         main_message: optional title to print above the table
-#     """
-#     # Determine if it's multi-level (books)
-#     if isinstance(results, list) and results and "level_1" in results[0]:
-#         # Multi-level: iterate over books
-#         for book in results:
-#             level_1 = book.get("level_1", "")
-#             level_2 = book.get("level_2", [])
-
-#             if main_message:
-#                 print(f"\n=== {main_message} - {level_1} ===\n")
-#             else:
-#                 print(f"\n=== {level_1} ===\n")
-
-#             if not level_2:
-#                 print("No chapters found.")
-#                 continue
-
-#             headers, rows = tabulate_results(level_2)
-#             print(tabulate(rows, headers, tablefmt="grid"))
-#     else:
-#         # Single-level
-#         headers, rows = tabulate_results(results)
-#         if main_message:
-#             print(f"\n=== {main_message} ===\n")
-#         print(tabulate(rows, headers, tablefmt="grid"))
-
-
 def print_results_table(results, main_message=""):
     """
     Results = list of:
@@ -186,27 +181,68 @@ def print_results_table(results, main_message=""):
     print(tabulate(rows, headers, tablefmt="grid"))
 
 
-# def print_results(results, main_message=""):
+def print_results(results, main_message=""):
+    """
+    Print results line by line.
+
+    Supports:
+    - scalars
+    - dicts (recursive, indented)
+    - list of dicts
+    """
+
+    def _print_value(key, value, indent=2):
+        pad = " " * indent
+
+        # List of dicts
+        if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+            print(f"{pad}{key}:")
+            for item in value:
+                for sub_key, sub_value in item.items():
+                    print(f"{pad}  - {sub_key}: {sub_value}")
+
+        # Dict (recursive)
+        elif isinstance(value, dict):
+            print(f"{pad}{key}:")
+            for sub_key, sub_value in value.items():
+                _print_value(sub_key, sub_value, indent + 2)
+
+        # Scalar
+        else:
+            print(f"{pad}{key}: {value}")
+
+    # Normalize input
+    if isinstance(results, dict):
+        results = [results]
+
+    if main_message:
+        print(f"\n=== {main_message} ===\n")
+
+    for r in results:
+        name = r.get("name", "Unknown")
+        print(f"[{name}]")
+
+        metrics = r.get("metrics", {})
+
+        for key, value in metrics.items():
+            _print_value(key, value, indent=2)
+
+        print("-" * 40)
+
+
+# def print_results_old(results, main_message=""):
 #     """
 #     Print results line by line.
 
-#     Args:
-#         results: list of dicts in the format:
-#             {
-#                 "name": "Batch-Processing-Ollama",
-#                 "metrics": {
-#                     "total_time": duration,
-#                     "avg_time": duration.total_seconds() / BATCH_SIZE,
-#                     "avg_tokens": avg_tokens,
-#                     "max_tokens": -1
-#                 }
-#             }
-#         main_message: optional header message
+#     Supports metrics values that are:
+#     - scalars
+#     - dicts
+#     - list of dicts (printed as secondary level)
 #     """
+
+#     # Normalize input to list
 #     if isinstance(results, dict):
-#         results_array = []
-#         results_array.append(results)
-#         results = results_array
+#         results = [results]
 
 #     if main_message:
 #         print(f"\n=== {main_message} ===\n")
@@ -214,9 +250,27 @@ def print_results_table(results, main_message=""):
 #     for r in results:
 #         name = r.get("name", "Unknown")
 #         print(f"[{name}]")
+
 #         metrics = r.get("metrics", {})
+
 #         for key, value in metrics.items():
-#             print(f"  {key}: {value}")
+#             # 🔹 Case 1: list of dictionaries (secondary level)
+#             if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+#                 print(f"  {key}:")
+#                 for item in value:
+#                     for sub_key, sub_value in item.items():
+#                         print(f"    - {sub_key}: {sub_value}")
+
+#             # 🔹 Case 2: dictionary (also secondary level)
+#             elif isinstance(value, dict):
+#                 print(f"  {key}:")
+#                 for sub_key, sub_value in value.items():
+#                     print(f"    {sub_key}: {sub_value}")
+
+#             # 🔹 Case 3: scalar
+#             else:
+#                 print(f"  {key}: {value}")
+
 #         print("-" * 40)
 
 
@@ -225,7 +279,7 @@ def reset_log(log_file):
     Removes the current log file and resets the logger so a fresh
     file is created the next time get_stats_logger() is called.
     """
-    log_path = config.LOG_STATISTICS_FOLDER / f"{log_file}.log"
+    log_path = paths.LOG_STATISTICS_PATH / f"{log_file}.log"
 
     # Remove the file if it exists
     if log_path.exists():
@@ -242,7 +296,7 @@ def get_stats_logger(logfile="stats.log"):
 
     if not logger.handlers:  # avoid duplicate handlers
         handler = RotatingFileHandler(
-            config.LOG_STATISTICS_FOLDER / logfile,
+            paths.LOG_STATISTICS_PATH / logfile,
             maxBytes=20_000_000,  # 2 MB per file
             backupCount=5,
         )
@@ -263,10 +317,38 @@ def log_results_table(results, log_file="stats", main_message="RESULTS"):
 
 
 def log_results(results, log_file="stats", main_message="RESULTS"):
+    """
+    Log results line by line.
+
+    Supports:
+    - scalars
+    - dicts (recursive, indented)
+    - list of dicts
+    """
+
+    def _log_value(key, value, indent=0):
+        pad = " " * indent
+
+        # List of dicts
+        if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+            logger.info(f"{pad}{key}:")
+            for item in value:
+                for sub_key, sub_value in item.items():
+                    logger.info(f"{pad}  - {sub_key}: {format_metric(sub_key, sub_value)}")
+
+        # Dict (recursive)
+        elif isinstance(value, dict):
+            logger.info(f"{pad}{key}:")
+            for sub_key, sub_value in value.items():
+                _log_value(sub_key, sub_value, indent + 2)
+
+        # Scalar
+        else:
+            logger.info(f"{pad}{key}: {format_metric(key, value)}")
+
+    # Normalize input
     if isinstance(results, dict):
-        results_array = []
-        results_array.append(results)
-        results = results_array
+        results = [results]
 
     logger = get_stats_logger(f"{log_file}.log")
 
@@ -276,10 +358,47 @@ def log_results(results, log_file="stats", main_message="RESULTS"):
         test_name = r.get("name", "unknown_test")
         logger.info(f"[{test_name}]")
 
-        for metric, value in r.get("metrics", {}).items():
-            logger.info(f"{metric} : {format_metric(metric, value)}")
+        metrics = r.get("metrics", {})
+
+        for key, value in metrics.items():
+            _log_value(key, value, indent=2)
 
         logger.info("-" * 40)
+
+
+# def log_results(results, log_file="stats", main_message="RESULTS"):
+#     if isinstance(results, dict):
+#         results = [results]
+
+#     logger = get_stats_logger(f"{log_file}.log")
+
+#     logger.info(f"=== {main_message} ===")
+
+#     for r in results:
+#         test_name = r.get("name", "unknown_test")
+#         logger.info(f"[{test_name}]")
+
+#         metrics = r.get("metrics", {})
+
+#         for metric, value in metrics.items():
+#             # 🔹 Case 1: list of dictionaries
+#             if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+#                 logger.info(f"{metric}:")
+#                 for item in value:
+#                     for sub_key, sub_value in item.items():
+#                         logger.info(f"  - {sub_key}: {format_metric(sub_key, sub_value)}")
+
+#             # 🔹 Case 2: dictionary
+#             elif isinstance(value, dict):
+#                 logger.info(f"{metric}:")
+#                 for sub_key, sub_value in value.items():
+#                     logger.info(f"  {sub_key}: {format_metric(sub_key, sub_value)}")
+
+#             # 🔹 Case 3: scalar
+#             else:
+#                 logger.info(f"{metric}: {format_metric(metric, value)}")
+
+#         logger.info("-" * 40)
 
 
 def log_processed_time(log_file, total_time):
@@ -288,14 +407,19 @@ def log_processed_time(log_file, total_time):
     logger.info(f"Total Duration: {formatted_time}")
 
 
-def total_statistics_logging(statistics, total_time, title, log_name):
-    print_results_table(statistics, title.upper())
+def total_statistics_logging(statistics, total_time, title, log_name, tables=True):
+    if tables:
+        print_results_table(statistics, title.upper())
+    else:
+        print_results(statistics, title)
+
     print_processed_time(total_time)
 
     reset_log(log_name)
 
     log_results(statistics, log_name, title.upper())
-    log_results_table(statistics, log_name, title.upper())
+    if tables:
+        log_results_table(statistics, log_name, title.upper())
     log_processed_time(log_name, total_time)
 
 

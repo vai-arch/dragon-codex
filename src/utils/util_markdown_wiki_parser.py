@@ -10,20 +10,22 @@ Page Types:
 5. REDIRECT/SKIP: ~3,178 files (redirects + no categories)
 """
 
-import re
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from src.utils.wot_constants import BOOK_TITLES, TITLE_TO_NUMBER
+
+from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_text_from_file
 from src.utils.wiki_constants import (
-    REDIRECT_CATEGORIES,
     CATEGORIES_TO_SKIP,
-    PROPHECIES_CATEGORIES,
     MAGIC_CATEGORIES,
+    PROPHECIES_CATEGORIES,
+    REDIRECT_CATEGORIES,
     extract_categories,
     extract_id,
 )
+from src.utils.wot_constants import BOOK_TITLES, TITLE_TO_NUMBER
 
 
 def classify_page_type(filename: str, categories: List[str]) -> str:
@@ -315,9 +317,7 @@ def parse_character_page(filepath: Path, content: str, metadata: Dict) -> Dict:
                 )
             else:
                 # Event-based section (not a book)
-                temporal_sections.append(
-                    {"type": "event", "event_title": subsection["title"], "content": subsection["content"]}
-                )
+                temporal_sections.append({"type": "event", "event_title": subsection["title"], "content": subsection["content"]})
 
     # Collect all other ## sections as non-temporal
     for section in sections:
@@ -469,14 +469,12 @@ def main():
     # print("\nUsage: python markdown_wiki_parser.py <wiki_file> <categories_json>")
     # print("\nExample:")
     # print("  python markdown_wiki_parser.py wiki/Rand_al'Thor.txt category_mappings.json")
-    import sys
 
-    from src.utils.config import Config
-    from src.utils.logger import get_logger
+    paths = get_paths()
 
     if len(sys.argv) < 3:
-        wiki_file = Config().WIKI_PATH / "Two_Rivers.txt"
-        categories_json = Config().FILE_FILENAME_TO_CATEGORIES
+        wiki_file = paths.WIKI_PATH / "Two_Rivers.txt"
+        categories_json = paths.FILE_FILENAME_TO_CATEGORIES
     else:
         wiki_file = Path(sys.argv[1])
         categories_json = Path(sys.argv[2])

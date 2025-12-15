@@ -4,7 +4,6 @@ Loads and manages configuration from environment variables.
 """
 
 import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -19,120 +18,6 @@ class Config:
         """Initialize configuration by loading .env file"""
         # Load environment variables
         load_dotenv(override=True)
-
-        # Project paths
-        self.PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", Path.cwd()))
-        self.DATA_PATH = self.PROJECT_ROOT / "data"
-
-        # Raw -> Original unprocessed data files
-        self.BOOKS_PATH = self.DATA_PATH / "raw" / "books"
-        self.WIKI_PATH = self.DATA_PATH / "raw" / "wiki"
-        self.WIKI_GLOSSARY_PATH = self.DATA_PATH / "raw" / "wiki_glossary"
-        self.WIKI_ORIGINAL_PATH = self.DATA_PATH / "raw" / "wiki_original"
-
-        # Processed -> Raw data transformed into structured format (still "data heavy")
-        self.PROCESSED_PATH = self.DATA_PATH / "processed"
-        self.PROCESSED_BOOKS_PATH = self.PROCESSED_PATH / "books"
-        self.PROCESSED_WIKI_PATH = self.PROCESSED_PATH / "wiki"
-        # MEtadata -> Derived insights, indexes, and mappings (smaller, reference files)
-        self.METADATA_PATH = self.DATA_PATH / "metadata"
-        self.METADATA_BOOKS_PATH = self.METADATA_PATH / "books"
-        self.METADATA_WIKI_PATH = self.METADATA_PATH / "wiki"
-
-        # Auxiliary paths
-        self.AUXILIARY_PATH = self.DATA_PATH / "auxiliary"
-        self.AUXILIARY_BOOKS_PATH = self.AUXILIARY_PATH / "books"
-        self.AUXILIARY_WIKI_PATH = self.AUXILIARY_PATH / "wiki"
-
-        self.VECTOR_STORE_PATH = self.PROJECT_ROOT / "vector_stores"
-
-        # Auxiliary files
-        self.FILE_WIKI_ALL_PAGES = self.AUXILIARY_WIKI_PATH / "wiki_all_pages.json"
-        self.FILE_WIKI_ALL_CATEGORIES = self.AUXILIARY_WIKI_PATH / "wiki_all_categories.json"
-        self.FILE_WIKI_ALL_PAGE_TITLES = self.AUXILIARY_WIKI_PATH / "wiki_all_page_titles.json"
-
-        # Week 2.5: Metadata Generation
-        # ---------------------------------------------------------------------
-        # Maps wiki page redirects to their canonical target pages
-        self.FILE_REDIRECT_MAPPING = self.METADATA_WIKI_PATH / "redirect_mapping.json"
-        # Maps redirect aliases to their canonical names
-        self.FILE_REDIRECT_ALIASES_MAPPING = self.METADATA_WIKI_PATH / "redirect_aliases_mapping.json"
-        # Maps wiki filenames to their category lists for classification
-        self.FILE_FILENAME_TO_CATEGORIES = self.METADATA_WIKI_PATH / "filename_to_categories.json"
-        # Maps wiki categories to the list of filenames in each category
-        self.FILE_CATEGORY_TO_FILES = self.METADATA_WIKI_PATH / "category_to_files.json"
-        # Unified glossary extracted from all 15 book files (characters, places, terms)
-        self.FILE_UNIFIED_GLOSSARY = self.METADATA_BOOKS_PATH / "unified_glossary.json"
-        self.FILE_ALL_CHAPTERS = self.METADATA_BOOKS_PATH / "all_chapters.json"
-        # Maps glossary term names to their corresponding wiki filenames (100% coverage)
-        self.FILE_GLOSSARY_WIKI_MAPPING = self.METADATA_WIKI_PATH / "glossary_to_wiki_mapping.json"
-        # Summary analysis of wiki categories
-        self.FILE_CATEGORY_ANALYSIS_SUMMARY = self.AUXILIARY_WIKI_PATH / "category_analysis_summary.txt"
-
-        # Week 3 Goal 2: Parsed Wiki Data
-        # ---------------------------------------------------------------------
-        # Parsed chronology pages (5 major characters: Rand, Mat, Perrin, Egwene, Elayne)
-        self.FILE_WIKI_CHRONOLOGY = self.PROCESSED_WIKI_PATH / "wiki_chronology.json"
-        # Parsed character pages (2,452 characters with biographical/physical/chronological data)
-        self.FILE_WIKI_CHARACTER = self.PROCESSED_WIKI_PATH / "wiki_character.json"
-        self.FILE_WIKI_PROPHECIES = self.PROCESSED_WIKI_PATH / "wiki_prophecies.json"
-        self.FILE_WIKI_MAGIC = self.PROCESSED_WIKI_PATH / "wiki_magic.json"
-        # Parsed chapter summary pages (714 chapter summaries across all books)
-        self.FILE_WIKI_CHAPTER_SUMMARY = self.PROCESSED_WIKI_PATH / "wiki_chapter_summary.json"
-        # Parsed concept pages (2,716 concepts: places, terms, magic, prophecies, etc.)
-        self.FILE_WIKI_CONCEPT = self.PROCESSED_WIKI_PATH / "wiki_concept.json"
-
-        # Week 3 Goal 3: Character Index
-        # ---------------------------------------------------------------------
-        # Comprehensive character index with aliases, abilities, titles, book appearances
-        self.FILE_CHARACTER_INDEX = self.METADATA_WIKI_PATH / "character_index.json"
-        # Index of all prophecies (Karaethon Cycle, Dark Prophecy, viewings, etc.)
-        self.FILE_PROPHECY_INDEX = self.METADATA_WIKI_PATH / "prophecy_index.json"
-        # Index of One Power magic system (weaves, objects, terms, strength rankings)
-        self.FILE_MAGIC_SYSTEM_INDEX = self.METADATA_WIKI_PATH / "magic_system_index.json"
-        # Index of WoT concepts (locations, creatures, items, historical events, culture)
-        self.FILE_CONCEPT_INDEX = self.METADATA_WIKI_PATH / "concept_index.json"
-
-        # Week 2: Book Processing (Pending)
-        # ---------------------------------------------------------------------
-        # Parsed book structure with chapters, glossaries, and metadata
-        self.FILE_BOOKS_ALL_PARSED = self.PROCESSED_BOOKS_PATH / "books_all_parsed.json"
-        # Chapter-based chunks from all 15 books with metadata
-
-        # Week 4: Wiki Chunks (Pending)
-        # ---------------------------------------------------------------------
-        # Chunked wiki content ready for embedding
-        self.CHUNKS_PATH = self.DATA_PATH / "chunks"
-        self.FILE_BOOK_CHUNKS = self.CHUNKS_PATH / "book_chunks.jsonl"
-        self.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY = self.CHUNKS_PATH / "wiki_chunks_chapter_summary.jsonl"
-        self.FILE_WIKI_CHUNKS_CHARACTER = self.CHUNKS_PATH / "wiki_chunks_character.jsonl"
-        self.FILE_WIKI_CHUNKS_CHRONOLOGY = self.CHUNKS_PATH / "wiki_chunks_chronology.jsonl"
-        self.FILE_WIKI_CHUNKS_PROPHECIES = self.CHUNKS_PATH / "wiki_chunks_prophecies.jsonl"
-        self.FILE_WIKI_CHUNKS_MAGIC = self.CHUNKS_PATH / "wiki_chunks_magic.jsonl"
-        self.FILE_WIKI_CHUNKS_CONCEPT = self.CHUNKS_PATH / "wiki_chunks_concept.jsonl"
-
-        # Week 5: Embedding Storage
-        # ---------------------------------------------------------------------
-        self.EMBEDDINGS_PATH = self.DATA_PATH / "embeddings"
-
-        # Checkpoint file for resumable embedding process
-        self.FILE_EMBEDDING_CHECKPOINT = self.EMBEDDINGS_PATH / "checkpoint_v2.json"
-
-        # Embedding files (one per source file)
-        self.FILE_BOOK_EMBEDDINGS = self.EMBEDDINGS_PATH / "book_chunks.embeddings.pkl"
-        self.FILE_WIKI_CHARACTER_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_character.embeddings.pkl"
-        self.FILE_WIKI_CONCEPT_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_concept.embeddings.pkl"
-        self.FILE_WIKI_CHAPTER_SUMMARY_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.embeddings.pkl"
-        self.FILE_WIKI_CHRONOLOGY_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.embeddings.pkl"
-
-        # Temporary partial embedding files (used during checkpointing)
-        self.FILE_BOOK_PARTIAL = self.EMBEDDINGS_PATH / "book_chunks.partial.pkl"
-        self.FILE_WIKI_CHARACTER_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_character.partial.pkl"
-        self.FILE_WIKI_CONCEPT_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_concept.partial.pkl"
-        self.FILE_WIKI_MAGIC_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_magic.partial.pkl"
-        self.FILE_WIKI_PROPHECIES_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_prophecies.partial.pkl"
-        self.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.partial.pkl"
-        self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
 
         # Ollama configuration
         self.OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -191,18 +76,12 @@ class Config:
         # ChromaDB settings
         self.CHROMA_PERSISTENCE = os.getenv("CHROMA_PERSISTENCE", "True").lower() == "true"
         self.CHROMA_COLLECTION_NARRATIVE = os.getenv("CHROMA_COLLECTION_NARRATIVE", "narrative")
-        self.CHROMA_COLLECTION_CONCEPTS = os.getenv("CHROMA_COLLECTION_CONCEPTS", "concepts")
-        self.CHROMA_COLLECTION_MAGIC = os.getenv("CHROMA_COLLECTION_MAGIC", "magic")
-        self.CHROMA_COLLECTION_PROPHECIES = os.getenv("CHROMA_COLLECTION_PROPHECIES", "prophecies")
+        self.CHROMA_COLLECTION_REFERENCE = os.getenv("CHROMA_COLLECTION_REFERENCE", "reference")
         # NEW: ChromaDB client settings
         self.CHROMA_TELEMETRY = os.getenv("CHROMA_TELEMETRY", "False").lower() == "true"
 
         # Logging
         self.LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-        log_file = os.getenv("LOG_FILE", str(self.PROJECT_ROOT / "logs" / "dragon_codex.log"))
-        self.LOG_FILE = Path(log_file)
-        self.LOG_FOLDER = self.LOG_FILE.parent
-        self.LOG_STATISTICS_FOLDER = self.LOG_FOLDER / "statistics"
         self.LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 10485760))  # 10MB
         self.LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
 
@@ -211,26 +90,6 @@ class Config:
         self.VERBOSE = os.getenv("VERBOSE", "True").lower() == "true"
 
         self.WIKI_BASE_URL = os.getenv("WIKI_BASE_URL", "https://wot.fandom.com")
-        # Ensure necessary directories exist
-        self._create_directories()
-
-    def _create_directories(self):
-        """Create necessary directories if they don't exist"""
-        directories = [
-            self.DATA_PATH,
-            self.CHUNKS_PATH,
-            self.BOOKS_PATH,
-            self.WIKI_PATH,
-            self.PROCESSED_PATH,
-            self.METADATA_PATH,
-            self.VECTOR_STORE_PATH,
-            self.LOG_FOLDER,
-            self.EMBEDDINGS_PATH,
-            self.LOG_STATISTICS_FOLDER,
-        ]
-
-        for directory in directories:
-            directory.mkdir(parents=True, exist_ok=True)
 
     def __repr__(self):
         """String representation of configuration"""
@@ -258,13 +117,6 @@ def print_config():
     print("Dragon's Codex Configuration")
     print("=" * 60)
 
-    print("\n📁 Paths:")
-    print(f"  Project Root: {config.PROJECT_ROOT}")
-    print(f"  Data Path: {config.DATA_PATH}")
-    print(f"  Books: {config.BOOKS_PATH}")
-    print(f"  Wiki: {config.WIKI_PATH}")
-    print(f"  Vector Stores: {config.VECTOR_STORE_PATH}")
-
     print("\n🤖 Models:")
     print(f"  Ollama URL: {config.OLLAMA_BASE_URL}")
     print(f"  LLM: {config.LLM_MODEL}")
@@ -285,7 +137,6 @@ def print_config():
 
     print("\n📝 Logging:")
     print(f"  Level: {config.LOG_LEVEL}")
-    print(f"  File: {config.LOG_FILE}")
     print(f"  Debug: {config.DEBUG}")
 
     print("=" * 60)

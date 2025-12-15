@@ -5,13 +5,16 @@ Input: wiki_character.json
 Output: wiki_chunks_character.jsonl
 """
 
+import sys
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
 from tqdm import tqdm
 
-from src.utils.config import Config
+from src.utils.config import get_config
+from src.utils.paths import get_paths
 from src.utils.util_chunking_functions import (
     chunk_statistics,
     split_into_paragraphs,
@@ -19,16 +22,29 @@ from src.utils.util_chunking_functions import (
 )
 from src.utils.util_files_functions import load_json_from_file, save_jsonl_to_file
 from src.utils.util_statistics import (
-    log_processed_time,
-    log_results,
     log_results_table,
-    print_processed_time,
     print_results,
     print_results_table,
-    reset_log,
+    total_statistics_logging,
 )
 
-config = Config()
+cfg_max_chunk_size = None
+
+in_file_wiki_character = None
+in_file_wiki_chapter_summary = None
+in_file_wiki_chronology = None
+in_file_books_all_parsed = None
+in_file_wiki_concept = None
+in_file_wiki_prophecies = None
+in_file_wiki_magic = None
+
+out_file_wiki_chunks_chapter_summary = None
+out_file_wiki_chunks_character = None
+out_file_wiki_chunks_chronology = None
+out_file_book_chunks = None
+out_file_wiki_chunks_concept = None
+out_file_wiki_chunks_prophecies = None
+out_file_wiki_chunks_magic = None
 
 
 def chunk_character_pages():
@@ -36,7 +52,7 @@ def chunk_character_pages():
     Chunk the 2,452 character pages.
     Groups sections together to reach target size, preserving structure.
     """
-    character_data = load_json_from_file(Config().FILE_WIKI_CHARACTER)
+    character_data = load_json_from_file(in_file_wiki_character)
     all_chunks = []
 
     # Process each character page
@@ -85,7 +101,7 @@ def chunk_character_pages():
             section_size = len(section_text)
 
             # If single section exceeds max, split it
-            if section_size > config.MAX_CHUNK_SIZE:
+            if section_size > cfg_max_chunk_size:
                 # Save current chunk if exists
                 if current_chunk_sections:
                     chunks.append(
@@ -108,7 +124,7 @@ def chunk_character_pages():
             separator_size = 2 if current_chunk_sections else 0
             new_size = current_size + separator_size + section_size
 
-            if new_size <= config.MAX_CHUNK_SIZE:
+            if new_size <= cfg_max_chunk_size:
                 # Fits - add to current chunk
                 current_chunk_sections.append(section_text)
                 current_chunk_titles.append(section_title)
@@ -153,7 +169,7 @@ def chunk_character_pages():
             all_chunks.append(chunk)
 
     # Save chunks
-    save_jsonl_to_file(all_chunks, config.FILE_WIKI_CHUNKS_CHARACTER)
+    save_jsonl_to_file(all_chunks, out_file_wiki_chunks_character)
 
     # Print statistics
     results = chunk_statistics(all_chunks, "CHARACTERS CHUNKS")
@@ -170,7 +186,7 @@ def chunk_chapter_summary_pages():
     Split oversized chapters into multiple chunks with overlap.
     """
     # Load chapter summary data
-    chapter_data = load_json_from_file(Config().FILE_WIKI_CHAPTER_SUMMARY)
+    chapter_data = load_json_from_file(in_file_wiki_chapter_summary)
 
     all_chunks = []
 
@@ -218,7 +234,7 @@ def chunk_chapter_summary_pages():
             all_chunks.append(chunk)
 
     # Save chunks
-    save_jsonl_to_file(all_chunks, Config().FILE_WIKI_CHUNKS_CHAPTER_SUMMARY)
+    save_jsonl_to_file(all_chunks, out_file_wiki_chunks_chapter_summary)
 
     # Print statistics
     results = chunk_statistics(all_chunks, "CHAPTER SUMMARY CHUNKS")
@@ -235,8 +251,7 @@ def chunk_chronology_pages():
     Handles both temporal (book-based) and non-temporal (event-based) structures.
     """
 
-    chronology_data = load_json_from_file(Config().FILE_WIKI_CHRONOLOGY)
-    config = Config()
+    chronology_data = load_json_from_file(in_file_wiki_chronology)
     all_chunks = []
 
     # Process each chronology page
@@ -307,7 +322,7 @@ def chunk_chronology_pages():
                 all_chunks.append(chunk)
 
     # Save chunks
-    save_jsonl_to_file(all_chunks, config.FILE_WIKI_CHUNKS_CHRONOLOGY)
+    save_jsonl_to_file(all_chunks, out_file_wiki_chunks_chronology)
 
     # Character breakdown
     char_counts = {}
@@ -384,7 +399,7 @@ def chunk_books():
         output_file: Path to save book_chunks.jsonl
     """
 
-    all_books = load_json_from_file(config.FILE_BOOKS_ALL_PARSED)
+    all_books = load_json_from_file(in_file_books_all_parsed)
 
     # Process each book
     all_chunks = []
@@ -400,7 +415,7 @@ def chunk_books():
 
         book_chunks = []
         for chapter in chapters:
-            chapter_chunks = aux_chunk_book_chapter(chapter, book_number, book_title)
+            chapter_chunks = aux_chunk_book_chapter(chapter, int(book_number), book_title)
             book_chunks.extend(chapter_chunks)
 
         # print(f"   ✓ Created {len(book_chunks)} chunks")
@@ -415,7 +430,7 @@ def chunk_books():
     print_results_table(book_statistics, "")
     log_results_table(book_statistics, "chunks_by_chapters")
 
-    save_jsonl_to_file(all_chunks, config.FILE_BOOK_CHUNKS)
+    save_jsonl_to_file(all_chunks, out_file_book_chunks)
 
     results = chunk_statistics(all_chunks, "BOOKS CHUNKS")
     results["metrics"]["number_of_items"] = number_of_chapters
@@ -442,8 +457,6 @@ def aux_chunk_page(filename: str, page_data: Dict, source_type: str) -> List[Dic
     page_type = page_data.get("page_type", "")
     sections = page_data.get("sections", [])
     categories = page_data.get("metadata", {}).get("categories", [])
-
-    config = Config()
 
     # Build list of section texts (each section with its subsections)
     section_texts = []
@@ -498,8 +511,7 @@ def aux_chunk_page(filename: str, page_data: Dict, source_type: str) -> List[Dic
     current_chunk_titles = []
     current_size = 0
 
-    target_size = config.CHUNK_SIZE  # 6,144 chars
-    max_size = config.MAX_CHUNK_SIZE  # 7,680 chars
+    max_size = cfg_max_chunk_size
 
     for section_text, section_title in zip(section_texts, section_titles):
         section_size = len(section_text)
@@ -619,29 +631,48 @@ def chunk_concept_magic_prophecy(input_file: Path, output_file: Path, source_typ
 def main():
     start_time = datetime.now()
 
-    results = []
+    statistics = []
 
-    results.append(chunk_character_pages())
-    results.append(chunk_chapter_summary_pages())
-    results.append(chunk_chronology_pages())
-    results.append(chunk_books())
-    results.append(chunk_concept_magic_prophecy(config.FILE_WIKI_CONCEPT, config.FILE_WIKI_CHUNKS_CONCEPT, "concept"))
-    results.append(
-        chunk_concept_magic_prophecy(config.FILE_WIKI_PROPHECIES, config.FILE_WIKI_CHUNKS_PROPHECIES, "prophecy")
-    )
-    results.append(chunk_concept_magic_prophecy(config.FILE_WIKI_MAGIC, config.FILE_WIKI_CHUNKS_MAGIC, "magic"))
+    statistics.append(chunk_character_pages())
+    statistics.append(chunk_chapter_summary_pages())
+    statistics.append(chunk_chronology_pages())
+    statistics.append(chunk_books())
+    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_concept, out_file_wiki_chunks_concept, "concept"))
+    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_prophecies, out_file_wiki_chunks_prophecies, "prophecy"))
+    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_magic, out_file_wiki_chunks_magic, "magic"))
 
     total_time = (datetime.now() - start_time).total_seconds()
 
-    print_results_table(results, "CHUNK CREATION STATISTICS")
-    print_processed_time(total_time)
-
-    reset_log("chunk_creation")
-
-    log_results(results, "chunk_creation", "CHUNK CREATION STATISTICS")
-    log_results_table(results, "chunk_creation", "CHUNK CREATION STATISTICS")
-    log_processed_time("chunk_creation", total_time)
+    total_statistics_logging(total_time=total_time, log_name="emb_01_create_chunks", statistics=statistics, title="CHUNK CREATION", tables=True)
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+    config = get_config()
+
+    cfg_max_chunk_size = config.MAX_CHUNK_SIZE
+
+    in_file_wiki_character = paths.FILE_WIKI_CHARACTER
+    in_file_wiki_chapter_summary = paths.FILE_WIKI_CHAPTER_SUMMARY
+    in_file_wiki_chronology = paths.FILE_WIKI_CHRONOLOGY
+    in_file_books_all_parsed = paths.FILE_BOOKS_ALL_PARSED
+    in_file_wiki_concept = paths.FILE_WIKI_CONCEPT
+    in_file_wiki_prophecies = paths.FILE_WIKI_PROPHECIES
+    in_file_wiki_magic = paths.FILE_WIKI_MAGIC
+    out_file_wiki_chunks_chapter_summary = paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY
+    out_file_wiki_chunks_character = paths.FILE_WIKI_CHUNKS_CHARACTER
+    out_file_wiki_chunks_chronology = paths.FILE_WIKI_CHUNKS_CHRONOLOGY
+    out_file_book_chunks = paths.FILE_BOOK_CHUNKS
+    out_file_wiki_chunks_concept = paths.FILE_WIKI_CHUNKS_CONCEPT
+    out_file_wiki_chunks_prophecies = paths.FILE_WIKI_CHUNKS_PROPHECIES
+    out_file_wiki_chunks_magic = paths.FILE_WIKI_CHUNKS_MAGIC
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

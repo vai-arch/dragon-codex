@@ -15,31 +15,27 @@ Output:
     - data/metadata/wiki/category_to_files.json
 """
 
-import re
-import json
-from pathlib import Path
+import sys
+import traceback
 from collections import defaultdict
-from src.utils.config import Config
+from datetime import datetime
+
 from tqdm import tqdm
 
-import sys
-
-from src.utils.config import Config
-from src.utils.logger import get_logger, set_global_log_level
-from src.utils.util_files_functions import load_json_from_file, save_json_to_file, find_files_in_folder
+from src.utils.paths import get_paths
+from src.utils.util_files_functions import find_files_in_folder, save_json_to_file
+from src.utils.util_statistics import total_statistics_logging
 from src.utils.wiki_constants import (
-    CATEGORY_OVERRIDES,
-    extract_categories,
     check_fist_level_key_in_json,
+    extract_categories,
     extract_page_name,
 )
 
-wiki_path = Config().WIKI_PATH
-output_dir = Config().METADATA_WIKI_PATH
-filename_to_categories_path = Config().FILE_FILENAME_TO_CATEGORIES
-category_to_files_path = Config().FILE_CATEGORY_TO_FILES
-summary_path = Config().FILE_CATEGORY_ANALYSIS_SUMMARY
-redirect_mapping_path = Config().FILE_REDIRECT_MAPPING
+in_wiki_path = None
+in_file_redirect_mapping = None
+out_metadata_wiki_path = None
+out_file_filename_to_categories = None
+out_file_category_to_files = None
 
 
 def analyze_wiki_categories(wiki_dir):
@@ -55,9 +51,9 @@ def analyze_wiki_categories(wiki_dir):
             - category_to_files: dict {category: [filenames]}
     """
 
-    txt_files = find_files_in_folder(wiki_path, ".txt", recursive=False)
+    txt_files = find_files_in_folder(in_wiki_path, ".txt", recursive=False)
 
-    set_global_log_level("WARNING")
+    # set_global_log_level("WARNING")
 
     # Initialize mappings
     filename_to_categories = {}
@@ -84,7 +80,7 @@ def analyze_wiki_categories(wiki_dir):
                 category_to_files[category].append(filename)
         else:
             page_name = extract_page_name(filepath)
-            isRedirected = check_fist_level_key_in_json(redirect_mapping_path, page_name)
+            isRedirected = check_fist_level_key_in_json(in_file_redirect_mapping, page_name)
             if isRedirected:
                 files_with_unknown_redirection += 1
                 category_to_files["unknown_redirection"].append(filename)
@@ -92,26 +88,29 @@ def analyze_wiki_categories(wiki_dir):
                 files_without_categories += 1
                 category_to_files["unknown_category"].append(filename)
 
-    print(f"\n✅ Analysis complete!")
-    print(f"   Files with categories: {files_with_categories}")
-    print(f"   Files with unknown redirections: {files_with_unknown_redirection}")
-    print(f"   Files without categories: {files_without_categories}")
-    print(f"   Total unique categories: {len(category_to_files)}")
+    statistics = {
+        "name": "category_analysis",
+        "metrics": {
+            "files_with_categories": files_with_categories,
+            "files_without_categories": files_without_categories,
+            "files_with_unknown_redirection": files_with_unknown_redirection,
+            "total_unique_categories": len(category_to_files),
+        },
+    }
 
-    return filename_to_categories, dict(category_to_files)
+    return filename_to_categories, dict(category_to_files), statistics
 
 
-def save_results(filename_to_categories, category_to_files, output_dir):
-    """
-    Save analysis results to JSON files and generate summary.
+def main():
+    start_time = datetime.now()
 
-    Args:
-        filename_to_categories: dict {filename: [categories]}
-        category_to_files: dict {category: [filenames]}
-        output_dir: Path to output directory
-    """
+    filename_to_categories, category_to_files, statistics = analyze_wiki_categories(in_wiki_path)
 
-    save_json_to_file(filename_to_categories, filename_to_categories_path, indent=2)
+    if not filename_to_categories:
+        raise ValueError("\n⚠️  No data to save. Exiting.")
+
+    # Save results
+    save_json_to_file(filename_to_categories, out_file_filename_to_categories, indent=2)
 
     # Save category → files mapping (with counts)
     category_counts = {
@@ -122,32 +121,28 @@ def save_results(filename_to_categories, category_to_files, output_dir):
         for category, files in category_to_files.items()
     }
 
-    save_json_to_file(category_counts, category_to_files_path, indent=2)
+    save_json_to_file(category_counts, out_file_category_to_files, indent=2)
 
+    total_time = datetime.now() - start_time
 
-def main():
-    """Main execution function."""
-    print("\n" + "=" * 80)
-    print("DRAGON'S CODEX - WIKI CATEGORY ANALYZER")
-    print("=" * 80)
-
-    # Run analysis
-    filename_to_categories, category_to_files = analyze_wiki_categories(wiki_path)
-
-    if not filename_to_categories:
-        raise ValueError("\n⚠️  No data to save. Exiting.")
-
-    # Save results
-    save_results(filename_to_categories, category_to_files, output_dir)
-
-    print("\n" + "=" * 80)
-    print("✅ ANALYSIS COMPLETE!")
-    print("=" * 80)
-    print("\nNext steps:")
-    print("1. Examine category_to_files.json for patterns")
-    print("2. Check filename_to_categories.json for specific files")
-    print("\n")
+    total_statistics_logging(total_time=total_time, log_name="prc_04_analyze_wiki_categories", statistics=statistics, title="CATEGORY ANALYSIS")
 
 
 if __name__ == "__main__":
-    main()
+    paths = get_paths()
+
+    in_wiki_path = paths.WIKI_PATH
+    in_file_redirect_mapping = paths.FILE_REDIRECT_MAPPING
+    out_metadata_wiki_path = paths.METADATA_WIKI_PATH
+    out_file_filename_to_categories = paths.FILE_FILENAME_TO_CATEGORIES
+    out_file_category_to_files = paths.FILE_CATEGORY_TO_FILES
+
+    try:
+        exit_code = main()
+        exit_code = 0
+    except Exception as e:
+        print("❌ An error occurred in the script:", str(e))
+        traceback.print_exc()  # optional: prints full stack trace
+        exit_code = 1  # non-zero signals failure
+
+    sys.exit(exit_code)

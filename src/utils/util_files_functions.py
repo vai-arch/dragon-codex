@@ -1,3 +1,4 @@
+import fnmatch
 import json
 import os
 import pickle
@@ -17,10 +18,19 @@ def get_object_size_mb(filepath):
     return os.path.getsize(filepath) / (1024 * 1024)
 
 
-def serialize_object(data, output_file, log: False):
+def deserialize_object(input_file, log=False):
+    if log:
+        logger.debug(f"\n📂 Loading object from: {input_file}")
+
+    with open(input_file, "rb") as f:
+        return pickle.load(f)
+
+
+def serialize_object(data, output_file, log=False):
     if log:
         logger.debug(f"\n💾 Saving object to: {output_file}")
 
+    output_file = Path(output_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_file, "wb") as f:
@@ -96,6 +106,8 @@ def copy_files(
     extension=".txt",
     recursive=False,
     overwrite=True,
+    log=True,
+    exclude_pattern=None,  # 👈 NEW
 ):
     """
     Copy files from src_folder to dst_folder.
@@ -106,6 +118,8 @@ def copy_files(
         extension (str): Extension filter, e.g. ".txt" or "txt"
         recursive (bool): If True, use rglob() to include subfolders
         overwrite (bool): If False, skip files that already exist
+        exclude_pattern (str | None): Glob pattern to exclude
+            (e.g. "*_SKIPPED.txt"). If None, nothing is excluded.
     """
 
     src = Path(src_folder)
@@ -129,28 +143,38 @@ def copy_files(
     copied_count = 0
 
     for file_path in files:
+        # 🔹 Exclude pattern (only if provided)
+        if exclude_pattern and fnmatch.fnmatch(file_path.name, exclude_pattern):
+            if log:
+                logger.info(f"Excluded by pattern: {file_path.name}")
+            continue
+
         dest_file = dst / file_path.name
 
         if dest_file.exists() and not overwrite:
-            logger.info(f"Skipping existing file: {dest_file}")
+            if log:
+                logger.info(f"Skipping existing file: {dest_file}")
             continue
 
         try:
             shutil.copy2(file_path, dest_file)
-            logger.info(f"Copied: {file_path} → {dest_file}")
+            if log:
+                logger.info(f"Copied: {file_path} → {dest_file}")
             copied_count += 1
         except Exception as e:
             logger.error(f"Failed to copy {file_path}: {e}")
 
     if copied_count == 0:
-        logger.warning(f"No files copied from {src} (pattern: {pattern})")
+        if log:
+            logger.warning(f"No files copied from {src} (pattern: {pattern})")
     else:
-        logger.info(f"Copied {copied_count} file(s) from {src} → {dst}")
+        if log:
+            logger.info(f"Copied {copied_count} file(s) from {src} → {dst}")
 
     return True
 
 
-def load_json_line_by_line(file, log: True):
+def load_json_line_by_line(file, log=True):
     """
     Load a file line by line as JSON objects.
 
@@ -177,7 +201,7 @@ def load_json_line_by_line(file, log: True):
     return lines
 
 
-def load_txt_line_by_line(file, log: True):
+def load_txt_line_by_line(file, log=True):
     """
     Load a file line by line as JSON objects.
 
@@ -270,6 +294,7 @@ def save_json_to_file(data: List[Dict], output_file, indent: int = None, log=Tru
     # Save to JSON
     if log:
         logger.debug(f"\n💾 Saving {len(data)} chunks to: {output_file}")
+
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_file, "w", encoding="utf-8") as f:
