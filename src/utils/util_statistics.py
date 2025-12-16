@@ -407,7 +407,15 @@ def log_processed_time(log_file, total_time):
     logger.info(f"Total Duration: {formatted_time}")
 
 
-def total_statistics_logging(statistics, total_time, title, log_name, tables=True):
+def log_configuration(log_file, config_section):
+    logger = get_stats_logger(f"{log_file}.log")
+    config.log_configuration(logger, config_section)
+
+
+def total_statistics_logging(statistics, total_time, title, log_name, tables=True, configuration_section=None):
+    if configuration_section is not None:
+        config.log_configuration(log_name, configuration_section)
+
     if tables:
         print_results_table(statistics, title.upper())
     else:

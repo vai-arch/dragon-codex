@@ -45,13 +45,16 @@ logs/
 *.log
 
 # Data (too large for git)
-data/raw/
 data/chunks/
 data/embeddings/
 data/processed/
 data/auxiliary/
 data/metadata/
 vector_stores/
+data/statistics/
+data/raw/wiki/
+data/raw/wiki_original/
+data/raw/wiki_glossary/
 
 
 # Keep structure but not content

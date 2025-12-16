@@ -438,12 +438,11 @@ def main(reset: bool = False):
     print_results_table(full_statistics, "FULL EMBEDDING STATISTICS")
     print_processed_time(total_time)
 
-    reset_log("embeddings")
+    reset_log("emb_03_embed_all_chunks")
 
-    log_results(full_statistics, "embeddings", "FULL EMBEDDING STATISTICS")
-    reset_log("embeddings")
-    log_results_table(full_statistics, "embeddings", "FULL EMBEDDING STATISTICS")
-    log_processed_time("embeddings", total_time)
+    log_results(full_statistics, "emb_03_embed_all_chunks", "FULL EMBEDDING STATISTICS")
+    log_results_table(full_statistics, "emb_03_embed_all_chunks", "FULL EMBEDDING STATISTICS")
+    log_processed_time("emb_03_embed_all_chunks", total_time)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,13 @@ Dragon's Codex - Configuration Manager
 Loads and manages configuration from environment variables.
 """
 
+import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
+
+from src.utils.paths import get_paths
 
 
 class Config:
@@ -54,8 +58,8 @@ class Config:
 
         # Token-based configuration (primary)
         self.CHARS_PER_TOKEN = int(os.getenv("CHARS_PER_TOKEN", 4.5))
-        self.MAX_TOKENS = int(os.getenv("MAX_TOKENS", self.EMBEDDING_MAX_TOKENS * 0.85))  # Safety limit 5%. IDEALLY 7000, with this numbers 6956
-        self.TARGET_TOKENS = int(os.getenv("TARGET_TOKENS", self.MAX_TOKENS * 0.86))  # Target = 85% Max IDEALLY 6000, with this numbers 5980
+        self.MAX_TOKENS = int(os.getenv("MAX_TOKENS", self.EMBEDDING_MAX_TOKENS * 0.85))  # Safety limit 15% (0.85) is already tested with all the chunks and the MAX ammount of tekens was 1616
+        self.TARGET_TOKENS = int(os.getenv("TARGET_TOKENS", self.MAX_TOKENS * 0.86))  # Target = 85%
         self.OVERLAP_TOKENS = int(os.getenv("OVERLAP_TOKENS", self.TARGET_TOKENS * 0.10))  # 10% overlap
 
         # Character-based (derived from tokens)
@@ -142,6 +146,71 @@ def print_config():
     print("=" * 60)
 
 
+def get_configuration_section(configuration_section):
+    config = get_config()
+    config_items = None
+
+    if configuration_section == "embeddings":
+        config_items = [
+            ("", ""),
+            ("=== Ollama Configuration ===", ""),
+            ("Ollama URL", config.OLLAMA_BASE_URL),
+            ("Embedding Model", config.EMBEDDING_MODEL),
+            ("LLM Model", config.LLM_MODEL),
+            ("Nomic Embed Max Tokens", config.NOMIC_EMBED_TEXT_MAX_TOKENS),
+            ("\n=== Embedding Settings ===", ""),
+            ("Embedding Dimension", config.EMBEDDING_DIMENSION),
+            ("Embedding Max Tokens", config.EMBEDDING_MAX_TOKENS),
+            ("\n=== Token-Based Chunking Configuration ===", ""),
+            ("Chars per Token", config.CHARS_PER_TOKEN),
+            ("Max Tokens", config.MAX_TOKENS),
+            ("Target Tokens", config.TARGET_TOKENS),
+            ("Overlap Tokens", config.OVERLAP_TOKENS),
+            ("\n=== Character-Based Chunking (Derived) ===", ""),
+            ("Chunk Size (chars)", config.CHUNK_SIZE),
+            ("Chunk Overlap (chars)", config.CHUNK_OVERLAP),
+            ("Max Chunk Size (chars)", config.MAX_CHUNK_SIZE),
+        ]
+    return config_items
+
+
+def print_configuration(configuration_section):
+    config_items = get_configuration_section(configuration_section)
+
+    max_label = max(len(label) for label, _ in config_items)
+    for label, value in config_items:
+        print(f"  {label.ljust(max_label)} : {value}")
+
+
+def log_configuration(log_file, configuration_section):
+    config_items = get_configuration_section(configuration_section)
+
+    logger = get_stats_logger(f"{log_file}.log")
+
+    max_label = max(len(label) for label, _ in config_items)
+    for label, value in config_items:
+        logger.info(f"  {label.ljust(max_label)} : {value}")
+
+
+def get_stats_logger(logfile="stats.log"):
+    paths = get_paths()
+    logger = logging.getLogger("stats_logger")
+    logger.setLevel(logging.INFO)
+
+    if not logger.handlers:  # avoid duplicate handlers
+        handler = RotatingFileHandler(
+            paths.LOG_STATISTICS_PATH / logfile,
+            maxBytes=20_000_000,  # 2 MB per file
+            backupCount=5,
+        )
+        formatter = logging.Formatter("%(asctime)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger
+
+
 if __name__ == "__main__":
     # Test the configuration
-    print_config()
+    # print_config()
+    log_configuration("emb_03_embed_all_chunks", "embeddings")
