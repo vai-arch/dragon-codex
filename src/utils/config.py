@@ -212,5 +212,5 @@ def get_stats_logger(logfile="stats.log"):
 
 if __name__ == "__main__":
     # Test the configuration
-    # print_config()
-    log_configuration("emb_03_embed_all_chunks", "embeddings")
+    print_config()
+    # log_configuration("emb_03_embed_all_chunks", "embeddings")

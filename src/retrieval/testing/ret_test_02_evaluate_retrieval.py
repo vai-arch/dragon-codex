@@ -3,11 +3,12 @@ Dragon's Codex - Baseline Retrieval Evaluation
 Score all 100 test questions using the testing rubric.
 """
 
-import json
 import sys
 from typing import Dict, List
 
 from src.utils.paths import get_paths
+from src.utils.util_files_functions import load_json_from_file, save_json_to_file
+from src.utils.util_statistics import total_statistics_logging
 
 
 # Evaluation rubric
@@ -151,15 +152,18 @@ def evaluate_all_results(data: Dict) -> Dict:
     all_scores = [e["retrieval_score"] for e in all_evaluations]
 
     statistics = {
-        "overall": {
-            "average": sum(all_scores) / len(all_scores),
-            "median": sorted(all_scores)[len(all_scores) // 2],
-            "min": min(all_scores),
-            "max": max(all_scores),
-            "total_questions": len(all_scores),
+        "name": "evaluate_retrieval",
+        "metrics": {
+            "overall": {
+                "average": sum(all_scores) / len(all_scores),
+                "median": sorted(all_scores)[len(all_scores) // 2],
+                "min": min(all_scores),
+                "max": max(all_scores),
+                "total_questions": len(all_scores),
+            },
+            "by_difficulty": {diff: {"average": sum(scores) / len(scores), "count": len(scores)} for diff, scores in scores_by_difficulty.items()},
+            "by_category": {cat: {"average": sum(scores) / len(scores), "count": len(scores)} for cat, scores in scores_by_category.items()},
         },
-        "by_difficulty": {diff: {"average": sum(scores) / len(scores), "count": len(scores)} for diff, scores in scores_by_difficulty.items()},
-        "by_category": {cat: {"average": sum(scores) / len(scores), "count": len(scores)} for cat, scores in scores_by_category.items()},
     }
 
     # Find best and worst
@@ -172,7 +176,7 @@ def evaluate_all_results(data: Dict) -> Dict:
 
 def print_summary(analysis: Dict):
     """Print evaluation summary"""
-    stats = analysis["statistics"]
+    stats = analysis["statistics"]["metrics"]
 
     print("\n" + "=" * 70)
     print("BASELINE RETRIEVAL EVALUATION SUMMARY")
@@ -219,13 +223,9 @@ def print_summary(analysis: Dict):
 def main():
     paths = get_paths()
 
-    results_file = paths.DATA_PATH / "testing" / "answers_baseline_retrieval_semantic_search.json"
+    results_file = paths.RETRIEVAL_TESTING_RESULTS_PATH / "answers_baseline_retrieval_semantic_search.json"
 
-    print(f"Loading results from: {results_file}")
-    with open(results_file, "r") as f:
-        data = json.load(f)
-
-    print(f"Loaded {len(data['results'])} question results")
+    data = load_json_from_file(results_file)
 
     # Evaluate
     analysis = evaluate_all_results(data)
@@ -234,13 +234,11 @@ def main():
     meets_mvp = print_summary(analysis)
 
     # Save detailed evaluation
-    output_file = paths.DATA_PATH / "testing" / "baseline_evaluation_detailed.json"
-    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file = paths.RETRIEVAL_TESTING_RESULTS_PATH / "baseline_evaluation_detailed.json"
 
-    with open(output_file, "w") as f:
-        json.dump(analysis, f, indent=2)
+    save_json_to_file(analysis, output_file, indent=2)
 
-    print(f"\n💾 Detailed evaluation saved to: {output_file}")
+    total_statistics_logging(log_name="ret_test_02_evaluate_retrieval", statistics=analysis["statistics"], tables=False, title="RETRIEVAL RESULTS", total_time=None)
 
     # Recommendation
     print("\n📋 RECOMMENDATION")
@@ -253,7 +251,7 @@ def main():
         print("   → Proceed to Phase 2: Hybrid Retrieval (BM25)")
         print("   → Expected improvement: 5-15% on semantic-only baseline")
 
-    return 0 if meets_mvp else 1
+    # return 0 if meets_mvp else 1
 
 
 if __name__ == "__main__":

@@ -185,7 +185,7 @@ def main():
     # Print summary
     total_time = datetime.now() - start_time
 
-    total_statistics_logging(statistics=statistics, total_time=total_time, title="BASELINE RETRIEVAL TEST", log_name="test_01_baseline_retrieval", tables=False)
+    total_statistics_logging(statistics=statistics, total_time=total_time, title="BASELINE RETRIEVAL TEST", log_name="ret_test_01_test_baselines_retrievalº", tables=False)
 
     return 0
 
@@ -196,8 +196,8 @@ if __name__ == "__main__":
     config = get_config()
 
     # Set file paths
-    in_test_questions_file = paths.DATA_PATH / "testing" / "questions_100.json"
-    out_results_file = paths.DATA_PATH / "testing" / "answers_baseline_retrieval_semantic_search.json"
+    in_test_questions_file = paths.FILE_TEST_QUESTIONS
+    out_results_file = paths.RETRIEVAL_TESTING_RESULTS_PATH / "answers_baseline_retrieval_semantic_search.json"
 
     # Validate input file exists
     if not in_test_questions_file.exists():

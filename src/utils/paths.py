@@ -50,6 +50,10 @@ class Paths:
         self.VECTOR_STORE_PATH = self.PROJECT_ROOT_PATH / "vector_stores"
         self.EMBEDDINGS_PATH = self.DATA_PATH / "embeddings"
 
+        # Retrieval
+        self.RETRIEVAL_TESTING_PATH = self.DATA_PATH / "testing"
+        self.RETRIEVAL_TESTING_RESULTS_PATH = self.RETRIEVAL_TESTING_PATH / "results"
+
         # Auxiliary files
         self.FILE_WIKI_ALL_PAGES = self.AUXILIARY_WIKI_PATH / "wiki_all_pages.json"
         self.FILE_WIKI_ALL_CATEGORIES = self.AUXILIARY_WIKI_PATH / "wiki_all_categories.json"
@@ -141,6 +145,7 @@ class Paths:
         self.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.partial.pkl"
         self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
 
+        self.FILE_TEST_QUESTIONS = self.DATA_PATH / "testing" / "questions_100.json"
         self._create_directories()
 
     def _create_directories(self):

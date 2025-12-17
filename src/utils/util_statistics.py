@@ -421,7 +421,8 @@ def total_statistics_logging(statistics, total_time, title, log_name, tables=Tru
     else:
         print_results(statistics, title)
 
-    print_processed_time(total_time)
+    if total_time:
+        print_processed_time(total_time)
 
     reset_log(log_name)
 

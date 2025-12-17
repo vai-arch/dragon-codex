@@ -15,7 +15,9 @@ $modules = @(
     "src.embedding.emb_01_create_chunks",
     "src.embedding.emb_02_enrich_chunks",
     "src.embedding.emb_03_embed_all_chunks",
-    "src.embedding.emb_04_create_collections"
+    "src.embedding.emb_04_create_collections",
+    "src.retrieval.testing.ret_test_01_test_baselines_retrieval",
+    "src.retrieval.testing.ret_test_02_evaluate_retrieval"
 )
 
 foreach ($module in $modules) {
