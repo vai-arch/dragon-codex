@@ -44,6 +44,8 @@ env/
 logs/
 *.log
 
+.ruff_cache
+
 # Data (too large for git)
 data/chunks/
 data/embeddings/
