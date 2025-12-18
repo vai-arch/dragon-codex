@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-from src.utils.logger import get_logger
+from .logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -265,7 +265,7 @@ def load_json_from_file(file, log=True):
     input_file = Path(file)
 
     if not input_file.exists():
-        raise FileNotFoundError(f"❌ Error: Books file not found: {file}")
+        raise FileNotFoundError(f"❌ Error: file not found: {file}")
 
     if log:
         logger.debug(f"📂 Loading file: {file}")

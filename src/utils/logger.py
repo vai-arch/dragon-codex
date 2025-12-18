@@ -8,8 +8,8 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from src.utils.config import get_config
-from src.utils.paths import get_paths
+from .config import get_config
+from .paths import get_paths
 
 config = get_config()
 paths = get_paths()

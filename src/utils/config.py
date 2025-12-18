@@ -9,7 +9,7 @@ from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
 
-from src.utils.paths import get_paths
+from .paths import get_paths
 
 
 class Config:
