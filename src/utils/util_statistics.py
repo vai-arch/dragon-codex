@@ -2,14 +2,20 @@ import logging
 from datetime import timedelta
 from logging.handlers import RotatingFileHandler
 
+from dotenv import load_dotenv
 from tabulate import tabulate
 from tqdm import tqdm
 
-from src.utils.config import get_config
-from src.utils.paths import get_paths
+from .config import get_config
+from .paths import get_paths
 
 config = get_config()
 paths = get_paths()
+
+# Load .env file
+load_dotenv()  # looks for .env in the current working directory by default
+
+# Get the path from env
 
 
 def format_metric(key, value):

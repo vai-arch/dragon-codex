@@ -61,7 +61,7 @@ class Paths:
 
         # Logs
         self.LOG_PATH = self.PROJECT_ROOT_PATH / "logs"
-        self.LOG_STATISTICS_PATH = self.LOG_PATH / "statistics"
+        self.LOG_STATISTICS_PATH = Path(os.environ.get("STATISTICS_PATH", self.LOG_PATH / "statistics"))
 
         self.FILE_LOG = self.LOG_PATH / "dragon_codex.log"
 
