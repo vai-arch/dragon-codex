@@ -31,7 +31,7 @@ def format_metric(key, value):
     key_str = str(key)
 
     # --- SPECIAL CASE: (value, percentage) ---
-    if isinstance(value, (tuple, list)) and len(value) == 2 and all(isinstance(v, (int, float)) for v in value):
+    if isinstance(value, (tuple, list, set)) and len(value) == 2 and all(isinstance(v, (int, float)) for v in value):
         val, pct = value
         return f"{int(val)} ({pct:.1f}%)"
 
@@ -77,65 +77,6 @@ def format_metric(key, value):
         return f"{value:.3f}"
 
     return str(value)
-
-
-# def format_metric(key, value):
-#     """
-#     Smart formatting based on metric name.
-#     Extend or override easily.
-#     """
-#     if value is None:
-#         return "—"
-
-#     # --- SPECIAL CASE: (value, percentage) ---
-#     if isinstance(value, (tuple, list)) and len(value) == 2 and all(isinstance(v, (int, float)) for v in value):
-#         val, pct = value
-#         return f"{int(val)} ({pct:.1f}%)"
-
-#     # Convert timedelta automatically
-#     if isinstance(value, timedelta):
-#         value = value.total_seconds()
-
-#     # --- TIME METRICS ---
-#     if key.endswith("_time"):
-#         seconds = float(value)
-
-#         # Break apart
-#         days, seconds = divmod(seconds, 86400)  # 24*60*60
-#         hours, seconds = divmod(seconds, 3600)
-#         minutes, seconds = divmod(seconds, 60)
-
-#         seconds_str = f"{seconds:.1f}".rstrip("0").rstrip(".")  # pretty seconds
-
-#         parts = []
-#         if days >= 1:
-#             parts.append(f"{int(days)}d")
-#         if hours >= 1 or days > 0:
-#             parts.append(f"{int(hours)}h")
-#         if minutes >= 1 or hours > 0 or days > 0:
-#             parts.append(f"{int(minutes)}m")
-
-#         # Always show seconds if everything else is zero
-#         if seconds > 0 or not parts:
-#             parts.append(f"{seconds_str}s")
-
-#         return " ".join(parts)
-
-#     if key.startswith("avg_"):
-#         return f"{value:.3f}"
-
-#     # --- TOKEN METRICS ---
-#     if key.endswith("_tokens"):
-#         return f"{int(value)}"
-
-#     if key.startswith("max_"):
-#         return f"{int(value)}"
-
-#     # --- AUTO HANDLE NUMBERS ---
-#     if isinstance(value, float):
-#         return f"{value:.3f}"
-
-#     return str(value)
 
 
 def tabulate_results(results):
@@ -205,7 +146,7 @@ def print_results(results, main_message=""):
             print(f"{pad}{key}:")
             for item in value:
                 for sub_key, sub_value in item.items():
-                    print(f"{pad}  - {sub_key}: {sub_value}")
+                    print(f"{pad}  - {sub_key}: {format_metric(sub_key, sub_value)}")
 
         # Dict (recursive)
         elif isinstance(value, dict):
@@ -215,7 +156,7 @@ def print_results(results, main_message=""):
 
         # Scalar
         else:
-            print(f"{pad}{key}: {value}")
+            print(f"{pad}{key}: {format_metric(key, value)}")
 
     # Normalize input
     if isinstance(results, dict):
@@ -234,50 +175,6 @@ def print_results(results, main_message=""):
             _print_value(key, value, indent=2)
 
         print("-" * 40)
-
-
-# def print_results_old(results, main_message=""):
-#     """
-#     Print results line by line.
-
-#     Supports metrics values that are:
-#     - scalars
-#     - dicts
-#     - list of dicts (printed as secondary level)
-#     """
-
-#     # Normalize input to list
-#     if isinstance(results, dict):
-#         results = [results]
-
-#     if main_message:
-#         print(f"\n=== {main_message} ===\n")
-
-#     for r in results:
-#         name = r.get("name", "Unknown")
-#         print(f"[{name}]")
-
-#         metrics = r.get("metrics", {})
-
-#         for key, value in metrics.items():
-#             # 🔹 Case 1: list of dictionaries (secondary level)
-#             if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
-#                 print(f"  {key}:")
-#                 for item in value:
-#                     for sub_key, sub_value in item.items():
-#                         print(f"    - {sub_key}: {sub_value}")
-
-#             # 🔹 Case 2: dictionary (also secondary level)
-#             elif isinstance(value, dict):
-#                 print(f"  {key}:")
-#                 for sub_key, sub_value in value.items():
-#                     print(f"    {sub_key}: {sub_value}")
-
-#             # 🔹 Case 3: scalar
-#             else:
-#                 print(f"  {key}: {value}")
-
-#         print("-" * 40)
 
 
 def reset_log(log_file):
