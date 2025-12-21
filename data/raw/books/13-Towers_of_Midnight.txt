@@ -1015,8 +1015,6 @@ That's all there was to it.
 CHAPTER 
 
 1 
-
-
  
 *Apples First*  
 
@@ -1840,8 +1838,8 @@ CHAPTER
 
 4
 
+*The Pattern Groans*
 
-  *         The Pattern Groans*
 What is it?" Perrin asked, trying to ignore the sharp scent of rotting meat. He couldn't see any corpses, but by his nose, the ground should be littered with them.
 
 He stood with an advance group at the side of the Jehannah Road, looking northward across a rolling plain with few trees. The grass was brown and yellow, as in other places, but it grew darker farther away from the road, as if infected with some disease.
@@ -4170,7 +4168,9 @@ Yes, this Aybara was a dangerous man. Galad had been worried about committing hi
 CHAPTER 
 
 11
-  *An Unexpected Letter*
+
+*An Unexpected Letter*
+
 They can't possibly think I'll sign this," Elayne said, tossing the sheaf of papers onto the floor beside her chair. "It's unlikely that they do," Dyelin said. Her golden hair was pristine, her firm face controlled, her slim body poised. The woman was perfect\! It was unfair that she should look so pristine while Elayne felt like a sow, fattened up and ripe for the slaughter.
 
 The hearth in Elayne's sitting room crackled warmly. Wine sat in a pitcher on one of the wall's sideboards, but of course she wasn't allowed any of that. If one more person tried to offer her bloody goat's milk . . .
@@ -4636,7 +4636,9 @@ Min gasped, turning sharply toward the northern quarter of the city. The two Mai
 CHAPTER
 
 13
-  *               For What Has Been Wrought*
+
+*For What Has Been Wrought*
+
 Min burst from the Dragonwall Gate on the eastern side of the Stone and dashed across the courtyard. What seemed like an entire clan's worth of Aiel flooded out behind her, breaking around Min like deer breaking around an oak. They weaved between startled Defenders and grooms, moving with grace and speed toward the wall.
 
 It was galling how easily they outpaced her—years ago, she'd prided herself on being able to beat any boy she knew in an honest footrace. Now . . . well, too many months spent picking through books, perhaps.
@@ -5694,7 +5696,9 @@ wouldn't hide and poke from the shadows. Egwene's task, then, was to tempt her w
 CHAPTER 
 
 16
-  Shanna'har
+
+*Shanna'har*
+
 Faile walked the camp in the waning evening light, making her way toward the quartermaster's tent. Perrin had sent their group of scouts through the gateway to Cairhien; they'd return the next morning.
 
 Perrin was still brooding about the Whitecloaks. Over the last several days, the two armies had exchanged several letters, Perrin trying to maneuver for a second, more formal parley while the Whitecloaks insisted on a battle. Faile had given Perrin choice words about sneaking off to meet with the Whitecloaks without her.
@@ -6062,8 +6066,7 @@ He had Faile back, truly and completely.
 CHAPTER
 17
 
-  *Partings, and a Meeting*
-                                         
+*Partings, and a Meeting*                                 
 
 The morning after the gholam attack, Mat woke from dreams rotten as last month's eggs, feeling stiff and aching. He had spent the night sleeping in a hollow he'd found beneath Aludra's supply wagon. He had chosen the location by random chance, using his dice.
 
@@ -7060,10 +7063,6 @@ He had nicked himself a few times while shaving. But it was not as if he had for
 He strode through camp, nodding to a group of passing Redarms. He had doubled the watch. He was worried about the gholam, but also about the many military camps in the area. Half were mercenaries, half were the
 
 retainers of this minor lord or that, coming to pay respects to the Queen suspiciously arriving after the righting was done.
-
-
-
-
 
 No doubt each and every one was professing his heartfelt allegiance to Elayne, explaining that his men supported her all along. Their words prob-ably fell a little flat, since Mat had it on good authority from three separate drunks in taverns that Elayne had used Traveling extensively in recruiting her defense. It was easier to feign a delayed arrival when you were responding to a written message.
 
@@ -8187,12 +8186,10 @@ Blessed Light, she thought, eyes closed. Thank you.
 
 CHAPTER
 
-
-
- 
-
 21 
- *                 An Open Gate*
+
+*An Open Gate*
+
 We thought it best," Seonid said, "to let one of us give the full report. I have gathered information from the others for presentation."
 
 Perrin nodded absently. He sat on cushions in the meeting pavilion, Faile at his side. It was crammed full of people again.
@@ -8690,7 +8687,9 @@ He withdrew. Morgase watched him, her mind a tempest despite the stillness of th
 CHAPTER
 
 22
-  *The End of a Legend*
+
+*The End of a Legend*
+
 At night, Gawyn couldn't see the White Tower's wounds. In darkness, one couldn't tell the difference between a beautifully intricate mural and a wall full of mismatched tiles. At night, the most beautiful of Tar Valon's buildings became another dark lump.
 
 And at night, the holes and scars on the White Tower were patched with a bandage of darkness. Of course, on a night as dark as these clouds caused, one also couldn't tell the Tower's color. White or black; at night, it didn't really matter.
@@ -9990,7 +9989,9 @@ The five had become dozens, but it would stop there.
 CHAPTER
 
 24
-  *To Make a Stand*
+
+*To Make a Stand*
+
 Bed rest," Melfane announced, taking her ear from the wooden tube she'd placed against Elayne's chest. The midwife was a short, ample-cheeked woman who today wore her hair tied back by a translucent blue scarf. Her neat dress was of white and matching sky-blue, as if worn in defiance of the perpetually overcast sky.
 
 "What?" Elayne asked.
@@ -10895,7 +10896,7 @@ CHAPTER
 
 26
 
-
+* No title * 
 
 Perrin rode Stepper out of camp, leading a large army. They didn't fly the wolfhead banner. So far as he knew, his order to burn the things had been followed. He was less certain of that decision now.
 
@@ -11350,7 +11351,9 @@ ion, in this place."
 CHAPTER
 
 27
-  *A Call to Stand*
+
+*A Call to Stand*
+
 I am not opposed to questioning the Lord Dragon, Egwene read from the letter as she sat in her study. Indeed, the more absolute a man's power becomes, the more necessary questioning becomes. However, know that I am not a man who gives his loyalty easily, and I h ave given my loyalty to him. Not because of the throne he provided me, but because of what he has done for Tear. Yes, he grows more erratic by the day. What else are we to expect from the Dragon Reborn? He will break the world. We knew this when we gave him our allegiance, much as a sailor must sometimes give his loyalty to the captain who steers his ship straight for the strand. When an unnavigable tempest rises behind, the strand is the only option. Still, your words bring me concern. The destruction of the seals is not something we should undertake without careful discussion. The Lord Dragon charged me with raising him an army, and I have done so. If you provide the gateways you have promised, I will bring some troops to this meeting place, along with the loyal High Lords and Ladies. Be warned, however, that the Seanchan presence to my west continues to weigh heavily upon my mind. The bulk of my armies must remain behind.
 
 High Lord Darlin Sisnera,
@@ -13216,7 +13219,9 @@ had been able to come with; his only idea bad been to try to stuff one of those 
 CHAPTER
 
 32
-  *A Storm of Light*
+
+*A Storm of Light*
+
 The city of Maradon burned. Violent, twisting columns of smoke rose from dozens of buildings. The careful city planning kept the fires from spreading too quickly, but did not stop them entirely. Human beings and tinder. They went together.
 
 Ituralde crouched inside a broken building, rubble to his left, a small band of Saldaeans to his right. He'd abandoned the palace early on; it had been swarmed with Shadowspawn. He'd left it packed with all the oil they'd been able to find, then had the Asha'man set it aflame, killing hundreds of Trollocs and Fades trapped inside.
@@ -13601,7 +13606,7 @@ CHAPTER
 
 33
 
-
+* No title * 
 
 Siuan's soup was surprisingly good. She took another sip, raising an eyebrow. It was simple—broth and vegetables, bits of chicken—but when most food tasted stale at best, this seemed a wonder. She tried the biscuit. No weevils? Delightful\! Nynaeve had just fallen silent, her own bowl steaming in front of her. Newly raised, she'd taken the oaths earlier in the day. They were in the Amyrlin's study, shutters open and spilling in golden light, new rugs of green and gold on the floor.
 
@@ -16386,7 +16391,9 @@ She needed a tempest with him at the center of it. And then, the blade would fal
 CHAPTER
 
 39
-  *In the Three-fold Land*
+
+*In the Three-fold Land*
+
 Aviendha felt right again. There was a calming perfection to the Three-fold Land. Wet-landers thought the landscape's uniform colors drab, but Aviendha found them beautiful. Simple browns and tans. They were familiar and dependable, not like the wetlands, where both the landscape and the weather were different every time you turned around.
 
 Aviendha ran forward in the darkening night, each foot falling on dusty ground. For the first time in many months, she felt alone. In the wetlands, she always felt as if she was being watched by some enemy she could not see or attack.
@@ -16554,7 +16561,9 @@ Eventually, Aviendha went to sleep, feeling troubled.
 CHAPTER
 
 40
-  *A Making*
+
+*A Making*
+
 Perrin sat alone on a tree stump, eyes closed and face to the dark sky. The camp was situated, the gateway closed, and reports taken. Perrin finally had time to rest.
 
 That was dangerous. Resting let him think. Thinking brought him memories. Memories brought pain.
@@ -17578,7 +17587,9 @@ He closed his eyes as the call went up. It soon became a cheer. Then a roar.
 CHAPTER
 
 43
-  *Some Tea*
+
+*Some Tea*
+
 And these Ashaman claim they are free of the taint?" Galad asked, as he and Perrin Aybara picked their way through the aftermath of the battle.
 
 "They do," Perrin said. "And I've a mind to trust them. Why would they lie?"
@@ -17802,11 +17813,6 @@ It really would make a nice sash.
 CHAPTER
 
 44
-
-
-
-
-
  
 *A Backhanded Request*
 
@@ -18827,7 +18833,9 @@ Each man nodded, somber. Light help us if we're wrong, Androl thought, looking b
 CHAPTER
 
 47
-  *A Teaching Chamber*
+
+*A Teaching Chamber*
+
 Faile sat impatiently atop Daylight, trying to keep herself from twitching as the gateway split the air. A browning meadow lay on the other side; Gaul and the Maidens immediately slipped through to scout.
 
 "Are you certain you don't want to come?" Perrin asked Galad, who stood nearby, watching the procession with arms clasped behind his back.
@@ -19356,8 +19364,8 @@ CHAPTER
 
 48
 
+*Near Avendesora*
 
-  *Near *Avendesora
 Aviendha took one final step and was out of the forest of glass pillars. She took a deep breath, then glanced back at the path she had taken.
 
 The central plaza of Rhuidean was an awe-inspiring sight. Smooth white flagstones carpeted the entire square save for the absolute center. There stood an enormous tree, branches spread wide like arms reaching to embrace the sun. The massive tree had a perfection she could not explain. It had a natural symmetry—no missing branches, no gaping holes in its leafy upper reaches. It was particularly impressive since, when she'd last seen it, it had been blackened and burned.
@@ -19615,7 +19623,9 @@ Her first time through the pillars, each step had taken her backward, moving her
 CHAPTER
 
 49
-  *Court of the Sun*
+
+*Court of the Sun*
+
 She was Ladalin, Wise One of the Taardad Aiel. How she wished that she had been able to learn to channel. That was a shameful thought, wishing for a talent one did not have, but she could not deny it.
 
 She sat in the tent, feeling regretful. If she'd been able to work with the One Power, perhaps she could have done more to help the wounded. She could have remained young to lead her clan, and perhaps her bones would not ache so. Old age was a frustration when there was so much to do.
@@ -19971,7 +19981,9 @@ She walked from the pillars, then broke into a run. She needed to return, to con
 CHAPTER
 
 50
-  *               Choosing Enemies*
+
+*Choosing Enemies*
+
 Elayne sat anxiously, hands in her lap, listening to the distant booms. She'd intentionally chosen the throne room, rather than a less formal audience chamber. Today, she needed to be seen as a queen.
 
 The throne room was imposing, with its majestic pillars and lavish ornamentation. Golden stand-lamps burned in a long double row on either side of the room, breaking only for the pillars. Guardsmen in white and red stood in front of them, burnished breastplates gleaming. The marble columns were matched by the thick crimson rug, woven with the Lion of Andor in gold at its center. It led toward Elayne, wearing the Rose Crown. Her gown was after a traditional fashion rather than those favored in court right now; the sleeves were wide, with the cuffs designed to droop down to a gold-embroidered point beneath her hand.
@@ -20167,7 +20179,9 @@ She smiled at the Warder, bur knew that Birgitte could sense her nervousness. Th
 CHAPTER
 
 51
-  *A Testing*
+
+*A Testing*
+
 The hair on Min's neck rose as she held the crystal sword. Callandor. She'd heard stories of this weapon since she was a child, wild tales of distant Tear and the strange Sword That Is Not a Sword. Now she held it in her own fingers.
 
 It was lighter than she'd expected. Its crystalline length caught and played with the lamplight. It seemed to shimmer too much, the light inside changing even when she didn't move. The crystal was smooth, but warm. It almost felt alive.
@@ -20844,7 +20858,7 @@ CHAPTER
 
 53
 
-
+* No title * 
 
 Pevara kept her tongue as she walked through the village of the Black Tower with Javindhra and Mazrim Taim. There was activity all through the place. There was always activity in the Black Tower. Soldiers felling trees nearby; Dedicated stripping the bark away, then slicing the logs into lumber with focused jets of Air. Sawdust coated the path; with a chill, Pevara realized that the stack of boards nearby had probably been cut by Asha'man.
 
@@ -21809,7 +21823,9 @@ Bloody and bloody ashes\!
 CHAPTER 
 
 55
-  *The One Left Behind*
+
+*The One Left Behind*
+
 Aloud boom shook the hallways, making the entire structure rumble. Mat stumbled, leaning against the wall for support as smoke and chips of rock sprayed out of the opening behind them.
 
 He ducked his head around and looked down the hallway as Thorn and Noal ran onward, Thorn clutching Moiraine. Noal had tossed his torch aside and gotten out a drum to try to soothe the Aelfinn. That had not worked, and so Mat had turned to the exploding cylinders and nightflowers.
@@ -22252,9 +22268,8 @@ Androl stepped up into the building. He didn't know whether he was stepping into
 
 CHAPTER
  57 
-*A Rabbit for Supper*
 
-A Rabbit for Supper
+*A Rabbit for Supper*
 
 Mat hit uneven ground, blinded by the flash of light. Cursing, he used the ashandarei to steady himself on the springy earth. He smelled foliage, dirt and rotting wood. Insects buzzed in the shade.
 

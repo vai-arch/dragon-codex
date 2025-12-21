@@ -19,11 +19,12 @@
 # print(f"Cosine similarity: {cosine_sim}")  # Should be > 0.99 if compatible
 
 
-import requests
 import json
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import requests
 from numpy.linalg import norm
+from sentence_transformers import SentenceTransformer
 
 # --------------------------------------------------
 # Define the input text and model versions

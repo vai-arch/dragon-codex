@@ -418,7 +418,6 @@ def chunk_books():
             chapter_chunks = aux_chunk_book_chapter(chapter, int(book_number), book_title)
             book_chunks.extend(chapter_chunks)
 
-        # print(f"   ✓ Created {len(book_chunks)} chunks")
         all_chunks.extend(book_chunks)
         book_statistics.append(
             {

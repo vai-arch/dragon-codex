@@ -146,6 +146,9 @@ class Paths:
         self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
 
         self.FILE_TEST_QUESTIONS = self.DATA_PATH / "testing" / "questions_100.json"
+
+        self.VALIDATIONS_TESTS = self.DATA_PATH / "validation"
+
         self._create_directories()
 
     def _create_directories(self):

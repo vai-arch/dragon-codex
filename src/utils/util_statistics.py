@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from dotenv import load_dotenv
 from tabulate import tabulate
@@ -194,7 +195,7 @@ def reset_log(log_file):
 
 
 def get_stats_logger(logfile="stats.log"):
-    logger = logging.getLogger("stats_logger")
+    logger = logging.getLogger(Path(logfile).stem)
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:  # avoid duplicate handlers
