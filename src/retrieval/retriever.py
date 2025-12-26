@@ -7,10 +7,10 @@ from typing import Dict, List, Optional
 
 import chromadb
 
-from src.utils.config import get_config
+from src.utils.config import get_config, get_embedding_manager_config
+from src.utils.embedding.embedding_factory import create_embedding_manager
 from src.utils.logger import get_logger
 from src.utils.paths import get_paths
-from src.utils.util_embedding import VectorStoreManager
 
 logger = get_logger(__name__)
 
@@ -31,7 +31,8 @@ class Retriever:
         paths = get_paths()
 
         self.config = config
-        self.vsm = VectorStoreManager(config)
+
+        self.vsm = create_embedding_manager(config.EMBEDDING_MANAGER, get_embedding_manager_config(config.EMBEDDING_MANAGER))
 
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(path=str(paths.VECTOR_STORE_PATH), settings=chromadb.Settings(anonymized_telemetry=config.CHROMA_TELEMETRY))
@@ -42,6 +43,14 @@ class Retriever:
 
     def _load_collections(self):
         """Load all available ChromaDB collections"""
+        try:
+            # books collection (books)
+            self.collections[self.config.CHROMA_COLLECTION_BOOKS] = self.client.get_collection(name=self.config.CHROMA_COLLECTION_BOOKS)
+            logger.info(f"✅ Loaded collection: narrative ({self.collections[self.config.CHROMA_COLLECTION_BOOKS].count()} chunks)")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Could not load narrative collection: {e}")
+
         try:
             # Narrative collection (books + chronology + chapter summaries)
             self.collections["narrative"] = self.client.get_collection(name=self.config.CHROMA_COLLECTION_NARRATIVE)
@@ -87,7 +96,7 @@ class Retriever:
 
         # Generate query embedding
         logger.debug(f"🔍 Generating embedding for query: {query_text[:50]}...")
-        embeddings, _, _, _ = self.vsm.embed_chunks([query_text], show_progress=False)
+        embeddings, _, _, _ = self.vsm.embed_chunks([query_text])
         query_embedding = embeddings[0]
 
         # Build ChromaDB where filter for temporal limit
@@ -152,6 +161,18 @@ class Retriever:
         """
         all_chunks = []
         collection_counts = {}
+
+        # Phase 1 safety filter
+        allowed_collections = {"books"}  # or {"books"}
+        filtered_collections = [c for c in collections if c in allowed_collections]
+
+        if not filtered_collections:
+            logger.error(f"No allowed collections found! Requested: {collections}")
+            return {"results": [], "total_results": 0}
+
+        if set(collections) != set(filtered_collections):
+            logger.warning(f"Blocked access to non-book collections: {set(collections) - set(filtered_collections)}")
+            raise ValueError(f"Blocked access to non-book collections: {set(collections) - set(filtered_collections)}")
 
         for coll_name in collections:
             if coll_name not in self.collections:

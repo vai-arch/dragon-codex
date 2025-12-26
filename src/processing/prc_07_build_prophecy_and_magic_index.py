@@ -21,9 +21,7 @@ from typing import Dict, List
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
-from src.utils.wiki_constants import (
-    classify_magic_page,
-)
+from src.utils.wiki_constants import MAGIC_ENTITIES, MAGIC_PLACES, MAGIC_WEAPONS, ONE_POWER_CONCEPTS, POWER_OBJECTS
 
 # File paths
 in_file_wiki_prophecies = None
@@ -97,6 +95,26 @@ def process_prophecy(filename: str, page_data: Dict) -> Dict:
         entry["categories"] = categories
 
     return entry
+
+
+def classify_magic_page(categories: list) -> str:
+    """
+    Classify a magic page based on its categories.
+    Returns: 'power_object', 'concept', 'place', 'entity', 'weapon', or 'other'
+    """
+    for category in categories:
+        if category in POWER_OBJECTS:
+            return "power_object"
+        if category in ONE_POWER_CONCEPTS:
+            return "concept"
+        if category in MAGIC_PLACES:
+            return "place"
+        if category in MAGIC_ENTITIES:
+            return "entity"
+        if category in MAGIC_WEAPONS:
+            return "weapon"
+
+    return "other"
 
 
 def process_magic(filename: str, page_data: Dict) -> Dict:

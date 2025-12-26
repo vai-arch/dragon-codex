@@ -1,11 +1,11 @@
 import requests
+from src.utils.util_embedding import EmbeddingManager
 
 from src.utils.config import get_config
-from src.utils.util_embedding import VectorStoreManager
 from src.utils.util_files_functions import find_files_in_folder, load_json_from_file
 
 config = get_config()
-manager = VectorStoreManager()
+manager = EmbeddingManager()
 
 
 def get_token_count(content):

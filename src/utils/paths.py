@@ -137,15 +137,15 @@ class Paths:
         self.FILE_WIKI_MAGIC_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_magic.embeddings.pkl"
 
         # Temporary partial embedding files (used during checkpointing)
-        self.FILE_BOOK_PARTIAL = self.EMBEDDINGS_PATH / "book_chunks.partial.pkl"
-        self.FILE_WIKI_CHARACTER_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_character.partial.pkl"
-        self.FILE_WIKI_CONCEPT_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_concept.partial.pkl"
-        self.FILE_WIKI_MAGIC_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_magic.partial.pkl"
-        self.FILE_WIKI_PROPHECIES_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_prophecies.partial.pkl"
-        self.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.partial.pkl"
-        self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
+        # self.FILE_BOOK_PARTIAL = self.EMBEDDINGS_PATH / "book_chunks.partial.pkl"
+        # self.FILE_WIKI_CHARACTER_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_character.partial.pkl"
+        # self.FILE_WIKI_CONCEPT_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_concept.partial.pkl"
+        # self.FILE_WIKI_MAGIC_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_magic.partial.pkl"
+        # self.FILE_WIKI_PROPHECIES_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_prophecies.partial.pkl"
+        # self.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.partial.pkl"
+        # self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
 
-        self.FILE_TEST_QUESTIONS = self.DATA_PATH / "testing" / "questions_100.json"
+        self.FILE_TEST_QUESTIONS = self.RETRIEVAL_TESTING_PATH / "questions_100.json"
 
         self.VALIDATIONS_TESTS = self.DATA_PATH / "validation"
 

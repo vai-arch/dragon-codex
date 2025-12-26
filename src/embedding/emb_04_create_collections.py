@@ -30,6 +30,7 @@ in_file_wiki_prophecy_embeddings = None
 in_file_wiki_magic_embeddings = None
 
 out_vector_store_path = None
+out_collection_books = None
 out_collection_narrative = None
 out_collection_reference = None
 
@@ -208,6 +209,12 @@ def reset_collections(client):
     # Clear existing collections if rebuilding
     print("🗑️  Clearing existing collections...")
     try:
+        client.delete_collection(out_collection_books)
+        print(f"  ✓ Deleted '{out_collection_books}'")
+    except Exception:
+        print(f"  • '{out_collection_books}' didn't exist")
+
+    try:
         client.delete_collection(out_collection_narrative)
         print(f"  ✓ Deleted '{out_collection_narrative}'")
     except Exception:
@@ -241,23 +248,30 @@ def main():
 
     # Define collection mappings
     collections_config = {
-        out_collection_narrative: {
-            "description": "Narrative content: story events, chronologies, and chapter summaries",
+        out_collection_books: {
+            "description": "Pure books from 15 main books only (Phase 1 baseline)",
             "files": [
-                in_file_book_embeddings,
-                in_file_wiki_chronology_embeddings,
-                in_file_wiki_chapter_summary_embeddings,
+                in_file_book_embeddings,  # Only this one
             ],
         },
-        out_collection_reference: {
-            "description": "Reference content: characters, concepts, magic system, and prophecies",
-            "files": [
-                in_file_wiki_character_embeddings,
-                in_file_wiki_concept_embeddings,
-                in_file_wiki_magic_embeddings,
-                in_file_wiki_prophecy_embeddings,
-            ],
-        },
+        # TODO PHASE 1A
+        # out_collection_narrative: {
+        #     "description": "Narrative content: story events, chronologies, and chapter summaries",
+        #     "files": [
+        #         in_file_book_embeddings,
+        #         in_file_wiki_chronology_embeddings,
+        #         in_file_wiki_chapter_summary_embeddings,
+        #     ],
+        # },
+        # out_collection_reference: {
+        #     "description": "Reference content: characters, concepts, magic system, and prophecies",
+        #     "files": [
+        #         in_file_wiki_character_embeddings,
+        #         in_file_wiki_concept_embeddings,
+        #         in_file_wiki_magic_embeddings,
+        #         in_file_wiki_prophecy_embeddings,
+        #     ],
+        # },
     }
 
     # Build collections
@@ -309,6 +323,7 @@ if __name__ == "__main__":
 
     # Output paths - ChromaDB collections
     out_vector_store_path = paths.VECTOR_STORE_PATH
+    out_collection_books = config.CHROMA_COLLECTION_BOOKS
     out_collection_narrative = config.CHROMA_COLLECTION_NARRATIVE
     out_collection_reference = config.CHROMA_COLLECTION_REFERENCE
 

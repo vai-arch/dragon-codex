@@ -52,7 +52,31 @@ class QueryEngine:
         """
         return self.classifier.classify_query(query_text)
 
-    def route_query(self, query_text: str, category: Optional[str] = None, temporal_limit: Optional[int] = None) -> Dict[str, any]:
+    def route_query(
+        self,
+        query_text: str,
+        category: Optional[str] = None,
+        temporal_limit: Optional[int] = None,
+    ) -> Dict[str, any]:
+        """
+        PHASE 1 ONLY: Force books-only retrieval
+        Disable classifier and reference/wiki collections
+        """
+        # TODO PHASE 1A Hard-code for Phase 1 safety
+        book_collection_name = "books"  # ← Change if your book collection has a different name (e.g., "books")
+
+        logger.info("🔒 PHASE 1 MODE: Forcing retrieval from books only (no wiki/reference collections)")
+
+        return {
+            "category": "phase1_books_only",  # Clear indicator
+            "confidence": 1.0,
+            "collections_used": [book_collection_name],
+            "top_k_per_collection": 10,  # Keep consistent with baseline
+            "routing_strategy": "phase1_books_only",
+            "temporal_limit": temporal_limit,
+        }
+
+    def route_query_phase1c(self, query_text: str, category: Optional[str] = None, temporal_limit: Optional[int] = None) -> Dict[str, any]:
         """
         Route query to appropriate collection(s)
 
@@ -68,48 +92,56 @@ class QueryEngine:
                 - collections_used: Which collections were queried
                 - routing_strategy: How collections were chosen
         """
-        # Classify if not provided
+        # THIS IS JUST FOR PHASE I
         if category is None:
-            category, confidence = self.classify_query(query_text)
-        else:
-            confidence = 1.0
-
-        # Route based on category
-        if category == "character":
-            # Character queries: Use both collections (wiki has character pages, books have arcs)
-            collections = ["narrative", "reference"]
-            top_k = 5  # 5 per collection = 10 total
-            strategy = "both_collections_character_focus"
-
-        elif category == "concept":
-            # Concept queries: Reference first (wiki definitions), narrative second
-            collections = ["reference", "narrative"]
-            top_k = 5
-            strategy = "reference_primary_narrative_secondary"
-
-        elif category == "magic":
-            # Magic queries: Reference (magic system index) + narrative (examples)
-            collections = ["reference", "narrative"]
-            top_k = 5
-            strategy = "reference_primary_narrative_secondary"
-
-        elif category == "prophecy":
-            # Prophecy queries: Reference (prophecy index) + narrative (events)
-            collections = ["reference", "narrative"]
-            top_k = 5
-            strategy = "reference_primary_narrative_secondary"
-
-        elif category == "timeline":
             # Timeline queries: Narrative focus (chronology pages + book events)
             collections = ["narrative"]
             top_k = 10
-            strategy = "narrative_only_temporal_focus"
+            strategy = "phase_I"
+            confidence = 1.0
+        else:
+            # Classify if not provided
+            if category is None:
+                category, confidence = self.classify_query(query_text)
+            else:
+                confidence = 1.0
 
-        else:  # 'general'
-            # General queries: Both collections, balanced
-            collections = ["narrative", "reference"]
-            top_k = 5
-            strategy = "balanced_both_collections"
+            # Route based on category
+            if category == "character":
+                # Character queries: Use both collections (wiki has character pages, books have arcs)
+                collections = ["narrative", "reference"]
+                top_k = 5  # 5 per collection = 10 total
+                strategy = "both_collections_character_focus"
+
+            elif category == "concept":
+                # Concept queries: Reference first (wiki definitions), narrative second
+                collections = ["reference", "narrative"]
+                top_k = 5
+                strategy = "reference_primary_narrative_secondary"
+
+            elif category == "magic":
+                # Magic queries: Reference (magic system index) + narrative (examples)
+                collections = ["reference", "narrative"]
+                top_k = 5
+                strategy = "reference_primary_narrative_secondary"
+
+            elif category == "prophecy":
+                # Prophecy queries: Reference (prophecy index) + narrative (events)
+                collections = ["reference", "narrative"]
+                top_k = 5
+                strategy = "reference_primary_narrative_secondary"
+
+            elif category == "timeline":
+                # Timeline queries: Narrative focus (chronology pages + book events)
+                collections = ["narrative"]
+                top_k = 10
+                strategy = "narrative_only_temporal_focus"
+
+            else:  # 'general'
+                # General queries: Both collections, balanced
+                collections = ["narrative", "reference"]
+                top_k = 5
+                strategy = "balanced_both_collections"
 
         logger.info(f"🔀 Routing: {category} → {strategy}")
 

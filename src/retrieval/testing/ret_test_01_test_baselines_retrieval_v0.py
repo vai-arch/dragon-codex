@@ -145,7 +145,6 @@ def main():
     start_time = datetime.now()
 
     # Load test questions
-    print(f"\n📂 Loading test questions from: {in_test_questions_file}")
     test_data = load_json_from_file(in_test_questions_file)
     test_questions = test_data["questions"]
     print(f"✅ Loaded {len(test_questions)} test questions")
@@ -165,9 +164,6 @@ def main():
     results, statistics = run_retrieval_tests(test_questions)
 
     # Save results
-    print(f"\n💾 Saving results to: {out_results_file}")
-    out_results_file.parent.mkdir(parents=True, exist_ok=True)
-
     output_data = {
         "metadata": {
             "test_date": datetime.now().isoformat(),
@@ -180,7 +176,6 @@ def main():
     }
 
     save_json_to_file(output_data, out_results_file, indent=2)
-    print(f"✅ Saved {len(results)} results")
 
     # Print summary
     total_time = datetime.now() - start_time
@@ -198,11 +193,6 @@ if __name__ == "__main__":
     # Set file paths
     in_test_questions_file = paths.FILE_TEST_QUESTIONS
     out_results_file = paths.RETRIEVAL_TESTING_RESULTS_PATH / "answers_baseline_retrieval_semantic_search.json"
-
-    # Validate input file exists
-    if not in_test_questions_file.exists():
-        print(f"❌ Test questions file not found: {in_test_questions_file}")
-        sys.exit(1)
 
     try:
         exit_code = main()

@@ -22,7 +22,6 @@ from src.utils.wiki_constants import (
     CONCEPT_CATEGORIES,
     CREATURE_CATEGORIES,
     CULTURAL_CATEGORIES,
-    EXCLUDE_CATEGORIES,
     HISTORICAL_CATEGORIES,
     ITEM_CATEGORIES,
     LOCATION_CATEGORIES,
@@ -41,7 +40,6 @@ TAXONOMY = {
     "CULTURAL": CULTURAL_CATEGORIES,
     "CONCEPT": CONCEPT_CATEGORIES,
     "ORGANIZATION": ORGANIZATION_CATEGORIES,
-    "EXCLUDE": EXCLUDE_CATEGORIES,
 }
 
 
@@ -52,13 +50,6 @@ def classify_concept(categories, taxonomy):
     """
     if not categories:
         return None, []
-
-    # First check if should be excluded
-    for cat in categories:
-        cat_lower = cat.lower()
-        for exclude_keyword in taxonomy["EXCLUDE"]:
-            if exclude_keyword in cat_lower:
-                return None, []
 
     # Then classify into taxonomy groups
     # Track all matching categories for this concept
@@ -133,6 +124,7 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
     concepts = []
     excluded_count = 0
     unclassified_count = 0
+    uncategorized_count = 0
 
     stats_concept_types = {
         "location": 0,
@@ -153,12 +145,19 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
         # Get categories for this file
         categories = category_mappings.get(filename, [])
 
+        UNWANTED_CATEGORIES = {"Short_pages", "Citation_needed"}
+        categories = [c for c in categories if c not in UNWANTED_CATEGORIES]
+
         # Classify
         concept_type, matching_categories = classify_concept(categories, taxonomy)
 
         if concept_type is None:
+            if len(categories) == 0:
+                uncategorized_count += 1
+                continue
             if matching_categories == []:  # Excluded
                 excluded_count += 1
+                print(f"Excluded: --{filename}------{categories}")
             else:  # Unclassified
                 unclassified_count += 1
             continue
@@ -192,6 +191,7 @@ def build_concept_index(wiki_concepts, category_mappings, taxonomy):
             "total_concepts": len(concepts),
             "excluded_count": excluded_count,
             "unclassified_count": unclassified_count,
+            "uncategorized_count": uncategorized_count,
             "concept_types": stats_concept_types
         }
     }

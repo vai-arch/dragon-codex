@@ -27,8 +27,10 @@ from typing import Dict, Tuple
 
 from tqdm import tqdm
 
+from src.utils.config import get_config, get_embedding_manager_config
+from src.utils.embedding.base_embedding_manager import BaseEmbeddingManager
+from src.utils.embedding.embedding_factory import create_embedding_manager
 from src.utils.paths import get_paths
-from src.utils.util_embedding import VectorStoreManager
 from src.utils.util_files_functions import get_object_size_mb, load_json_line_by_line, remove_file, serialize_object
 from src.utils.util_statistics import (
     log_processed_time,
@@ -39,9 +41,10 @@ from src.utils.util_statistics import (
     reset_log,
 )
 
+config = get_config()
+
 in_files_to_embed = None
 out_embedding_path = None
-aux_partial_results_paths_map = None
 aux_file_embedding_checklpoint = None
 
 
@@ -137,9 +140,8 @@ class ImprovedCheckpoint:
 def embed_file_resumable(
     source_path: Path,
     output_path: str,
-    manager: VectorStoreManager,
+    manager: BaseEmbeddingManager,
     checkpoint: ImprovedCheckpoint,
-    batch_size: int = 100,
 ) -> Tuple[int, float]:
     """
     Embed chunks from file with batch processing and per-batch checkpointing
@@ -149,19 +151,20 @@ def embed_file_resumable(
     Args:
         source_path: Path to .jsonl file with chunks
         output_path: Path to save embeddings .pkl file
-        manager: VectorStoreManager instance
+        manager: EmbeddingManager instance
         checkpoint: ImprovedCheckpoint instance
         config: Config instance
-        batch_size: Number of chunks to embed per API call
 
     Returns:
         Tuple[int, float]: (chunk_count, elapsed_seconds)
     """
 
-    # batch_size = 2
+    batch_size = int(manager.get_manager_config()["EMBEDDING_BATCH_SIZE"])
 
     filename = source_path.name
-    temp_path = str(aux_partial_results_paths_map.get(source_path.stem))
+    # temp_path = str(aux_partial_results_paths_map.get(source_path.stem))
+
+    temp_path = source_path.with_name(source_path.stem + ".partial.pkl")
 
     print(f"\n{'=' * 70}")
     print(f"Embedding: {filename}")
@@ -223,7 +226,9 @@ def embed_file_resumable(
         num_rounds += 1
 
         try:
-            batch_embeddings, batch_avg_tokens, max_tokens, batch_time = manager.embed_chunks(batch_texts, batch_size, False)
+            batch_embeddings, batch_avg_tokens, max_tokens, batch_time = manager.embed_chunks(
+                texts=batch_texts, show_progress=False, prefix=manager.get_manager_config()["EMBEDDING_MODEL"]["EMBEDDING_MODEL_DOCUMENT_PREFIX"]
+            )
 
             total_time += batch_time.total_seconds()
             avg_tokens += batch_avg_tokens
@@ -300,7 +305,8 @@ def main(reset: bool = False):
     start_time = datetime.now()
 
     # Initialize
-    manager = VectorStoreManager()
+    manager = create_embedding_manager(config.EMBEDDING_MANAGER, get_embedding_manager_config(config.EMBEDDING_MANAGER))
+
     checkpoint = ImprovedCheckpoint()
 
     reset = True
@@ -392,7 +398,7 @@ def main(reset: bool = False):
         print(f"{'#' * 70}")
 
         try:
-            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, batch_size=100)
+            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint)
 
             full_statistics.append(statistics)
 
@@ -408,7 +414,7 @@ def main(reset: bool = False):
         print(f"{'#' * 70}")
 
         try:
-            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint, batch_size=100)
+            statistics = embed_file_resumable(filepath, output_path, manager, checkpoint)
 
             full_statistics.append(statistics)
 
@@ -452,6 +458,7 @@ if __name__ == "__main__":
     out_embedding_path = paths.EMBEDDINGS_PATH
     aux_file_embedding_checklpoint = paths.FILE_EMBEDDING_CHECKPOINT
 
+    # TODO PHASE 1A just embedding books
     in_files_to_embed = [
         (paths.FILE_BOOK_CHUNKS, 80000, "Books"),
         (paths.FILE_WIKI_CHUNKS_CHRONOLOGY, 80000, "Wiki Chronology"),
@@ -461,17 +468,6 @@ if __name__ == "__main__":
         (paths.FILE_WIKI_CHUNKS_PROPHECIES, 80000, "Wiki Prophecy"),
         (paths.FILE_WIKI_CHUNKS_MAGIC, 80000, "Wiki Magic"),
     ]
-
-    # Map source files to their partial output paths
-    aux_partial_results_paths_map = {
-        "book_chunks.jsonl": paths.FILE_BOOK_PARTIAL,
-        "wiki_chunks_character.jsonl": paths.FILE_WIKI_CHARACTER_PARTIAL,
-        "wiki_chunks_concept.jsonl": paths.FILE_WIKI_CONCEPT_PARTIAL,
-        "wiki_chunks_magic.jsonl": paths.FILE_WIKI_MAGIC_PARTIAL,
-        "wiki_chunks_prophecies.jsonl": paths.FILE_WIKI_PROPHECIES_PARTIAL,
-        "wiki_chunks_chapter_summary.jsonl": paths.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL,
-        "wiki_chunks_chronology.jsonl": paths.FILE_WIKI_CHRONOLOGY_PARTIAL,
-    }
 
     try:
         main()

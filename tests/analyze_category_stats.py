@@ -4,8 +4,6 @@ Counts how many characters belong to each category from filename_to_categories.j
 """
 
 import json
-from pathlib import Path
-from collections import defaultdict
 
 from src.utils.config import Config
 
@@ -23,24 +21,24 @@ print(f"Loaded {len(categories_data)} categories\n")
 
 # Import category sets from our mappings
 from src.utils.wiki_constants import (
-    GENDER_CATEGORIES,
-    CHANNELING_AFFILIATIONS,
-    AJAH_CATEGORIES,
-    SPECIAL_ABILITIES,
-    NATIONALITY_CATEGORIES,
-    ORGANIZATIONS,
-    MILITARY_GROUPS,
-    SOCIAL_ROLES,
-    MILITARY_ROLES,
     AES_SEDAI_POSITIONS,
-    ASHAMAN_POSITIONS,
-    PROFESSIONS,
-    ALIGNMENT_DARK,
-    CULTURAL_GROUPS,
     AIEL_CLANS,
     AIEL_SOCIETIES,
-    SEANCHAN_GROUPS,
+    AJAHS,
+    ALIGNMENT_DARK,
+    ASHAMAN_POSITIONS,
     ATHAAN_MIERE_GROUPS,
+    CHANNELING_AFFILIATIONS,
+    CULTURAL_GROUPS,
+    GENDERS,
+    MILITARY_GROUPS,
+    MILITARY_ROLES,
+    NATIONALITY_CATEGORIES,
+    ORGANIZATIONS,
+    PROFESSIONS,
+    SEANCHAN_GROUPS,
+    SOCIAL_ROLES,
+    SPECIAL_ABILITIES,
 )
 
 
@@ -78,7 +76,7 @@ def main():
     all_stats = {}
 
     # Gender
-    total, found = print_category_stats("GENDER", set(GENDER_CATEGORIES.keys()), categories_data)
+    total, found = print_category_stats("GENDER", set(GENDERS.keys()), categories_data)
     all_stats["gender"] = total
 
     # Channeling Affiliations
@@ -86,7 +84,7 @@ def main():
     all_stats["channeling"] = total
 
     # Ajah
-    total, found = print_category_stats("AJAH", set(AJAH_CATEGORIES.keys()), categories_data)
+    total, found = print_category_stats("AJAH", set(AJAHS.keys()), categories_data)
     all_stats["ajah"] = total
 
     # Special Abilities (just get the category names, not the mapped values)
@@ -154,11 +152,11 @@ def main():
     print(f"\n{'=' * 80}")
     print("SUMMARY")
     print(f"{'=' * 80}")
-    print(f"\nTotal character assignments by category type:")
+    print("\nTotal character assignments by category type:")
     for category_type, count in sorted(all_stats.items()):
         print(f"  {category_type:30s} {count:6,} assignments")
 
-    print(f"\n✅ Category statistics complete!\n")
+    print("\n✅ Category statistics complete!\n")
 
 
 if __name__ == "__main__":

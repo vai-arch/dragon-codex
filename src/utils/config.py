@@ -5,11 +5,17 @@ Loads and manages configuration from environment variables.
 
 import logging
 import os
+from enum import Enum
 from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
 
-from .paths import get_paths
+from src.utils.paths import get_paths
+
+
+class EmbeddingManagers(str, Enum):
+    OLLAMA = "ollama"
+    SENTENCE_TRANSFORMER = "sentence_transformer"
 
 
 class Config:
@@ -23,8 +29,6 @@ class Config:
         # Load environment variables
         load_dotenv(override=True)
 
-        # Ollama configuration
-        self.OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         # We need a file called Modelifle with this content:
         #
         # FROM nomic-embed-text
@@ -32,14 +36,48 @@ class Config:
         #
         # and then create a new model based on it:
         # ollama create nomic-embed-text-num_batch-2048 -f Modelfile
-        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text-num_batch-2048:latest")
-        self.LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
-        self.NOMIC_EMBED_TEXT_MAX_TOKENS = 2046  # in theory is 2048 but in reallity in real life is 2046
+        self.EMBEDDING_MODEL_NOMIC_2048 = {
+            "EMBEDDING_MODEL_NAME": "nomic-embed-text-num_batch-2048:latest",
+            "EMBEDDING_MODEL_MAX_TOKENS": 2046,
+            "EMBEDDING_MODEL_DIMENSION": 768,
+            "EMBEDDING_MODEL_RAW_PREFIX": None,
+            "EMBEDDING_MODEL_SEARCH_PREFIX": "search_query",
+            "EMBEDDING_MODEL_DOCUMENT_PREFIX": "search_document",
+        }
 
-        # Embedding settings
-        self.EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", 768))
-        self.EMBEDDING_MAX_TOKENS = self.NOMIC_EMBED_TEXT_MAX_TOKENS
+        self.EMBEDDING_MODEL = self.EMBEDDING_MODEL_NOMIC_2048
+        self.EMBEDDING_MANAGER = EmbeddingManagers.OLLAMA.value
 
+        self.LLM_MODEL = {"LLM_MODEL_NAME": "llama3.1:8b"}
+
+        self.OLLAMA_CONFIG = {
+            "OLLAMA_BASE_URL": "http://localhost:11434",
+            "EMBEDDING_METHOD": "BATCH",  # ONE_BY_ONE, BATCH, BATCH_IN_PARALLEL
+            "EMBEDDING_BATCH_SIZE": 32,
+            "EMBEDDING_MODEL": self.EMBEDDING_MODEL,
+            "LLM_MODEL": self.LLM_MODEL,
+        }
+
+        self.CHUNKING_STRATEGY = {
+            "BOOKS_CHUNKING_STRATEGY_NAME": "semantic",  # options: "legacy", "semantic", "hybrid". Semantic uses the configured embedding manager/model
+            "SEMANTIC_MAX_CHUNK_TOKENS": 1000,
+            "SEMANTIC_OVERLAP_TOKENS": 200,
+            "SEMANTIC_SIMILARITY_THRESHOLD": 0.82,  # cosine similarity breakpoint
+            "MIN_BOOKS_CHUNKS_SIZE_CHARACTERS": 300,
+            "WIKI_CHUNKING_STRATEGY_NAME": "hybrid",
+            # Characters
+            "WIKI_CHARACTER_MIN_SECTION_SIZE": 350,  # ↑ Safer for short bios
+            "WIKI_CHARACTER_SEMANTIC_THRESHOLD": 0.78,
+            # Chapter Summaries
+            "WIKI_CHAPTER_SUMMARY_MIN_SECTION_SIZE": 500,
+            "WIKI_CHAPTER_SUMMARY_SEMANTIC_THRESHOLD": 0.78,
+            # Chronology
+            "WIKI_CHRONOLOGY_MIN_SECTION_SIZE": 400,
+            "WIKI_CHRONOLOGY_SEMANTIC_THRESHOLD": 0.85,
+            # Concepts/Magic/Prophecies
+            "WIKI_CONCEPT_MIN_SECTION_SIZE": 250,  # ↑ Handles stubs better
+            "WIKI_CONCEPT_SEMANTIC_THRESHOLD": 0.75,
+        }
         # Final Parameters:
 
         # Target size: 6000 characters (~1340 tokens)
@@ -58,7 +96,9 @@ class Config:
 
         # Token-based configuration (primary)
         self.CHARS_PER_TOKEN = int(os.getenv("CHARS_PER_TOKEN", 4.5))
-        self.MAX_TOKENS = int(os.getenv("MAX_TOKENS", self.EMBEDDING_MAX_TOKENS * 0.85))  # Safety limit 15% (0.85) is already tested with all the chunks and the MAX ammount of tekens was 1616
+        self.MAX_TOKENS = int(
+            os.getenv("MAX_TOKENS", self.EMBEDDING_MODEL["EMBEDDING_MODEL_MAX_TOKENS"] * 0.85)
+        )  # Safety limit 15% (0.85) is already tested with all the chunks and the MAX ammount of tekens was 1616
         self.TARGET_TOKENS = int(os.getenv("TARGET_TOKENS", self.MAX_TOKENS * 0.86))  # Target = 85%
         self.OVERLAP_TOKENS = int(os.getenv("OVERLAP_TOKENS", self.TARGET_TOKENS * 0.10))  # 10% overlap
 
@@ -79,6 +119,7 @@ class Config:
 
         # ChromaDB settings
         self.CHROMA_PERSISTENCE = os.getenv("CHROMA_PERSISTENCE", "True").lower() == "true"
+        self.CHROMA_COLLECTION_BOOKS = os.getenv("CHROMA_COLLECTION_BOOKS", "books")
         self.CHROMA_COLLECTION_NARRATIVE = os.getenv("CHROMA_COLLECTION_NARRATIVE", "narrative")
         self.CHROMA_COLLECTION_REFERENCE = os.getenv("CHROMA_COLLECTION_REFERENCE", "reference")
         # NEW: ChromaDB client settings
@@ -97,11 +138,20 @@ class Config:
 
     def __repr__(self):
         """String representation of configuration"""
-        return f"Config(PROJECT_ROOT={self.PROJECT_ROOT}, LLM_MODEL={self.LLM_MODEL}, EMBEDDING_MODEL={self.EMBEDDING_MODEL})"
+        return f"Config(PROJECT_ROOT={self.PROJECT_ROOT})"
 
 
 # Global configuration instance
 _config = None
+
+
+def get_embedding_manager_config(embedding_manager: str):
+    config = get_config()
+
+    if embedding_manager == EmbeddingManagers.OLLAMA.value:
+        return config.OLLAMA_CONFIG
+    else:
+        raise ValueError(f"Unknown embedding backend: {embedding_manager}")
 
 
 def get_config():
@@ -115,34 +165,9 @@ def get_config():
 # Convenience function for testing
 def print_config():
     """Print current configuration (useful for debugging)"""
-    config = get_config()
 
     print("=" * 60)
     print("Dragon's Codex Configuration")
-    print("=" * 60)
-
-    print("\n🤖 Models:")
-    print(f"  Ollama URL: {config.OLLAMA_BASE_URL}")
-    print(f"  LLM: {config.LLM_MODEL}")
-    print(f"  Embeddings: {config.EMBEDDING_MODEL}")
-
-    print("\n⚙️  Settings:")
-    print(f"  Chunk Size: {config.CHUNK_SIZE}")
-    print(f"  Max chunk Size: {config.MAX_CHUNK_SIZE}")
-    print(f"  Chunk Overlap: {config.CHUNK_OVERLAP}")
-    print(f"  Top-K Retrieval: {config.TOP_K_RETRIEVAL}")
-    print(f"  Temperature: {config.LLM_TEMPERATURE}")
-
-    print("\n📊 Collections:")
-    print(f"  Narrative: {config.CHROMA_COLLECTION_NARRATIVE}")
-    print(f"  Concepts: {config.CHROMA_COLLECTION_CONCEPTS}")
-    print(f"  Magic: {config.CHROMA_COLLECTION_MAGIC}")
-    print(f"  Prophecies: {config.CHROMA_COLLECTION_PROPHECIES}")
-
-    print("\n📝 Logging:")
-    print(f"  Level: {config.LOG_LEVEL}")
-    print(f"  Debug: {config.DEBUG}")
-
     print("=" * 60)
 
 

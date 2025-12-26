@@ -2,6 +2,7 @@
 Embedding handling
 """
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import List, Tuple
@@ -12,26 +13,18 @@ from tqdm import tqdm
 from src.utils.util_statistics import progress_bar
 
 
-class VectorStoreManager:
-    """Manages embeddings and vector storage"""
+class EmbeddingManager:
+    """Manages embeddings"""
 
-    def __init__(self, config=None):
-        """
-        Initialize Vector Store Manager
-
-        Args:
-            config: Config object (if None, loads from get_config())
-        """
-        if config is None:
-            from src.utils.config import get_config
-
-            config = get_config()
-
-        self.config = config
-        self.ollama_url = config.OLLAMA_BASE_URL
-        self.model = config.EMBEDDING_MODEL
-        self._client = None  # Lazy-loaded ChromaDB client
-        self.session = requests.Session()  # Reuse TCP connections
+    def __init__(self, config: dict):
+        self.ollama_url = config["OLLAMA_BASE_URL"]
+        self.method = config["EMBEDDING_METHOD"]
+        self.batch_size = config["EMBEDDING_BATCH_SIZE"]
+        self.embedding_model_name = config["EMBEDDING_MODEL"]["EMBEDDING_MODEL_NAME"]
+        self.embedding_model_dimension = config["EMBEDDING_MODEL"]["EMBEDDING_MODEL_DIMENSION"]
+        self.embedding_model_max_tokens = config["EMBEDDING_MODEL"]["EMBEDDING_MODEL_MAX_TOKENS"]
+        self.session = requests.Session()
+        print(json.dumps(dict, indent=2))
 
     def test_connection(self) -> bool:
         """
@@ -41,31 +34,44 @@ class VectorStoreManager:
             bool: True if connection successful
         """
         try:
-            response = requests.post(f"{self.ollama_url}/api/embeddings", json={"model": self.model, "prompt": "test"}, timeout=10)
+            response = requests.post(f"{self.ollama_url}/api/embeddings", json={"model": self.embedding_model_name, "prompt": "test"}, timeout=10)
 
             if response.status_code == 200:
                 embedding = response.json().get("embedding", [])
-                expected_dim = self.config.EMBEDDING_DIMENSION
-                print(f"✅ Ollama connected. Model: {self.model}")
-                print(f"   Embedding dim: {len(embedding)} (expected: {expected_dim})")
+                actual_dim = len(embedding)
+
+                print(f"✅ Ollama connected. Model: {self.embedding_model_name}")
+                print(f"   Embedding dim: {actual_dim} (expected: {self.embedding_model_dimension})")
+
+                if actual_dim != self.embedding_model_dimension:
+                    raise ValueError(f"Embedding dimension mismatch: expected {self.embedding_model_dimension}, got {actual_dim}")
+
                 return True
             else:
-                print(f"❌ Ollama error: {response.status_code}")
-                return False
+                raise ValueError(f"❌ Ollama error: {response.status_code}")
 
         except Exception as e:
-            print(f"❌ Connection failed: {e}")
-            return False
+            raise ValueError(f"❌ Connection failed: {e}")
 
-    def embed_chunks(self, texts: List[str], batch_size: int = 100, show_progress: bool = True) -> Tuple[List[List[float]], int]:
+    def embed_chunks(self, texts: List[str]) -> Tuple[List[List[float]], int]:
         """
         Proxy for the embed method. For the moment we are doing everything with embed_batchs but down the road we may want to
         make this configurable, depending enviroment, etc
         """
-        # return self.embed_batch(texts, batch_size, show_progress)
-        return self.embed_texts(texts)
+        dispatch = {
+            "ONE_BY_ONE": self.embed_one_by_one,
+            "BATCH": self.embed_batch,
+            "BATCH_IN_PARALLEL": self.embed_batch_parallel,
+        }
 
-    def embed_texts(self, texts: List[str]) -> List[List[float]]:
+        try:
+            embed_fn = dispatch[self.method]
+        except KeyError:
+            raise ValueError(f"Unknown embedding method: {self.method}")
+
+        return embed_fn(texts)
+
+    def embed_one_by_one(self, texts: List[str]) -> List[List[float]]:
         """
         Generate embeddings for a batch of texts and return statistics.
 
@@ -100,13 +106,14 @@ class VectorStoreManager:
         max_tokens = 0
         count = 0
 
-        pbar = tqdm(texts, desc="Embedding chunks")
+        use_pbar = len(texts) > 1
+        iterator = tqdm(texts, desc="Embedding chunks") if use_pbar else texts
 
-        for text in pbar:
+        for text in iterator:
             response = self.session.post(
                 f"{self.ollama_url}/api/embed",
                 json={
-                    "model": self.model,
+                    "model": self.embedding_model_name,
                     "input": text,  # Send list instead of single string
                 },
             )
@@ -118,8 +125,8 @@ class VectorStoreManager:
             embeddings = data["embeddings"]
             this_chunk_tokens = data.get("prompt_eval_count", 0)
 
-            if this_chunk_tokens == self.config.MAX_TOKENS:
-                raise ValueError(f"Maximum number of tokens ({self.config.MAX_TOKENS}) reached!. We need to rechunk everything with safer parameters")
+            if this_chunk_tokens == self.embedding_model_max_tokens:
+                raise ValueError(f"Maximum number of tokens ({self.embedding_model_max_tokens}) reached!. We need to rechunk everything with safer parameters")
 
             # update max
             if this_chunk_tokens > max_tokens:
@@ -131,13 +138,14 @@ class VectorStoreManager:
 
             avg_tokens = total_tokens / count
 
-            pbar.set_postfix_str(f"MAX: {max_tokens} | AVG: {avg_tokens:.1f}")
+            if use_pbar:
+                iterator.set_postfix_str(f"MAX: {max_tokens} | AVG: {avg_tokens:.1f}")
 
         total_time = datetime.now() - start_time
 
         return embeddings, avg_tokens, max_tokens, total_time
 
-    def embed_batch(self, texts: List[str], batch_size: int = 100, show_progress: bool = True) -> Tuple[List[List[float]], int]:
+    def embed_batch(self, texts: List[str], show_progress: bool = True) -> Tuple[List[List[float]], int]:
         """
         Generate embeddings for a batch of texts and return statistics.
 
@@ -148,8 +156,6 @@ class VectorStoreManager:
          Args:
              texts (List[str]):
                  List of input text strings to embed.
-             batch_size (int):
-                 Number of items processed per API call.
 
          Returns:
              tuple:
@@ -168,6 +174,7 @@ class VectorStoreManager:
         start_time = datetime.now()
 
         all_embeddings = []
+
         max_tokens = -1
 
         total_tokens = 0  # running sum of tokens across all calls
@@ -175,12 +182,12 @@ class VectorStoreManager:
 
         # pbar = tqdm(range(0, len(texts), batch_size), desc="Embedding batches")
 
-        pbar = progress_bar(range(0, len(texts), batch_size), enable=show_progress, desc="Embedding batches")
+        pbar = progress_bar(range(0, len(texts), self.batch_size), enable=show_progress, desc="Embedding batches")
 
         for i in pbar:
-            batch_texts = texts[i : i + batch_size]
+            batch_texts = texts[i : i + self.batch_size]
 
-            response = self.session.post(f"{self.ollama_url}/api/embed", json={"model": self.model, "input": batch_texts})
+            response = self.session.post(f"{self.ollama_url}/api/embed", json={"model": self.embedding_model_name, "input": batch_texts})
             response.raise_for_status()
             data = response.json()
 
@@ -205,7 +212,7 @@ class VectorStoreManager:
 
         return all_embeddings, avg_tokens, max_tokens, total_time
 
-    def embed_batch_parallel(self, texts: List[str], batch_size: int = 100, max_workers: int = 4) -> Tuple[List[List[float]], int]:
+    def embed_batch_parallel(self, texts: List[str], max_workers: int = 4) -> Tuple[List[List[float]], int]:
         """
         Generate embeddings for a batch of texts and return statistics.
 
@@ -216,8 +223,6 @@ class VectorStoreManager:
         Args:
             texts (List[str]):
                 List of input text strings to embed.
-            batch_size (int):
-                Number of items processed per API call.
 
         Returns:
             tuple:
@@ -237,7 +242,7 @@ class VectorStoreManager:
         start_time = datetime.now()
 
         # Split into batches
-        batches = [texts[i : i + batch_size] for i in range(0, len(texts), batch_size)]
+        batches = [texts[i : i + self.batch_size] for i in range(0, len(texts), self.batch_size)]
 
         all_embeddings = []
         avg_tokens = 0
@@ -248,7 +253,7 @@ class VectorStoreManager:
 
         def process_batch(batch_texts):
             """Process single batch - runs in parallel"""
-            response = self.session.post(f"{self.ollama_url}/api/embed", json={"model": self.model, "input": batch_texts}, timeout=300)
+            response = self.session.post(f"{self.ollama_url}/api/embed", json={"model": self.embedding_model_name, "input": batch_texts}, timeout=300)
             response.raise_for_status()
             data = response.json()
 

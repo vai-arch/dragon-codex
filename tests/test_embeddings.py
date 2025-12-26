@@ -3,15 +3,14 @@ Test embeddings
 
 """
 
-from datetime import datetime
 import json
-from tqdm import tqdm
-from src.utils.util_embedding import VectorStoreManager
-from src.utils.util_statistics import print_results_table, log_results
+
 from src.utils.config import get_config
+from src.utils.util_embedding import EmbeddingManager
+from src.utils.util_statistics import log_results, print_results_table
 
 config = get_config()
-manager = VectorStoreManager(config)
+manager = EmbeddingManager(config)
 BATCH_SIZE = 100
 
 
@@ -34,23 +33,23 @@ def test_single_embeddings():
     text = "Rand al'Thor is the Dragon Reborn"
     print(f"\nEmbedding text: '{text}'")
 
-    embedding, tokens = manager.embed_texts([text])
+    embedding, tokens = manager.embed_one_by_one([text])
 
     # Validate
-    print(f"✅ Embedding generated")
+    print("✅ Embedding generated")
     print(f"   Dimensions: {len(embedding)}")
     print(f"   First 5 values: {embedding[:5]}")
     print(f"   All floats: {all(isinstance(x, float) for x in embedding)}")
 
     # Test consistency
     print("\n=== Testing Consistency ===\n")
-    embedding2, tokens = manager.embed_texts([text])
+    embedding2, tokens = manager.embed_one_by_one([text])
     same = embedding == embedding2
     print(f"Same text → Same embedding: {same}")
 
     # Test different text
     different_text = "Egwene al'Vere becomes Amyrlin Seat"
-    embedding3, tokens = manager.embed_texts([different_text])
+    embedding3, tokens = manager.embed_one_by_one([different_text])
     different = embedding != embedding3
     print(f"Different text → Different embedding: {different}")
 
@@ -82,7 +81,7 @@ def test_batch_one_by_one():
 
     texts = [chunk["text"] for chunk in chunks]
 
-    embeddings, avg_tokens, max_tokens, total_time = manager.embed_texts(texts)
+    embeddings, avg_tokens, max_tokens, total_time = manager.embed_one_by_one(texts)
 
     statistics = {
         "name": "One-by-One-Ollama",

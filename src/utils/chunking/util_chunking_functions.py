@@ -1,9 +1,13 @@
 import re
 from typing import List
 
+from src.utils.chunking.chunking_strategies import get_chunker
 from src.utils.config import get_config
 
 config = get_config()
+
+_books_chunker = get_chunker(config.CHUNKING_STRATEGY["BOOKS_CHUNKING_STRATEGY_NAME"])
+
 
 TARGET_CHARS = config.TARGET_TOKENS * config.CHARS_PER_TOKEN
 MAX_CHARS = config.MAX_TOKENS * config.CHARS_PER_TOKEN

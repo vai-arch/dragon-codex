@@ -16,11 +16,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from src.utils.paths import get_paths
-from src.utils.util_files_functions import load_text_from_file
+from src.utils.util_files_functions import load_json_from_file, load_text_from_file
 from src.utils.wiki_constants import (
+    ALL_MAGIC_CATEGORIES,
+    ALL_PROPHECIES_CATEGORIES,
     CATEGORIES_TO_SKIP,
-    MAGIC_CATEGORIES,
-    PROPHECIES_CATEGORIES,
     REDIRECT_CATEGORIES,
     extract_categories,
     extract_id,
@@ -65,11 +65,11 @@ def classify_page_type(filename: str, categories: List[str]) -> str:
         return "CHAPTER_SUMMARY"
 
     # Skip redirect pages
-    if any(cat in PROPHECIES_CATEGORIES for cat in categories):
+    if any(cat in ALL_PROPHECIES_CATEGORIES for cat in categories):
         return "PROPHECIES"
 
     # Skip redirect pages
-    if any(cat in MAGIC_CATEGORIES for cat in categories):
+    if any(cat in ALL_MAGIC_CATEGORIES for cat in categories):
         return "MAGIC"
 
     # Everything else is a concept/place/event page
@@ -479,9 +479,7 @@ def main():
         wiki_file = Path(sys.argv[1])
         categories_json = Path(sys.argv[2])
 
-    # Load categories
-    with open(categories_json, "r") as f:
-        filename_to_categories = json.load(f)
+    filename_to_categories = load_json_from_file(categories_json)
 
     categories = filename_to_categories.get(wiki_file.name, [])
 

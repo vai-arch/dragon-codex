@@ -1,1432 +1,1627 @@
 {
-  "metadata": {
-    "total_questions": 100,
-    "difficulty_distribution": {
-      "easy": 40,
-      "medium": 40,
-      "hard": 20
-    },
-    "category_distribution": {
-      "character": 30,
-      "concept": 20,
-      "plot_event": 20,
-      "prophecy": 10,
-      "magic_system": 10,
-      "cross_reference": 10
-    },
-    "scoring_rubric": {
-      "retrieval_quality": "1-5 scale: relevance of retrieved chunks",
-      "answer_correctness": "1-5 scale: accuracy and completeness",
-      "source_citations": "1-5 scale: proper attribution",
-      "spoiler_prevention": "pass/fail: respects temporal limits"
-    }
-  },
-  "questions": [
-    {
-      "question_id": 1,
-      "question": "Who is Rand al'Thor?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Dragon Reborn",
-        "Two Rivers",
-        "sheepherder",
-        "channeler",
-        "taveren"
-      ]
-    },
-    {
-      "question_id": 2,
-      "question": "What is an Aes Sedai?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "female channelers",
-        "White Tower",
-        "Three Oaths",
-        "Ajahs"
-      ]
-    },
-    {
-      "question_id": 3,
-      "question": "Who is Moiraine Damodred?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Aes Sedai",
-        "Blue Ajah",
-        "searches for Dragon Reborn"
-      ]
-    },
-    {
-      "question_id": 4,
-      "question": "What is saidin?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "male half of One Power",
-        "tainted",
-        "madness"
-      ]
-    },
-    {
-      "question_id": 5,
-      "question": "What is the White Tower?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Tar Valon",
-        "Aes Sedai headquarters",
-        "Amyrlin Seat"
-      ]
-    },
-    {
-      "question_id": 6,
-      "question": "Who is Perrin Aybara?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Two Rivers",
-        "blacksmith",
-        "Wolfbrother",
-        "taveren",
-        "yellow eyes"
-      ]
-    },
-    {
-      "question_id": 7,
-      "question": "What is saidar?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "female half of One Power",
-        "must surrender to",
-        "flows"
-      ]
-    },
-    {
-      "question_id": 8,
-      "question": "Who is Matrim Cauthon?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Mat",
-        "Two Rivers",
-        "trickster",
-        "lucky",
-        "taveren"
-      ]
-    },
-    {
-      "question_id": 9,
-      "question": "What is Tel'aran'rhiod?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "World of Dreams",
-        "dangerous",
-        "reflection of real world",
-        "Dreamers"
-      ]
-    },
-    {
-      "question_id": 10,
-      "question": "Who is Lan Mandragoran?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Warder",
-        "Moiraine",
-        "Malkier",
-        "uncrowned king",
-        "best swordsman"
-      ]
-    },
-    {
-      "question_id": 11,
-      "question": "What is a Warder?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "bonded to Aes Sedai",
-        "enhanced abilities",
-        "sense emotions",
-        "guardian"
-      ]
-    },
-    {
-      "question_id": 12,
-      "question": "Who is Nynaeve al'Meara?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Wisdom",
-        "Two Rivers",
-        "strong channeler",
-        "Healing",
-        "block"
-      ]
-    },
-    {
-      "question_id": 13,
-      "question": "What is the Dragon Reborn?",
-      "category": "prophecy",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Lews Therin reborn",
-        "fight Dark One",
-        "break the world",
-        "prophecy"
-      ]
-    },
-    {
-      "question_id": 14,
-      "question": "Who is Egwene al'Vere?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Two Rivers",
-        "innkeeper's daughter",
-        "Dreamer",
-        "strong channeler"
-      ]
-    },
-    {
-      "question_id": 15,
-      "question": "What is the Dark One?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Shai'tan",
-        "imprisoned",
-        "Creator's opposite",
-        "evil force"
-      ]
-    },
-    {
-      "question_id": 16,
-      "question": "What are the Forsaken?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Dark One's servants",
-        "Age of Legends",
-        "powerful channelers",
-        "sealed"
-      ]
-    },
-    {
-      "question_id": 17,
-      "question": "What is an angreal?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Power-wrought item",
-        "increase channeling strength",
-        "safe to use"
-      ]
-    },
-    {
-      "question_id": 18,
-      "question": "Who is Elayne Trakand?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Daughter-Heir of Andor",
-        "Caemlyn",
-        "channeler",
-        "white"
-      ]
-    },
-    {
-      "question_id": 19,
-      "question": "What is the Two Rivers?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Andor",
-        "isolated region",
-        "Emond's Field",
-        "homeland of main characters"
-      ]
-    },
-    {
-      "question_id": 20,
-      "question": "What is Tar Valon?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "island city",
-        "White Tower",
-        "Aes Sedai home",
-        "between nations"
-      ]
-    },
-    {
-      "question_id": 21,
-      "question": "Who is Thom Merrilin?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "gleeman",
-        "court bard",
-        "knives",
-        "entertainer",
-        "mysterious past"
-      ]
-    },
-    {
-      "question_id": 22,
-      "question": "What are Trollocs?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Shadowspawn",
-        "half-human half-animal",
-        "serve Dark One",
-        "twisted"
-      ]
-    },
-    {
-      "question_id": 23,
-      "question": "What is a sa'angreal?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "more powerful than angreal",
-        "extremely rare",
-        "vastly increase Power"
-      ]
-    },
-    {
-      "question_id": 24,
-      "question": "Who is Min Farshaw?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "sees visions",
-        "viewings",
-        "future glimpses",
-        "dresses like boy"
-      ]
-    },
-    {
-      "question_id": 25,
-      "question": "What are the Ajahs?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "seven Ajahs",
-        "Aes Sedai factions",
-        "different purposes",
-        "colored"
-      ]
-    },
-    {
-      "question_id": 26,
-      "question": "What is the Blight?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "corrupted land",
-        "Dark One's influence",
-        "northern border",
-        "dangerous"
-      ]
-    },
-    {
-      "question_id": 27,
-      "question": "Who is Aviendha?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Aiel",
-        "Maiden of the Spear",
-        "Wise One apprentice",
-        "can channel"
-      ]
-    },
-    {
-      "question_id": 28,
-      "question": "What is a ter'angreal?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Power-wrought object",
-        "specific function",
-        "varied purposes",
-        "mysterious"
-      ]
-    },
-    {
-      "question_id": 29,
-      "question": "What is the Horn of Valere?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "legendary artifact",
-        "call heroes",
-        "great pattern",
-        "must be found"
-      ]
-    },
-    {
-      "question_id": 30,
-      "question": "Who are the Aiel?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "desert people",
-        "Waste",
-        "fierce warriors",
-        "face veils",
-        "ji'e'toh"
-      ]
-    },
-    {
-      "question_id": 31,
-      "question": "What is the Karaethon Cycle?",
-      "category": "prophecy",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "prophecies of Dragon",
-        "foretell events",
-        "Dragon Reborn"
-      ]
-    },
-    {
-      "question_id": 32,
-      "question": "What are the Three Oaths?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Aes Sedai binding",
-        "cannot lie",
-        "not make weapons",
-        "not use Power as weapon"
-      ]
-    },
-    {
-      "question_id": 33,
-      "question": "Who is Loial?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Ogier",
-        "Treesinger",
-        "scholar",
-        "large",
-        "long-lived",
-        "stedding"
-      ]
-    },
-    {
-      "question_id": 34,
-      "question": "What is Caemlyn?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "capital of Andor",
-        "Lion Throne",
-        "Elayne's home",
-        "major city"
-      ]
-    },
-    {
-      "question_id": 35,
-      "question": "What is a Myrddraal?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Fade",
-        "Shadowspawn",
-        "eyeless",
-        "commands Trollocs",
-        "feared"
-      ]
-    },
-    {
-      "question_id": 36,
-      "question": "What is channeling?",
-      "category": "magic_system",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "using One Power",
-        "weaving flows",
-        "five elements",
-        "requires ability"
-      ]
-    },
-    {
-      "question_id": 37,
-      "question": "Who is Siuan Sanche?",
-      "category": "character",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Amyrlin Seat",
-        "Blue Ajah",
-        "deposed",
-        "strong leader"
-      ]
-    },
-    {
-      "question_id": 38,
-      "question": "What is the Eye of the World?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "pool of pure saidin",
-        "Green Man guards",
-        "prophecy",
-        "book title"
-      ]
-    },
-    {
-      "question_id": 39,
-      "question": "Who are the Children of the Light?",
-      "category": "concept",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Whitecloaks",
-        "hate Aes Sedai",
-        "fanatics",
-        "white cloaks",
-        "hunt Darkfriends"
-      ]
-    },
-    {
-      "question_id": 40,
-      "question": "What is Tarmon Gai'don?",
-      "category": "prophecy",
-      "difficulty": "easy",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Last Battle",
-        "Dragon vs Dark One",
-        "end times",
-        "prophecy"
-      ]
-    },
-    {
-      "question_id": 41,
-      "question": "How does Rand's relationship with the One Power evolve from The Eye of the World to The Dragon Reborn?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": 3,
-      "expected_topics": [
-        "fear",
-        "acceptance",
-        "learning",
-        "wild talent",
-        "Lews Therin",
-        "progression"
-      ]
-    },
-    {
-      "question_id": 42,
-      "question": "Describe the relationship between Moiraine and Lan.",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Warder bond",
-        "mutual respect",
-        "dedication",
-        "unspoken understanding",
-        "partnership"
-      ]
-    },
-    {
-      "question_id": 43,
-      "question": "What is the difference between saidin and saidar?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "male vs female",
-        "seize vs surrender",
-        "tainted vs pure",
-        "different approaches"
-      ]
-    },
-    {
-      "question_id": 44,
-      "question": "How does Egwene's path to becoming Aes Sedai develop through the first five books?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": 5,
-      "expected_topics": [
-        "novice",
-        "Accepted",
-        "captured",
-        "Dreamer",
-        "growth",
-        "Wise Ones"
-      ]
-    },
-    {
-      "question_id": 45,
-      "question": "Explain the Warder bond and its effects on both Aes Sedai and Warder.",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "emotional connection",
-        "enhanced abilities",
-        "sense location",
-        "death consequences",
-        "compulsion"
-      ]
-    },
-    {
-      "question_id": 46,
-      "question": "What happens at Falme in The Great Hunt?",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": 2,
-      "expected_topics": [
-        "Horn blown",
-        "Heroes summoned",
-        "Rand battles",
-        "sky battle",
-        "Seanchan"
-      ]
-    },
-    {
-      "question_id": 47,
-      "question": "How does Perrin discover and develop his wolf abilities?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "yellow eyes",
-        "Elyas",
-        "wolf dreams",
-        "acceptance",
-        "two sides",
-        "struggle"
-      ]
-    },
-    {
-      "question_id": 48,
-      "question": "What is the significance of Callandor?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Crystal Sword",
-        "powerful sa'angreal",
-        "Stone of Tear",
-        "Dragon prophecy",
-        "flawed"
-      ]
-    },
-    {
-      "question_id": 49,
-      "question": "Describe Mat's transformation after visiting Rhuidean.",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": 4,
-      "expected_topics": [
-        "memories",
-        "Old Tongue",
-        "military knowledge",
-        "ashandarei",
-        "changed personality"
-      ]
-    },
-    {
-      "question_id": 50,
-      "question": "What are the five elements used in channeling and what do they represent?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Fire",
-        "Water",
-        "Earth",
-        "Air",
-        "Spirit",
-        "different affinities",
-        "weaving"
-      ]
-    },
-    {
-      "question_id": 51,
-      "question": "How do the Seanchan use channelers differently than in the Westlands?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "damane",
-        "sul'dam",
-        "leashed",
-        "enslaved",
-        "a'dam",
-        "property"
-      ]
-    },
-    {
-      "question_id": 52,
-      "question": "What is Min's viewing ability and how does it work?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "sees images",
-        "future events",
-        "always true",
-        "cannot control",
-        "interpretation"
-      ]
-    },
-    {
-      "question_id": 53,
-      "question": "Describe the structure and purpose of the different Ajahs.",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "seven Ajahs",
-        "colors",
-        "purposes",
-        "Blue",
-        "Red",
-        "Green",
-        "White",
-        "Yellow",
-        "Gray",
-        "Brown"
-      ]
-    },
-    {
-      "question_id": 54,
-      "question": "Why does Rand go to the Aiel Waste in The Shadow Rising?",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": 4,
-      "expected_topics": [
-        "prophecy",
-        "Car'a'carn",
-        "unite Aiel",
-        "Rhuidean",
-        "answers",
-        "heritage"
-      ]
-    },
-    {
-      "question_id": 55,
-      "question": "What is the Black Ajah and what makes it dangerous?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Dark One servants",
-        "within Tower",
-        "secret",
-        "oath forsworn",
-        "trust broken"
-      ]
-    },
-    {
-      "question_id": 56,
-      "question": "How does Nynaeve overcome her channeling block?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "anger requirement",
-        "struggle",
-        "acceptance",
-        "overcoming",
-        "growth"
-      ]
-    },
-    {
-      "question_id": 57,
-      "question": "What role do the Wise Ones play in Aiel society?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "leaders",
-        "Dreamwalkers",
-        "authority",
-        "channelers",
-        "not Maidens",
-        "guidance"
-      ]
-    },
-    {
-      "question_id": 58,
-      "question": "Describe the events leading to the Breaking of the Tower.",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Siuan deposed",
-        "Elaida",
-        "division",
-        "rebel Aes Sedai",
-        "two Amyrlins"
-      ]
-    },
-    {
-      "question_id": 59,
-      "question": "What is ji'e'toh and how does it govern Aiel behavior?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "honor system",
-        "obligation",
-        "toh",
-        "ji",
-        "complex rules",
-        "gai'shain"
-      ]
-    },
-    {
-      "question_id": 60,
-      "question": "How does Rand's relationship with Elayne, Min, and Aviendha develop?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "three loves",
-        "bonding",
-        "sharing",
-        "prophecy",
-        "complexity",
-        "acceptance"
-      ]
-    },
-    {
-      "question_id": 61,
-      "question": "What is balefire and why is it forbidden?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "burns pattern",
-        "reverses time",
-        "destroys thread",
-        "reality damage",
-        "dangerous"
-      ]
-    },
-    {
-      "question_id": 62,
-      "question": "Describe the founding and purpose of the Black Tower.",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "male channelers",
-        "Asha'man",
-        "Rand creates",
-        "weapon",
-        "Mazrim Taim"
-      ]
-    },
-    {
-      "question_id": 63,
-      "question": "What happens when Mat blows the Horn of Valere?",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": 2,
-      "expected_topics": [
-        "Falme",
-        "Heroes summoned",
-        "bound to Horn",
-        "Hawkwing",
-        "battle"
-      ]
-    },
-    {
-      "question_id": 64,
-      "question": "How does Perrin become a leader in the Two Rivers?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": 4,
-      "expected_topics": [
-        "Trolloc defense",
-        "reluctant",
-        "Manetheren",
-        "Lord Perrin",
-        "responsibility"
-      ]
-    },
-    {
-      "question_id": 65,
-      "question": "What are the consequences of severing someone from the One Power?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "gentling",
-        "stilling",
-        "loss",
-        "despair",
-        "death wish",
-        "Healing possible"
-      ]
-    },
-    {
-      "question_id": 66,
-      "question": "Describe the prophecy of the Dragon Reborn breaking the nations.",
-      "category": "prophecy",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "chaos",
-        "breaking bonds",
-        "Karaethon Cycle",
-        "necessary destruction",
-        "rebirth"
-      ]
-    },
-    {
-      "question_id": 67,
-      "question": "What is the Bowl of the Winds and what is its purpose?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "ter'angreal",
-        "weather control",
-        "Sea Folk",
-        "powerful",
-        "seek"
-      ]
-    },
-    {
-      "question_id": 68,
-      "question": "How does Elayne secure the Lion Throne of Andor?",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "succession",
-        "support",
-        "nobles",
-        "challenges",
-        "rightful heir",
-        "struggle"
-      ]
-    },
-    {
-      "question_id": 69,
-      "question": "What is the significance of Rand's wounds that never heal?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "never healing",
-        "balefire",
-        "Fain's dagger",
-        "linked",
-        "pain",
-        "symbolic"
-      ]
-    },
-    {
-      "question_id": 70,
-      "question": "Describe the relationship between the Aes Sedai and the Kin.",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "runaways",
-        "secret",
-        "Ebou Dari",
-        "older",
-        "avoid Tower",
-        "revelation"
-      ]
-    },
-    {
-      "question_id": 71,
-      "question": "What is Compulsion and why is it considered so terrible?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "mind control",
-        "forbidden",
-        "removes free will",
-        "evil",
-        "Forsaken use"
-      ]
-    },
-    {
-      "question_id": 72,
-      "question": "How does Mat's luck manifest and develop throughout the series?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "gambling",
-        "ta'veren",
-        "impossible odds",
-        "grows stronger",
-        "pattern"
-      ]
-    },
-    {
-      "question_id": 73,
-      "question": "What are the visions Rand sees in Rhuidean?",
-      "category": "plot_event",
-      "difficulty": "medium",
-      "temporal_limit": 4,
-      "expected_topics": [
-        "Aiel history",
-        "columns",
-        "ancestors",
-        "truth",
-        "Way of the Leaf",
-        "revelation"
-      ]
-    },
-    {
-      "question_id": 74,
-      "question": "Describe the role of Ogier in the world of the Wheel of Time.",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Treesong",
-        "stedding",
-        "stonemasons",
-        "long-lived",
-        "peace-loving",
-        "Longing"
-      ]
-    },
-    {
-      "question_id": 75,
-      "question": "What is the Circle of the World and how do the Seanchan view it?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Seanchan empire",
-        "consolidate lands",
-        "prophecy",
-        "return",
-        "conquest"
-      ]
-    },
-    {
-      "question_id": 76,
-      "question": "How does Egwene become Amyrlin Seat?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "rebel choice",
-        "young",
-        "puppet",
-        "proves herself",
-        "unifies Tower"
-      ]
-    },
-    {
-      "question_id": 77,
-      "question": "What is Traveling and how does it differ from Skimming?",
-      "category": "magic_system",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "gateway",
-        "instant",
-        "must know location",
-        "Skimming slower",
-        "black space"
-      ]
-    },
-    {
-      "question_id": 78,
-      "question": "Describe the prophesied role of the Dragon Reborn at Tarmon Gai'don.",
-      "category": "prophecy",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "face Dark One",
-        "Last Battle",
-        "break seals",
-        "die and live",
-        "necessary"
-      ]
-    },
-    {
-      "question_id": 79,
-      "question": "What is the importance of dreams and Dreamwalking in the series?",
-      "category": "concept",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Tel'aran'rhiod",
-        "prophetic",
-        "Wise Ones",
-        "Egwene",
-        "dangerous",
-        "meetings"
-      ]
-    },
-    {
-      "question_id": 80,
-      "question": "How does the character of Aviendha develop from warrior to Wise One?",
-      "category": "character",
-      "difficulty": "medium",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Maiden",
-        "forced",
-        "resistance",
-        "apprentice",
-        "channeling",
-        "acceptance",
-        "growth"
-      ]
-    },
-    {
-      "question_id": 81,
-      "question": "Trace the fulfillment of Dragon Reborn prophecies from The Eye of the World through The Fires of Heaven. Which prophecies are fulfilled and how?",
-      "category": "prophecy",
-      "difficulty": "hard",
-      "temporal_limit": 5,
-      "expected_topics": [
-        "Stone of Tear",
-        "Callandor",
-        "Aiel",
-        "born on Dragonmount",
-        "marks",
-        "multiple prophecies"
-      ]
-    },
-    {
-      "question_id": 82,
-      "question": "Compare and contrast how Rand, Perrin, and Mat each handle their ta'veren nature and destinies differently throughout the series.",
-      "category": "cross_reference",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "acceptance",
-        "resistance",
-        "leadership styles",
-        "reluctance",
-        "Pattern",
-        "different paths"
-      ]
-    },
-    {
-      "question_id": 83,
-      "question": "Analyze how the concept of the Wheel of Time and rebirth influences the major plot developments and character decisions.",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "cyclical time",
-        "Heroes reborn",
-        "Lews Therin",
-        "past lives",
-        "pattern",
-        "destiny"
-      ]
-    },
-    {
-      "question_id": 84,
-      "question": "How do the various factions (White Tower, Black Tower, Seanchan, Aiel, etc.) approach the use and control of the One Power differently, and what does this reveal about their cultures?",
-      "category": "cross_reference",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "cultural attitudes",
-        "training methods",
-        "gender roles",
-        "power structures",
-        "philosophy"
-      ]
-    },
-    {
-      "question_id": 85,
-      "question": "Explain the complex relationship between the Aiel's past as followers of the Way of the Leaf and their present as fierce warriors. How does this history impact major characters?",
-      "category": "plot_event",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Rhuidean revelation",
-        "shame",
-        "bleakness",
-        "pacifist past",
-        "identity crisis",
-        "Rand's impact"
-      ]
-    },
-    {
-      "question_id": 86,
-      "question": "What are the strategic implications of the various forms of Traveling (gateway, Skimming, Portal Stones, etc.) for the conflicts in the series?",
-      "category": "magic_system",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "military advantage",
-        "surprise",
-        "logistics",
-        "different methods",
-        "tactical use",
-        "game-changer"
-      ]
-    },
-    {
-      "question_id": 87,
-      "question": "Trace the development and political maneuvering that leads to the split in the White Tower. What are the consequences for Tar Valon and the world?",
-      "category": "plot_event",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Siuan deposition",
-        "Black Ajah",
-        "Elaida",
-        "rebel Aes Sedai",
-        "weakened Tower",
-        "world impact"
-      ]
-    },
-    {
-      "question_id": 88,
-      "question": "How do the prophecies and viewings about Rand (from the Karaethon Cycle, Min's viewings, Dreamer visions, etc.) intersect and sometimes contradict? What patterns emerge?",
-      "category": "prophecy",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "multiple sources",
-        "interpretation",
-        "fulfillment",
-        "seeming contradictions",
-        "patterns",
-        "certainty"
-      ]
-    },
-    {
-      "question_id": 89,
-      "question": "Analyze the theme of identity and madness in Rand's character arc, particularly his relationship with Lews Therin Telamon.",
-      "category": "character",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "voice in head",
-        "taint",
-        "two personalities",
-        "integration",
-        "memories",
-        "sanity struggle"
-      ]
-    },
-    {
-      "question_id": 90,
-      "question": "What is the significance of the thirteen Forsaken, their individual goals, and how do their schemes intersect and conflict with each other?",
-      "category": "cross_reference",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "individual ambitions",
-        "competing plans",
-        "Dark One's servants",
-        "power struggles",
-        "alliances",
-        "betrayals"
-      ]
-    },
-    {
-      "question_id": 91,
-      "question": "How does the series explore different forms of power (political, magical, prophetic, military) and their relationships to each other?",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "multiple power types",
-        "intersections",
-        "conflicts",
-        "balance",
-        "legitimacy",
-        "influence"
-      ]
-    },
-    {
-      "question_id": 92,
-      "question": "Examine how the series portrays gender roles and relationships, particularly through the lens of the One Power's division and various cultural attitudes.",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "saidin vs saidar",
-        "cultural differences",
-        "Aes Sedai dominance",
-        "partnership",
-        "complementary",
-        "conflict"
-      ]
-    },
-    {
-      "question_id": 93,
-      "question": "What is the relationship between the Creator, the Dark One, and the Pattern? How does this cosmology drive the plot?",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "metaphysics",
-        "balance",
-        "free will",
-        "destiny",
-        "prison",
-        "threads",
-        "Wheel"
-      ]
-    },
-    {
-      "question_id": 94,
-      "question": "Trace how prophecy, viewing, Dreaming, and Foretelling differ in their mechanisms, reliability, and interpretability throughout the series.",
-      "category": "prophecy",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "different methods",
-        "certainty levels",
-        "interpretation",
-        "symbolism",
-        "literal vs metaphorical"
-      ]
-    },
-    {
-      "question_id": 95,
-      "question": "How do the events of the Breaking of the World continue to influence the present-day conflicts and power structures in the Third Age?",
-      "category": "plot_event",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "Age of Legends",
-        "lost knowledge",
-        "male channeler fear",
-        "Aes Sedai power",
-        "world shaped",
-        "consequences"
-      ]
-    },
-    {
-      "question_id": 96,
-      "question": "Compare the leadership philosophies and effectiveness of major leaders: Rand, Egwene, Elayne, Perrin, and Mat. What makes each effective or ineffective?",
-      "category": "cross_reference",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "leadership styles",
-        "reluctance",
-        "duty",
-        "methods",
-        "strengths",
-        "weaknesses",
-        "growth"
-      ]
-    },
-    {
-      "question_id": 97,
-      "question": "What is the significance of the various Power-wrought items (angreal, sa'angreal, ter'angreal) in the plot? How does their discovery and use change the balance of power?",
-      "category": "cross_reference",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "lost technology",
-        "game-changers",
-        "specific items",
-        "strategic importance",
-        "advantages"
-      ]
-    },
-    {
-      "question_id": 98,
-      "question": "Analyze the role of sacrifice and duty across multiple character arcs. How does the series define heroism?",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "self-sacrifice",
-        "greater good",
-        "price of power",
-        "burden",
-        "multiple examples",
-        "themes"
-      ]
-    },
-    {
-      "question_id": 99,
-      "question": "How do the parallel storylines of the main characters (Rand in the Waste, Perrin in the Two Rivers, Elayne and Nynaeve seeking the Bowl, etc.) interconnect and affect each other despite geographic separation?",
-      "category": "plot_event",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "parallel plots",
-        "convergence",
-        "ta'veren effect",
-        "Pattern weaving",
-        "connections",
-        "timing"
-      ]
-    },
-    {
-      "question_id": 100,
-      "question": "What does the series suggest about the nature of evil through its portrayal of the Dark One, the Forsaken, Darkfriends, and the Seanchan? Are there different types or degrees of evil presented?",
-      "category": "concept",
-      "difficulty": "hard",
-      "temporal_limit": null,
-      "expected_topics": [
-        "absolute evil",
-        "shades of gray",
-        "motivations",
-        "corrupted good",
-        "cultural evil",
-        "choices"
-      ]
-    }
-  ]
+"metadata": {
+"total_questions": 100,
+"difficulty_distribution": {
+"easy": 40,
+"medium": 40,
+"hard": 20
+},
+"category_distribution": {
+"character": 25,
+"concept": 20,
+"plot_event": 15,
+"prophecy": 10,
+"magic_system": 10,
+"cross_reference": 10,
+"relationship": 5,
+"timeline": 5
+},
+"scoring_rubric": {
+"retrieval_quality": "1-5 scale: relevance of retrieved chunks",
+"answer_correctness": "1-5 scale: accuracy and completeness",
+"source_citations": "1-5 scale: proper attribution",
+"spoiler_prevention": "pass/fail: respects temporal limits"
+}
+},
+"questions": [
+{
+"question_id": 1,
+"question": "Who is Rand al'Thor?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Dragon Reborn",
+"Two Rivers sheepherder",
+"channeler of saidin",
+"ta'veren",
+"Lews Therin Telamon reborn"
+],
+"sample_citation": "The Eye of the World, Ch. 1; Wiki: Rand_al'Thor",
+"key_challenges": "Alias handling (Dragon Reborn, Car'a'carn)"
+},
+{
+"question_id": 2,
+"question": "What is an Aes Sedai?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"female channelers of saidar",
+"White Tower organization",
+"Bound by Three Oaths",
+"Divided into Ajahs",
+"Serve all but rule none"
+],
+"sample_citation": "Glossary; Wiki: Aes_Sedai",
+"key_challenges": "Oath Rod implications"
+},
+{
+"question_id": 3,
+"question": "Who is Moiraine Damodred?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": 1,
+"expected_topics": [
+"Aes Sedai of Blue Ajah",
+"Searcher for Dragon Reborn",
+"Cairhien noble house",
+"Bonded to Lan Mandragoran"
+],
+"sample_citation": "New Spring; The Eye of the World, Ch. 2",
+"key_challenges": "Prequel integration"
+},
+{
+"question_id": 4,
+"question": "What is saidin?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Male half of the One Power",
+"Tainted by Dark One",
+"Causes madness in users",
+"Seized aggressively",
+"Linked to Breaking of the World"
+],
+"sample_citation": "The Eye of the World, Ch. 52; Wiki: Saidin",
+"key_challenges": "Taint mechanics"
+},
+{
+"question_id": 5,
+"question": "What is the White Tower?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Headquarters in Tar Valon",
+"Aes Sedai training and governance",
+"Led by Amyrlin Seat",
+"Symbol of Aes Sedai power",
+"Divided into halls and Ajahs"
+],
+"sample_citation": "The Great Hunt, Ch. 4; Wiki: White_Tower",
+"key_challenges": "Political structure"
+},
+{
+"question_id": 6,
+"question": "Who is Perrin Aybara?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Two Rivers blacksmith",
+"Wolfbrother with yellow eyes",
+"Ta'veren",
+"Hammer wielder",
+"Struggles with beast within"
+],
+"sample_citation": "The Eye of the World, Ch. 1; Wiki: Perrin_Aybara",
+"key_challenges": "Ability development"
+},
+{
+"question_id": 7,
+"question": "What is saidar?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Female half of the One Power",
+"Surrendered to for control",
+"Weaves of five elements",
+"Untainted and pure",
+"Used by Aes Sedai"
+],
+"sample_citation": "The Dragon Reborn, Ch. 23; Wiki: Saidar",
+"key_challenges": "Weaving differences"
+},
+{
+"question_id": 8,
+"question": "Who is Matrim Cauthon?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Two Rivers trickster",
+"Lucky gambler",
+"Ta'veren",
+"Ancient memories",
+"Ashandarei wielder"
+],
+"sample_citation": "The Eye of the World, Ch. 1; Wiki: Mat_Cauthon",
+"key_challenges": "Luck mechanics"
+},
+{
+"question_id": 9,
+"question": "What is Tel'aran'rhiod?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"World of Dreams",
+"Reflection of reality",
+"Dangerous to untrained",
+"Accessed by Dreamers",
+"Rules bendable by will"
+],
+"sample_citation": "The Dragon Reborn, Ch. 21; Wiki: Tel'aran'rhiod",
+"key_challenges": "Apostrophe search handling"
+},
+{
+"question_id": 10,
+"question": "Who is Lan Mandragoran?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Warder to Moiraine",
+"Uncrowned King of Malkier",
+"Master swordsman",
+"Dai Shan title",
+"Sheathed the Sword philosophy"
+],
+"sample_citation": "New Spring; Wiki: Lan_Mandragoran",
+"key_challenges": "Title aliases"
+},
+{
+"question_id": 11,
+"question": "What is a Warder?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Bonded guardian to Aes Sedai",
+"Enhanced strength and endurance",
+"Emotional sense sharing",
+"Death rage if Aes Sedai dies",
+"Multiple bonds possible"
+],
+"sample_citation": "The Eye of the World, Ch. 12; Wiki: Warder",
+"key_challenges": "Bond effects"
+},
+{
+"question_id": 12,
+"question": "Who is Nynaeve al'Meara?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Two Rivers Wisdom",
+"Powerful channeler with block",
+"Exceptional Healer",
+"Braided hair symbol",
+"Joins Aes Sedai"
+],
+"sample_citation": "The Eye of the World, Ch. 3; Wiki: Nynaeve_al'Meara",
+"key_challenges": "Block overcoming"
+},
+{
+"question_id": 13,
+"question": "What is the Dragon Reborn?",
+"category": "prophecy",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Reincarnation of Lews Therin",
+"Destined to fight Dark One",
+"Break the world again",
+"Karaethon Cycle foretells",
+"Born on Dragonmount"
+],
+"sample_citation": "The Eye of the World, Prologue; Wiki: Dragon_Reborn",
+"key_challenges": "Prophecy links"
+},
+{
+"question_id": 14,
+"question": "Who is Egwene al'Vere?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Two Rivers innkeeper's daughter",
+"Powerful Dreamer and channeler",
+"Rises to Amyrlin Seat",
+"Trained by Wise Ones",
+"Village Council apprentice"
+],
+"sample_citation": "The Eye of the World, Ch. 1; Wiki: Egwene_al'Vere",
+"key_challenges": "Arc tracking"
+},
+{
+"question_id": 15,
+"question": "What is the Dark One?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Shai'tan, ultimate evil",
+"Imprisoned by Creator",
+"Opposite of light",
+"Seeks to break free",
+"Influences through taint"
+],
+"sample_citation": "The Eye of the World, Prologue; Wiki: Dark_One",
+"key_challenges": "Cosmology"
+},
+{
+"question_id": 16,
+"question": "What are the Forsaken?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Thirteen powerful channelers",
+"Servants of Dark One",
+"From Age of Legends",
+"Sealed in Shayol Ghul",
+"Individual agendas"
+],
+"sample_citation": "The Great Hunt, Ch. 5; Wiki: Forsaken",
+"key_challenges": "Name variations"
+},
+{
+"question_id": 17,
+"question": "What is an angreal?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Power-amplifying artifact",
+"Increases channeling capacity",
+"Safe for general use",
+"From Age of Legends",
+"Attuned to saidin or saidar"
+],
+"sample_citation": "The Dragon Reborn, Ch. 10; Wiki: Angreal",
+"key_challenges": "Vs. sa'angreal"
+},
+{
+"question_id": 18,
+"question": "Who is Elayne Trakand?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Daughter-Heir of Andor",
+"Channeler and inventor",
+"White Tower trainee",
+"Bonded to Rand",
+"Political schemer"
+],
+"sample_citation": "The Dragon Reborn, Ch. 6; Wiki: Elayne_Trakand",
+"key_challenges": "Title evolution"
+},
+{
+"question_id": 19,
+"question": "What is the Two Rivers?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Isolated region in Andor",
+"Home to main ta'veren",
+"Emond's Field village",
+"Ancient Manetheren blood",
+"Stubborn folk"
+],
+"sample_citation": "The Eye of the World, Ch. 1; Wiki: Two_Rivers",
+"key_challenges": "Location metadata"
+},
+{
+"question_id": 20,
+"question": "What is Tar Valon?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Island city-state",
+"Home of White Tower",
+"Neutral territory",
+"Ogier-built architecture",
+"Shining Walls"
+],
+"sample_citation": "The Great Hunt, Ch. 9; Wiki: Tar_Valon",
+"key_challenges": "Political neutrality"
+},
+{
+"question_id": 21,
+"question": "Who is Thom Merrilin?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Gleeman and bard",
+"Knife-throwing expert",
+"Court intrigue past",
+"Mentor to protagonists",
+"Harp and flute player"
+],
+"sample_citation": "The Eye of the World, Ch. 4; Wiki: Thom_Merrilin",
+"key_challenges": "Hidden backstory"
+},
+{
+"question_id": 22,
+"question": "What are Trollocs?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Shadowspawn hybrids",
+"Animal-human mixes",
+"Serve Dark One",
+"Led by Myrddraal",
+"Fear water"
+],
+"sample_citation": "The Eye of the World, Ch. 7; Wiki: Trollocs",
+"key_challenges": "Varieties"
+},
+{
+"question_id": 23,
+"question": "What is a sa'angreal?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Powerful angreal variant",
+"Vastly amplifies Power",
+"Rare and dangerous",
+"Callandor example",
+"Buffer absent in some"
+],
+"sample_citation": "The Shadow Rising, Ch. 11; Wiki: Sa'angreal",
+"key_challenges": "Risk levels"
+},
+{
+"question_id": 24,
+"question": "Who is Min Farshaw?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Seer of visions",
+"Viewings of futures",
+"Tomboysh appearance",
+"Bonded to Rand",
+"Philosopher reader"
+],
+"sample_citation": "The Eye of the World, Ch. 15; Wiki: Min_Farshaw",
+"key_challenges": "Viewing reliability"
+},
+{
+"question_id": 25,
+"question": "What are the Ajahs?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Seven color-coded factions",
+"Specialized purposes",
+"Blue: causes, Red: gentling men",
+"Internal politics",
+"Black Ajah hidden"
+],
+"sample_citation": "New Spring; Wiki: Ajah",
+"key_challenges": "Purpose details"
+},
+{
+"question_id": 26,
+"question": "What is the Blight?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Corrupted northern lands",
+"Dark One's touch",
+"Twisted creatures",
+"Borderland defense",
+"Expands southward"
+],
+"sample_citation": "The Eye of the World, Ch. 48; Wiki: Blight",
+"key_challenges": "Environmental effects"
+},
+{
+"question_id": 27,
+"question": "Who is Aviendha?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Aiel Maiden of the Spear",
+"Wise One apprentice",
+"Channeler",
+"Bonded to Rand",
+"Ji'e'toh adherent"
+],
+"sample_citation": "The Shadow Rising, Ch. 23; Wiki: Aviendha",
+"key_challenges": "Cultural shift"
+},
+{
+"question_id": 28,
+"question": "What is a ter'angreal?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Function-specific artifact",
+"Varied uses (e.g., oaths, dreams)",
+"Requires channeling sometimes",
+"Age of Legends relics",
+"Unpredictable effects"
+],
+"sample_citation": "The Great Hunt, Ch. 22; Wiki: Ter'angreal",
+"key_challenges": "Specific examples"
+},
+{
+"question_id": 29,
+"question": "What is the Horn of Valere?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Summons dead heroes",
+"Bound to Pattern",
+"Hidden in Eye of the World",
+"Used in Last Battle",
+"Blower linked"
+],
+"sample_citation": "The Great Hunt, Ch. 47; Wiki: Horn_of_Valere",
+"key_challenges": "Hero summoning"
+},
+{
+"question_id": 30,
+"question": "Who are the Aiel?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Desert warriors from Waste",
+"Veiled in battle",
+"Ji'e'toh honor code",
+"Clan-based society",
+"Pacifist origins"
+],
+"sample_citation": "The Dragon Reborn, Ch. 38; Wiki: Aiel",
+"key_challenges": "History revelation"
+},
+{
+"question_id": 31,
+"question": "What is the Karaethon Cycle?",
+"category": "prophecy",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Prophecies of the Dragon",
+"Foretells rebirth and deeds",
+"Interpreted by scholars",
+"Includes breaking nations",
+"Multiple translations"
+],
+"sample_citation": "The Eye of the World, Ch. 19; Wiki: Karaethon_Cycle",
+"key_challenges": "Interpretation ambiguity"
+},
+{
+"question_id": 32,
+"question": "What are the Three Oaths?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Aes Sedai bindings via Oath Rod",
+"No lies, no weapons for men",
+"Power as weapon only in danger",
+"Limits power abuse",
+"Black Ajah circumvents"
+],
+"sample_citation": "New Spring; Wiki: Three_Oaths",
+"key_challenges": "Enforcement"
+},
+{
+"question_id": 33,
+"question": "Who is Loial?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Ogier scholar and builder",
+"Treesinger",
+"Long-lived from stedding",
+"Book writer",
+"Ally to ta'veren"
+],
+"sample_citation": "The Eye of the World, Ch. 36; Wiki: Loial",
+"key_challenges": "Race traits"
+},
+{
+"question_id": 34,
+"question": "What is Caemlyn?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Capital of Andor",
+"Lion Throne seat",
+"Ogier grove",
+"Major trade hub",
+"Inner and Outer City"
+],
+"sample_citation": "The Eye of the World, Ch. 35; Wiki: Caemlyn",
+"key_challenges": "Political events"
+},
+{
+"question_id": 35,
+"question": "What is a Myrddraal?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Eyeless Fade",
+"Commands Trollocs",
+"Fear gaze",
+"Shadowspawn leader",
+"Linked to Trollocs"
+],
+"sample_citation": "The Eye of the World, Ch. 11; Wiki: Myrddraal",
+"key_challenges": "Abilities"
+},
+{
+"question_id": 36,
+"question": "What is channeling?",
+"category": "magic_system",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Drawing One Power",
+"Weaving flows of elements",
+"Requires innate spark",
+"Gender differences",
+"Addictive and risky"
+],
+"sample_citation": "The Great Hunt, Ch. 4; Wiki: Channeling",
+"key_challenges": "Element weaves"
+},
+{
+"question_id": 37,
+"question": "Who is Siuan Sanche?",
+"category": "character",
+"difficulty": "easy",
+"temporal_limit": 3,
+"expected_topics": [
+"Amyrlin Seat",
+"Blue Ajah origin",
+"Fisher's daughter",
+"Deposed later",
+"Strategic mind"
+],
+"sample_citation": "New Spring; Wiki: Siuan_Sanche",
+"key_challenges": "Leadership arc"
+},
+{
+"question_id": 38,
+"question": "What is the Eye of the World?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": 1,
+"expected_topics": [
+"Pure saidin pool",
+"Guarded by Green Man",
+"Prophecy site",
+"Hidden in Blight",
+"First book climax"
+],
+"sample_citation": "The Eye of the World, Ch. 49; Wiki: Eye_of_the_World",
+"key_challenges": "Purpose"
+},
+{
+"question_id": 39,
+"question": "Who are the Children of the Light?",
+"category": "concept",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"Whitecloaks military order",
+"Hunt Darkfriends",
+"Hate Aes Sedai",
+"Fanatical beliefs",
+"Amadicia based"
+],
+"sample_citation": "The Eye of the World, Ch. 30; Wiki: Children_of_the_Light",
+"key_challenges": "Bias portrayal"
+},
+{
+"question_id": 40,
+"question": "What is Tarmon Gai'don?",
+"category": "prophecy",
+"difficulty": "easy",
+"temporal_limit": null,
+"expected_topics": [
+"The Last Battle",
+"Dragon vs Dark One",
+"End of Age",
+"Prophesied apocalypse",
+"All nations involved"
+],
+"sample_citation": "The Great Hunt, Ch. 7; Wiki: Tarmon_Gai'don",
+"key_challenges": "Scale"
+},
+{
+"question_id": 41,
+"question": "How does Rand's relationship with the One Power evolve from The Eye of the World to The Dragon Reborn?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 3,
+"expected_topics": [
+"Initial fear and denial",
+"Uncontrolled channeling",
+"Acceptance as Dragon",
+"Lews Therin voices begin",
+"Sword training integration"
+],
+"sample_citation": "The Dragon Reborn, Ch. 55; Wiki: Rand_al'Thor#One_Power",
+"key_challenges": "Taint progression"
+},
+{
+"question_id": 42,
+"question": "Describe the relationship between Moiraine and Lan.",
+"category": "relationship",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Warder-Aes Sedai bond",
+"Mutual respect and loyalty",
+"Unspoken romantic tension",
+"Shared quest for Dragon",
+"Death consequences explored"
+],
+"sample_citation": "New Spring, Ch. 1; Wiki: Moiraine_Damodred#Relationships",
+"key_challenges": "Bond mechanics"
+},
+{
+"question_id": 43,
+"question": "What is the difference between saidin and saidar?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Male seize vs female surrender",
+"Tainted vs pure",
+"Aggressive vs cooperative",
+"Linking requirements differ",
+"Post-cleansing changes"
+],
+"sample_citation": "The Path of Daggers, Ch. 14; Wiki: One_Power",
+"key_challenges": "Gender dynamics"
+},
+{
+"question_id": 44,
+"question": "How does Egwene's path to becoming Aes Sedai develop through the first five books?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 5,
+"expected_topics": [
+"Novice in Tower",
+"Captured by Seanchan",
+"Accepted raising",
+"Dreamer talent emerges",
+"Wise Ones training"
+],
+"sample_citation": "The Fires of Heaven, Ch. 15; Wiki: Egwene_al'Vere#Aes_Sedai",
+"key_challenges": "Parallel training"
+},
+{
+"question_id": 45,
+"question": "Explain the Warder bond and its effects on both Aes Sedai and Warder.",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Emotional and location sensing",
+"Enhanced Warder abilities",
+"Aes Sedai draws strength",
+"Bond breaking trauma",
+"Multiple Warders possible"
+],
+"sample_citation": "The Shadow Rising, Ch. 8; Wiki: Warder_Bond",
+"key_challenges": "Psychological impacts"
+},
+{
+"question_id": 46,
+"question": "What happens at Falme in The Great Hunt?",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 2,
+"expected_topics": [
+"Horn of Valere blown",
+"Heroes of the Horn appear",
+"Rand fights Ba'alzamon in sky",
+"Seanchan invasion repelled",
+"Mat's link to Horn"
+],
+"sample_citation": "The Great Hunt, Ch. 47; Wiki: Battle_of_Falme",
+"key_challenges": "Multi-perspective"
+},
+{
+"question_id": 47,
+"question": "How does Perrin discover and develop his wolf abilities?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 4,
+"expected_topics": [
+"Meets Elyas Machera",
+"Wolf dreams and communication",
+"Yellow eyes manifestation",
+"Balance human and wolf",
+"Tel'aran'rhiod use"
+],
+"sample_citation": "The Eye of the World, Ch. 23; Wiki: Wolfbrother",
+"key_challenges": "Internal conflict"
+},
+{
+"question_id": 48,
+"question": "What is the significance of Callandor?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Sword That Is Not a Sword",
+"Male sa'angreal",
+"Prophecy fulfillment in Stone",
+"Flawed without buffer",
+"Used in Last Battle"
+],
+"sample_citation": "The Dragon Reborn, Ch. 55; Wiki: Callandor",
+"key_challenges": "Flaw implications"
+},
+{
+"question_id": 49,
+"question": "Describe Mat's transformation after visiting Rhuidean.",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 4,
+"expected_topics": [
+"Gains ancient memories",
+"Speaks Old Tongue",
+"Military genius emerges",
+"Acquires ashandarei",
+"Foxhead medallion"
+],
+"sample_citation": "The Shadow Rising, Ch. 26; Wiki: Mat_Cauthon#Rhuidean",
+"key_challenges": "Memory integration"
+},
+{
+"question_id": 50,
+"question": "What are the five elements used in channeling and what do they represent?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Air: wind and weather",
+"Water: liquids and flow",
+"Earth: ground and metals",
+"Fire: heat and destruction",
+"Spirit: soul and shielding"
+],
+"sample_citation": "Lord of Chaos, Ch. 3; Wiki: Five_Powers",
+"key_challenges": "Affinity variations"
+},
+{
+"question_id": 51,
+"question": "How do the Seanchan use channelers differently than in the Westlands?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Damane leashed with a'dam",
+"Sul'dam controllers",
+"Viewed as animals",
+"Military weapons",
+"No Three Oaths"
+],
+"sample_citation": "The Great Hunt, Ch. 29; Wiki: Seanchan#Channelers",
+"key_challenges": "Cultural contrast"
+},
+{
+"question_id": 52,
+"question": "What is Min's viewing ability and how does it work?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Sees auras and images",
+"Infallible future glimpses",
+"Interpretation required",
+"Triggered by people",
+"Prophecy-like but personal"
+],
+"sample_citation": "The Eye of the World, Ch. 15; Wiki: Min_Farshaw#Viewings",
+"key_challenges": "Symbolism decoding"
+},
+{
+"question_id": 53,
+"question": "Describe the structure and purpose of the different Ajahs.",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Red: Hunt male channelers",
+"Blue: Causes and justice",
+"Green: Battle ready",
+"Yellow: Healing",
+"Gray: Mediation, Brown: Knowledge, White: Logic"
+],
+"sample_citation": "New Spring; Wiki: Ajah",
+"key_challenges": "Internal rivalries"
+},
+{
+"question_id": 54,
+"question": "Why does Rand go to the Aiel Waste in The Shadow Rising?",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 4,
+"expected_topics": [
+"Seek Car'a'carn prophecy",
+"Enter Rhuidean for visions",
+"Unite Aiel clans",
+"Discover heritage",
+"Portal Stone travel"
+],
+"sample_citation": "The Shadow Rising, Ch. 22; Wiki: Rhuidean",
+"key_challenges": "Vision details"
+},
+{
+"question_id": 55,
+"question": "What is the Black Ajah and what makes it dangerous?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": 5,
+"expected_topics": [
+"Secret Darkfriends in Tower",
+"Forsworn Oaths",
+"Infiltration and sabotage",
+"Hunt by other Aes Sedai",
+"Led by Forsaken"
+],
+"sample_citation": "The Dragon Reborn, Ch. 25; Wiki: Black_Ajah",
+"key_challenges": "Detection methods"
+},
+{
+"question_id": 56,
+"question": "How does Nynaeve overcome her channeling block?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 5,
+"expected_topics": [
+"Requires anger initially",
+"Captured by Forsaken",
+"Surrenders in crisis",
+"Full access post-block",
+"Healing talent blooms"
+],
+"sample_citation": "The Fires of Heaven, Ch. 54; Wiki: Nynaeve_al'Meara#Block",
+"key_challenges": "Emotional trigger"
+},
+{
+"question_id": 57,
+"question": "What role do the Wise Ones play in Aiel society?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Channeling leaders",
+"Dreamwalkers and advisors",
+"Authority over chiefs",
+"Train apprentices",
+"Enforce ji'e'toh"
+],
+"sample_citation": "The Shadow Rising, Ch. 23; Wiki: Wise_Ones",
+"key_challenges": "Non-combat role"
+},
+{
+"question_id": 58,
+"question": "Describe the events leading to the Breaking of the Tower.",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 6,
+"expected_topics": [
+"Siuan deposed by Elaida",
+"Black Ajah involvement",
+"Rebel faction forms",
+"Salidar gathering",
+"Two Amyrlins result"
+],
+"sample_citation": "The Fires of Heaven, Ch. 27; Wiki: Tower_Split",
+"key_challenges": "Factions"
+},
+{
+"question_id": 59,
+"question": "What is ji'e'toh and how does it govern Aiel behavior?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Honor and obligation code",
+"Ji for honor, toh for obligation",
+"Gai'shain service",
+"Dictates warfare and life",
+"Shame avoidance"
+],
+"sample_citation": "The Shadow Rising, Ch. 49; Wiki: Ji'e'toh",
+"key_challenges": "Complex rules"
+},
+{
+"question_id": 60,
+"question": "How does Rand's relationship with Elayne, Min, and Aviendha develop?",
+"category": "relationship",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Prophesied three loves",
+"Bonding and sharing",
+"Cultural conflicts (Aiel polygamy)",
+"Emotional support network",
+"Min's viewings confirm"
+],
+"sample_citation": "Winter's Heart, Ch. 12; Wiki: Rand_al'Thor#Relationships",
+"key_challenges": "Poly dynamics"
+},
+{
+"question_id": 61,
+"question": "What is balefire and why is it forbidden?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Burns threads from Pattern",
+"Retroactive destruction",
+"Damages reality fabric",
+"Used by Forsaken",
+"Even Dark One fears"
+],
+"sample_citation": "The Fires of Heaven, Ch. 6; Wiki: Balefire",
+"key_challenges": "Paradox creation"
+},
+{
+"question_id": 62,
+"question": "Describe the founding and purpose of the Black Tower.",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": 6,
+"expected_topics": [
+"Rand's Asha'man academy",
+"Train male channelers",
+"Weapons for Last Battle",
+"Led by Mazrim Taim",
+"Farm location"
+],
+"sample_citation": "Lord of Chaos, Ch. 3; Wiki: Black_Tower",
+"key_challenges": "Taint management"
+},
+{
+"question_id": 63,
+"question": "What happens when Mat blows the Horn of Valere?",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 2,
+"expected_topics": [
+"Summons heroes at Falme",
+"Artur Hawkwing leads",
+"Defeats Seanchan",
+"Mat linked until death",
+"Banner appears"
+],
+"sample_citation": "The Great Hunt, Ch. 47; Wiki: Horn_of_Valere",
+"key_challenges": "Link consequences"
+},
+{
+"question_id": 64,
+"question": "How does Perrin become a leader in the Two Rivers?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 4,
+"expected_topics": [
+"Defends against Trollocs",
+"Reluctant Lord Perrin",
+"Manetheren banner raised",
+"Wolfbrothers aid",
+"Marries Faile"
+],
+"sample_citation": "The Shadow Rising, Ch. 56; Wiki: Perrin_Aybara#Leadership",
+"key_challenges": "Reluctance theme"
+},
+{
+"question_id": 65,
+"question": "What are the consequences of severing someone from the One Power?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Stilling for women, gentling for men",
+"Depression and suicide risk",
+"Loss of purpose",
+"Healing discovered later",
+"Sensory dulling"
+],
+"sample_citation": "Lord of Chaos, Ch. 30; Wiki: Severing",
+"key_challenges": "Healing mechanics"
+},
+{
+"question_id": 66,
+"question": "Describe the prophecy of the Dragon Reborn breaking the nations.",
+"category": "prophecy",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Chaos and division foretold",
+"Karaethon Cycle lines",
+"Necessary for unity",
+"Interpreted as madness",
+"Fulfilled through conquests"
+],
+"sample_citation": "The Great Hunt, Ch. 22; Wiki: Karaethon_Cycle",
+"key_challenges": "Ambiguous fulfillment"
+},
+{
+"question_id": 67,
+"question": "What is the Bowl of the Winds and what is its purpose?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": 8,
+"expected_topics": [
+"Ter'angreal for weather",
+"Sea Folk artifact",
+"Fix Dark One's heat",
+"Requires circle",
+"Ebou Dar hidden"
+],
+"sample_citation": "A Crown of Swords, Ch. 37; Wiki: Bowl_of_the_Winds",
+"key_challenges": "Activation"
+},
+{
+"question_id": 68,
+"question": "How does Elayne secure the Lion Throne of Andor?",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 10,
+"expected_topics": [
+"Gains house support",
+"Civil war averted",
+"Pregnancy revealed",
+"Rand's backing",
+"Coronation in Caemlyn"
+],
+"sample_citation": "Knife of Dreams, Ch. 35; Wiki: Elayne_Trakand#Throne",
+"key_challenges": "Political maneuvers"
+},
+{
+"question_id": 69,
+"question": "What is the significance of Rand's wounds that never heal?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Heron marks on palms",
+"Side wound from Fain's dagger",
+"Balefire scar",
+"Symbolic of suffering",
+"Pain constant"
+],
+"sample_citation": "The Gathering Storm, Ch. 44; Wiki: Rand_al'Thor#Wounds",
+"key_challenges": "Prophetic links"
+},
+{
+"question_id": 70,
+"question": "Describe the relationship between the Aes Sedai and the Kin.",
+"category": "relationship",
+"difficulty": "medium",
+"temporal_limit": 7,
+"expected_topics": [
+"Kin as runaway channelers",
+"Secret Ebou Dar group",
+"Older and numerous",
+"Tower views as inferiors",
+"Alliance formed"
+],
+"sample_citation": "A Crown of Swords, Ch. 23; Wiki: Kin",
+"key_challenges": "Integration"
+},
+{
+"question_id": 71,
+"question": "What is Compulsion and why is it considered so terrible?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Mind control weave",
+"Strips free will",
+"Forbidden by Oaths",
+"Permanent damage possible",
+"Forsaken specialty"
+],
+"sample_citation": "The Path of Daggers, Ch. 26; Wiki: Compulsion",
+"key_challenges": "Ethical issues"
+},
+{
+"question_id": 72,
+"question": "How does Mat's luck manifest and develop throughout the series?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Ta'veren twisting chance",
+"Gambling wins",
+"Battlefield intuition",
+"Post-dagger enhancement",
+"Pattern influence"
+],
+"sample_citation": "The Dragon Reborn, Ch. 19; Wiki: Mat_Cauthon#Luck",
+"key_challenges": "Ta'veren link"
+},
+{
+"question_id": 73,
+"question": "What are the visions Rand sees in Rhuidean?",
+"category": "plot_event",
+"difficulty": "medium",
+"temporal_limit": 4,
+"expected_topics": [
+"Aiel pacifist history",
+"Way of the Leaf origins",
+"Aes Sedai gifting",
+"Breaking betrayal",
+"Identity crisis trigger"
+],
+"sample_citation": "The Shadow Rising, Ch. 25-26; Wiki: Rhuidean#Visions",
+"key_challenges": "Historical depth"
+},
+{
+"question_id": 74,
+"question": "Describe the role of Ogier in the world of the Wheel of Time.",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Long-lived builders",
+"Stedding homes",
+"Treesinging ability",
+"Neutral in conflicts",
+"Longing for stedding"
+],
+"sample_citation": "The Eye of the World, Ch. 41; Wiki: Ogier",
+"key_challenges": "Cultural isolation"
+},
+{
+"question_id": 75,
+"question": "What is the Coramoor and how do the Sea Folk view it?",
+"category": "prophecy",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Sea Folk name for Dragon Reborn",
+"Prophesied leader",
+"Bargain required",
+"Ships and winds linked",
+"Jendai Prophecy"
+],
+"sample_citation": "The Shadow Rising, Ch. 19; Wiki: Coramoor",
+"key_challenges": "Cultural prophecy"
+},
+{
+"question_id": 76,
+"question": "How does Egwene become Amyrlin Seat?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 6,
+"expected_topics": [
+"Elected by rebels in Salidar",
+"Intended as puppet",
+"Proves independence",
+"Unites Tower",
+"Youngest ever"
+],
+"sample_citation": "Lord of Chaos, Ch. 35; Wiki: Egwene_al'Vere#Amyrlin",
+"key_challenges": "Political rise"
+},
+{
+"question_id": 77,
+"question": "What is Traveling and how does it differ from Skimming?",
+"category": "magic_system",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Instant gateway portals",
+"Requires known location",
+"Skimming: platform in void",
+"Slower, no location need",
+"Gender weave differences"
+],
+"sample_citation": "The Fires of Heaven, Ch. 52; Wiki: Traveling",
+"key_challenges": "Weave details"
+},
+{
+"question_id": 78,
+"question": "Describe the prophesied role of the Dragon Reborn at Tarmon Gai'don.",
+"category": "prophecy",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Seal Dark One's prison",
+"Die and live again",
+"Unite forces",
+"Break and remake",
+"Blood on Shayol Ghul"
+],
+"sample_citation": "A Memory of Light, Ch. 49; Wiki: Tarmon_Gai'don",
+"key_challenges": "Fulfillment twists"
+},
+{
+"question_id": 79,
+"question": "What is the importance of dreams and Dreamwalking in the series?",
+"category": "concept",
+"difficulty": "medium",
+"temporal_limit": null,
+"expected_topics": [
+"Tel'aran'rhiod access",
+"Prophetic visions",
+"Wise Ones meetings",
+"Forsaken manipulation",
+"Reality alteration risk"
+],
+"sample_citation": "The Dragon Reborn, Ch. 21; Wiki: Dreamwalking",
+"key_challenges": "Training levels"
+},
+{
+"question_id": 80,
+"question": "How does the character of Aviendha develop from warrior to Wise One?",
+"category": "character",
+"difficulty": "medium",
+"temporal_limit": 5,
+"expected_topics": [
+"Maiden to apprentice",
+"Resists channeling",
+"Rhuidean visions",
+"Sister-bond with Elayne",
+"Future viewings"
+],
+"sample_citation": "The Fires of Heaven, Ch. 5; Wiki: Aviendha#Development",
+"key_challenges": "Cultural transition"
+},
+{
+"question_id": 81,
+"question": "Trace the fulfillment of Dragon Reborn prophecies from The Eye of the World through The Fires of Heaven. Which prophecies are fulfilled and how?",
+"category": "prophecy",
+"difficulty": "hard",
+"temporal_limit": 5,
+"expected_topics": [
+"Born on Dragonmount (birth)",
+"Callandor taken (Stone falls)",
+"Aiel follow (He Who Comes With Dawn)",
+"Sky battle at Falme",
+"Multiple Karaethon lines"
+],
+"sample_citation": "The Fires of Heaven, Epilogue; Wiki: Prophecies_of_the_Dragon",
+"key_challenges": "Cross-book synthesis"
+},
+{
+"question_id": 82,
+"question": "Compare and contrast how Rand, Perrin, and Mat each handle their ta'veren nature and destinies differently throughout the series.",
+"category": "cross_reference",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Rand embraces duty",
+"Perrin resists leadership",
+"Mat flees responsibility",
+"Pattern pulls all",
+"Growth to acceptance"
+],
+"sample_citation": "Various books; Wiki: Ta'veren",
+"key_challenges": "Character arcs comparison"
+},
+{
+"question_id": 83,
+"question": "Analyze how the concept of the Wheel of Time and rebirth influences the major plot developments and character decisions.",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Cyclical ages",
+"Soul rebirth (Birgitte)",
+"Lews Therin in Rand",
+"Pattern weaves fate",
+"Free will vs destiny"
+],
+"sample_citation": "The Gathering Storm, Ch. 15; Wiki: Wheel_of_Time",
+"key_challenges": "Philosophical depth"
+},
+{
+"question_id": 84,
+"question": "How do the various factions (White Tower, Black Tower, Seanchan, Aiel, etc.) approach the use and control of the One Power differently, and what does this reveal about their cultures?",
+"category": "cross_reference",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Tower: Oaths and politics",
+"Asha'man: Military focus",
+"Seanchan: Enslavement",
+"Aiel: Honor-based",
+"Cultural power views"
+],
+"sample_citation": "Knife of Dreams, Ch. 23; Wiki: One_Power#Cultures",
+"key_challenges": "Cultural analysis"
+},
+{
+"question_id": 85,
+"question": "Explain the complex relationship between the Aiel's past as followers of the Way of the Leaf and their present as fierce warriors. How does this history impact major characters?",
+"category": "timeline",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Tuatha'an connection",
+"Rhuidean revelations",
+"Shame and bleakness",
+"Rand's unity role",
+"Aviendha's visions"
+],
+"sample_citation": "The Shadow Rising, Ch. 25; Wiki: Aiel#History",
+"key_challenges": "Identity crisis"
+},
+{
+"question_id": 86,
+"question": "What are the strategic implications of the various forms of Traveling (gateway, Skimming, Portal Stones, etc.) for the conflicts in the series?",
+"category": "magic_system",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Ambush and logistics",
+"Portal Stones alternate worlds",
+"Skimming for unknowns",
+"Gateway size limits",
+"Warfare revolution"
+],
+"sample_citation": "Winter's Heart, Ch. 32; Wiki: Traveling#Implications",
+"key_challenges": "Tactical use"
+},
+{
+"question_id": 87,
+"question": "Trace the development and political maneuvering that leads to the split in the White Tower. What are the consequences for Tar Valon and the world?",
+"category": "plot_event",
+"difficulty": "hard",
+"temporal_limit": 6,
+"expected_topics": [
+"Elaida's coup",
+"Black Ajah puppets",
+"Rebels in Salidar",
+"Weakened Aes Sedai influence",
+"Last Battle prep hindered"
+],
+"sample_citation": "Lord of Chaos, Prologue; Wiki: Tower_Split",
+"key_challenges": "Consequence chain"
+},
+{
+"question_id": 88,
+"question": "How do the prophecies and viewings about Rand (from the Karaethon Cycle, Min's viewings, Dreamer visions, etc.) intersect and sometimes contradict? What patterns emerge?",
+"category": "prophecy",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Overlaps in death/rebirth",
+"Min's personal vs Cycle's grand",
+"Apparent contradictions resolved",
+"Pattern themes",
+"Interpretation errors"
+],
+"sample_citation": "Towers of Midnight, Ch. 51; Wiki: Prophecies",
+"key_challenges": "Source synthesis"
+},
+{
+"question_id": 89,
+"question": "Analyze the theme of identity and madness in Rand's character arc, particularly his relationship with Lews Therin Telamon.",
+"category": "character",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Voice as taint manifestation",
+"Memory bleed",
+"Veins of Gold integration",
+"Sanity struggle",
+"Rebirth motif"
+],
+"sample_citation": "The Gathering Storm, Ch. 50; Wiki: Rand_al'Thor#Madness",
+"key_challenges": "Theme depth"
+},
+{
+"question_id": 90,
+"question": "What is the significance of the thirteen Forsaken, their individual goals, and how do their schemes intersect and conflict with each other?",
+"category": "cross_reference",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Power grabs (Demandred wars)",
+"Betrayals (Lanfear jealousy)",
+"Dark One's hierarchy",
+"Alliances shift",
+"Endgame convergence"
+],
+"sample_citation": "A Crown of Swords, Prologue; Wiki: Forsaken",
+"key_challenges": "Interpersonal dynamics"
+},
+{
+"question_id": 91,
+"question": "How does the series explore different forms of power (political, magical, prophetic, military) and their relationships to each other?",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Intersections (Aes Sedai politics+magic)",
+"Balances and abuses",
+"Rand's multifaceted rule",
+"Prophecy drives military",
+"Cultural variations"
+],
+"sample_citation": "Various; Wiki: Power_Themes",
+"key_challenges": "Thematic analysis"
+},
+{
+"question_id": 92,
+"question": "Examine how the series portrays gender roles and relationships, particularly through the lens of the One Power's division and various cultural attitudes.",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Saidin/saidar complementarity",
+"Matriarchal Tower",
+"Aiel equality",
+"Seanchan oppression",
+"Bonding inversions"
+],
+"sample_citation": "Crossroads of Twilight, Ch. 10; Wiki: Gender_in_WoT",
+"key_challenges": "Cultural contrasts"
+},
+{
+"question_id": 93,
+"question": "What is the relationship between the Creator, the Dark One, and the Pattern? How does this cosmology drive the plot?",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Creator seals Dark One",
+"Pattern as fate web",
+"Balance of good/evil",
+"Bore and seals",
+"Repeating ages"
+],
+"sample_citation": "A Memory of Light, Ch. 49; Wiki: Cosmology",
+"key_challenges": "Metaphysical plot"
+},
+{
+"question_id": 94,
+"question": "Trace how prophecy, viewing, Dreaming, and Foretelling differ in their mechanisms, reliability, and interpretability throughout the series.",
+"category": "cross_reference",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Prophecy: Ancient texts",
+"Viewing: Infallible images",
+"Dreaming: Symbolic",
+"Foretelling: Spontaneous",
+"Overlaps and conflicts"
+],
+"sample_citation": "The Gathering Storm, Ch. 39; Wiki: Future_Sight",
+"key_challenges": "Mechanism comparison"
+},
+{
+"question_id": 95,
+"question": "How do the events of the Breaking of the World continue to influence the present-day conflicts and power structures in the Third Age?",
+"category": "timeline",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Male madness fear",
+"Lost knowledge",
+"Aes Sedai diminished",
+"Artifacts scattered",
+"Nation formations"
+],
+"sample_citation": "The Eye of the World, Prologue; Wiki: Breaking_of_the_World",
+"key_challenges": "Long-term effects"
+},
+{
+"question_id": 96,
+"question": "Compare the leadership philosophies and effectiveness of major leaders: Rand, Egwene, Elayne, Perrin, and Mat. What makes each effective or ineffective?",
+"category": "cross_reference",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Rand: Visionary but isolated",
+"Egwene: Diplomatic unifier",
+"Elayne: Political savvy",
+"Perrin: Reluctant but loyal",
+"Mat: Tactical genius"
+],
+"sample_citation": "A Memory of Light, Various; Wiki: Leadership",
+"key_challenges": "Style analysis"
+},
+{
+"question_id": 97,
+"question": "What is the significance of the various Power-wrought items (angreal, sa'angreal, ter'angreal) in the plot? How does their discovery and use change the balance of power?",
+"category": "magic_system",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Amplifiers shift battles",
+"Ter'angreal special functions",
+"Cache discoveries",
+"Forsaken hunts",
+"Last Battle key"
+],
+"sample_citation": "Winter's Heart, Ch. 35; Wiki: Power-wrought_Items",
+"key_challenges": "Plot impacts"
+},
+{
+"question_id": 98,
+"question": "Analyze the role of sacrifice and duty across multiple character arcs. How does the series define heroism?",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Selfless acts (Lan, Moiraine)",
+"Duty burdens (Rand)",
+"Redemption through sacrifice",
+"Heroism as endurance",
+"Pattern demands"
+],
+"sample_citation": "A Memory of Light, Epilogue; Wiki: Themes#Sacrifice",
+"key_challenges": "Arc examples"
+},
+{
+"question_id": 99,
+"question": "How do the parallel storylines of the main characters (Rand in the Waste, Perrin in the Two Rivers, Elayne and Nynaeve seeking the Bowl, etc.) interconnect and affect each other despite geographic separation?",
+"category": "timeline",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Ta'veren pull",
+"Pattern synchronicity",
+"Dream meetings",
+"Shared prophecies",
+"Converge at battles"
+],
+"sample_citation": "The Path of Daggers, Various; Wiki: Parallel_Plots",
+"key_challenges": "Interconnections"
+},
+{
+"question_id": 100,
+"question": "What does the series suggest about the nature of evil through its portrayal of the Dark One, the Forsaken, Darkfriends, and the Seanchan? Are there different types or degrees of evil presented?",
+"category": "concept",
+"difficulty": "hard",
+"temporal_limit": null,
+"expected_topics": [
+"Absolute (Dark One)",
+"Ambitious (Forsaken)",
+"Opportunistic (Darkfriends)",
+"Cultural (Seanchan)",
+"Redemption possible"
+],
+"sample_citation": "A Memory of Light, Ch. 37; Wiki: Evil_in_WoT",
+"key_challenges": "Nuanced portrayal"
+}
+]
 }

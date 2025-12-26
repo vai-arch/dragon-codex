@@ -5,21 +5,20 @@ Input: wiki_character.json
 Output: wiki_chunks_character.jsonl
 """
 
+import re
 import sys
 import traceback
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List
 
 from tqdm import tqdm
 
+from src.utils.chunking.chunking_strategies import get_chunker
+from src.utils.chunking.util_chunking_functions import (
+    chunk_statistics,
+)
 from src.utils.config import get_config
 from src.utils.paths import get_paths
-from src.utils.util_chunking_functions import (
-    chunk_statistics,
-    split_into_paragraphs,
-    split_paragraph_into_chunks,
-)
 from src.utils.util_files_functions import load_json_from_file, save_jsonl_to_file
 from src.utils.util_statistics import (
     log_results_table,
@@ -28,7 +27,16 @@ from src.utils.util_statistics import (
     total_statistics_logging,
 )
 
+config = get_config()
+
+_books_chunker = get_chunker(config.CHUNKING_STRATEGY["BOOKS_CHUNKING_STRATEGY_NAME"])
+_wiki_character_chunker = get_chunker(config.CHUNKING_STRATEGY["WIKI_CHUNKING_STRATEGY_NAME"], "CHARACTER")
+_wiki_chapter_summary_chunker = get_chunker(config.CHUNKING_STRATEGY["WIKI_CHUNKING_STRATEGY_NAME"], "CHAPTER_SUMMARY")
+_wiki_chronology_chunker = get_chunker(config.CHUNKING_STRATEGY["WIKI_CHUNKING_STRATEGY_NAME"], "CHRONOLOGY")
+_wiki_concept_chunker = get_chunker(config.CHUNKING_STRATEGY["WIKI_CHUNKING_STRATEGY_NAME"], "CONCEPT")
+
 cfg_max_chunk_size = None
+cfg_min_books_chunks_size_characters = None
 
 in_file_wiki_character = None
 in_file_wiki_chapter_summary = None
@@ -49,132 +57,95 @@ out_file_wiki_chunks_magic = None
 
 def chunk_character_pages():
     """
-    Chunk the 2,452 character pages.
-    Groups sections together to reach target size, preserving structure.
+    Chunk the ~2452 character wiki pages using hybrid strategy.
+    Respects markdown structure + semantic refinement.
     """
     character_data = load_json_from_file(in_file_wiki_character)
     all_chunks = []
 
-    # Process each character page
     for filename, page_data in tqdm(character_data.items(), desc="Processing characters"):
         character_name = page_data["character_name"]
 
-        # Build list of section texts
-        section_texts = []
-        section_titles = []
+        # === Build full page text with preserved headings ===
+        page_parts = []
 
-        for section in page_data["non_temporal_sections"]:
-            section_title = section["section_title"]
+        # Non-temporal sections (Appearance, Personality, etc.)
+        for section in page_data.get("non_temporal_sections", []):
+            section_title = section.get("section_title", "Untitled Section")
+            if section.get("content"):
+                page_parts.append(f"## {section_title}\n{section['content'].strip()}")
+            # Subsections
+            if section.get("subsections"):
+                for sub in section["subsections"]:
+                    sub_title = sub.get("title", "")
+                    sub_content = sub.get("content", "").strip()
+                    if sub_title and sub_content:
+                        page_parts.append(f"### {sub_title}\n{sub_content}")
 
-            # Get content - either from section or combined subsections
-            if section["content"]:
-                # Section has direct content
-                text = section["content"]
-            elif section["subsections"]:
-                # Section has subsections - combine them
-                subsection_texts = []
-                for subsection in section["subsections"]:
-                    if subsection["content"]:
-                        subsection_texts.append(f"**{subsection['title']}**\n{subsection['content']}")
-                text = "\n\n".join(subsection_texts)
-            else:
-                # Empty section - skip
-                continue
+        # Temporal sections (book-by-book chronology) - preserve book order
+        temporal_sections = sorted(page_data.get("temporal_sections", []), key=lambda x: x.get("book_number", 999))
+        for section in temporal_sections:
+            book_title = section.get("book_title", "Unknown Book")
+            content = section.get("content", "").strip()
+            if content:
+                page_parts.append(f"## Chronology: {book_title}\n{content}")
 
-            # Skip if text is empty after processing
-            if not text.strip():
-                continue
+        full_text = "\n\n".join([part for part in page_parts if part.strip()])
 
-            section_texts.append(text)
-            section_titles.append(section_title)
-
-        if not section_texts:
+        if not full_text.strip():
             continue
 
-        # Group sections into chunks
-        chunks = []
-        current_chunk_sections = []
-        current_chunk_titles = []
-        current_size = 0
+        # === Hybrid chunking ===
+        raw_chunks = _wiki_character_chunker(full_text)
 
-        for section_text, section_title in zip(section_texts, section_titles):
-            section_size = len(section_text)
-
-            # If single section exceeds max, split it
-            if section_size > cfg_max_chunk_size:
-                # Save current chunk if exists
-                if current_chunk_sections:
-                    chunks.append(
-                        {
-                            "text": "\n\n".join(current_chunk_sections),
-                            "section_title": ", ".join(current_chunk_titles),
-                        }
-                    )
-                    current_chunk_sections = []
-                    current_chunk_titles = []
-                    current_size = 0
-
-                # Split oversized section
-                section_chunks = split_into_paragraphs(section_text)
-                for chunk_text in section_chunks:
-                    chunks.append({"text": chunk_text, "section_title": section_title})
-                continue
-
-            # Check if adding this section would exceed max
-            separator_size = 2 if current_chunk_sections else 0
-            new_size = current_size + separator_size + section_size
-
-            if new_size <= cfg_max_chunk_size:
-                # Fits - add to current chunk
-                current_chunk_sections.append(section_text)
-                current_chunk_titles.append(section_title)
-                current_size = new_size
-            else:
-                # Doesn't fit - start new chunk
-                if current_chunk_sections:
-                    chunks.append(
-                        {
-                            "text": "\n\n".join(current_chunk_sections),
-                            "section_title": ", ".join(current_chunk_titles),
-                        }
-                    )
-
-                current_chunk_sections = [section_text]
-                current_chunk_titles = [section_title]
-                current_size = section_size
-
-        # Add final chunk
-        if current_chunk_sections:
-            chunks.append(
-                {
-                    "text": "\n\n".join(current_chunk_sections),
-                    "section_title": ", ".join(current_chunk_titles),
-                }
-            )
-
-        # Create chunk objects with metadata
-        total_chunks = len(chunks)
-        for idx, chunk_data in enumerate(chunks):
-            chunk = {
+        # === Tiny chunk cleanup + metadata ===
+        filtered_chunks = []
+        for idx, chunk_text in enumerate(raw_chunks):
+            temp_chunk = {
                 "source": "wiki",
                 "wiki_type": "character",
                 "character_name": character_name,
                 "filename": filename,
-                "section_title": chunk_data["section_title"],
-                "temporal_order": None,
-                "chunk_index": idx + 1,
-                "total_chunks": total_chunks,
-                "text": chunk_data["text"],
+                "text": chunk_text,
+                "temporal_order": None,  # Will infer from heading if possible
+                "section_title": "",  # Extract below
             }
-            all_chunks.append(chunk)
 
-    # Save chunks
+            # Extract section title from first heading in chunk (simple heuristic)
+            heading_match = re.search(r"^##\s+(.+?)$", chunk_text, flags=re.MULTILINE)
+            if heading_match:
+                temp_chunk["section_title"] = heading_match.group(1)
+
+            # Tiny chunk merge (<300 chars)
+            if len(chunk_text) < cfg_min_books_chunks_size_characters:
+                if filtered_chunks:
+                    filtered_chunks[-1]["text"] += " " + chunk_text
+                    # Update section_title if better one found
+                    if temp_chunk["section_title"]:
+                        filtered_chunks[-1]["section_title"] = temp_chunk["section_title"]
+                # else: rare leading tiny → keep
+            else:
+                filtered_chunks.append(temp_chunk)
+
+        # === Final indexing ===
+        total_chunks = len(filtered_chunks)
+        for final_idx, chunk in enumerate(filtered_chunks):
+            chunk["chunk_index"] = final_idx + 1
+            chunk["total_chunks"] = total_chunks
+
+            # Infer temporal_order from section title (e.g., "Chronology: The Shadow Rising")
+            if "Chronology:" in chunk.get("section_title", ""):
+                # Map book title → book_number (you can build a dict or use existing)
+                book_title = chunk["section_title"].replace("Chronology: ", "").strip()
+                # Optional: add book_number mapping here if needed for filtering
+
+        all_chunks.extend(filtered_chunks)
+
+    # Save & stats
     save_jsonl_to_file(all_chunks, out_file_wiki_chunks_character)
 
-    # Print statistics
     results = chunk_statistics(all_chunks, "CHARACTERS CHUNKS")
     results["metrics"]["number_of_items"] = len(character_data)
-
     print_results(results, "")
 
     return results
@@ -182,64 +153,80 @@ def chunk_character_pages():
 
 def chunk_chapter_summary_pages():
     """
-    Chunk the 714 chapter summary pages.
-    Split oversized chapters into multiple chunks with overlap.
+    Chunk the ~714 chapter summary wiki pages using hybrid strategy.
+    Respects section structure + minimal semantic refinement for factual content.
     """
-    # Load chapter summary data
     chapter_data = load_json_from_file(in_file_wiki_chapter_summary)
-
     all_chunks = []
 
-    # Process each chapter summary
-    for filename, page_data in tqdm(chapter_data.items(), desc="Processing chapters"):
-        # Build the full content
-        content_parts = []
+    # Get hybrid chunker configured for chapter summaries
 
-        for section in page_data["sections"]:
-            if section["content"]:
-                content_parts.append(f"**{section['title']}**\n{section['content']}")
+    for filename, page_data in tqdm(chapter_data.items(), desc="Processing chapter summaries"):
+        book_number = page_data["book_number"]
+        book_title = page_data["book_title"]
+        chapter_number = page_data["chapter_number"]
+        chapter_title = page_data["chapter_title"]
 
-        # Combine all sections into one text
-        full_content = "\n\n".join(content_parts)
+        # === Build full page text with preserved headings ===
+        page_parts = []
+        for section in page_data.get("sections", []):
+            section_title = section.get("title", "Untitled")
+            content = section.get("content", "").strip()
+            if content:
+                page_parts.append(f"## {section_title}\n{content}")
 
-        if not full_content.strip():
+        full_text = "\n\n".join([part for part in page_parts if part.strip()])
+
+        if not full_text.strip():
             continue
 
-        # Split into paragraphs (same as books)
-        paragraphs = split_into_paragraphs(full_content)
+        # === Hybrid chunking ===
+        raw_chunks = _wiki_chapter_summary_chunker(full_text)
 
-        # Process all paragraphs through the chunking function (same as books)
-        text_chunks = []
-        for paragraph in paragraphs:
-            para_chunks = split_paragraph_into_chunks(paragraph=paragraph)
-            text_chunks.extend(para_chunks)
-
-        # Create chunk objects with metadata (same structure as books)
-        total_chunks = len(text_chunks)
-
-        for idx, chunk_text in enumerate(text_chunks):
-            chunk = {
+        # === Tiny chunk cleanup + metadata ===
+        filtered_chunks = []
+        for idx, chunk_text in enumerate(raw_chunks):
+            temp_chunk = {
                 "source": "wiki",
                 "wiki_type": "chapter_summary",
-                "book_number": page_data["book_number"],
-                "book_title": page_data["book_title"],
-                "chapter_number": page_data["chapter_number"],
-                "chapter_title": page_data["chapter_title"],
+                "book_number": book_number,
+                "book_title": book_title,
+                "chapter_number": chapter_number,
+                "chapter_title": chapter_title,
                 "filename": filename,
-                "temporal_order": page_data["book_number"],
-                "chunk_index": idx + 1,
-                "total_chunks": total_chunks,
+                "temporal_order": book_number,
                 "text": chunk_text,
+                "section_title": "",  # Extract first heading
             }
-            all_chunks.append(chunk)
 
-    # Save chunks
+            # Extract primary section title from chunk
+            heading_match = re.search(r"^##\s+(.+?)$", chunk_text, flags=re.MULTILINE)
+            if heading_match:
+                temp_chunk["section_title"] = heading_match.group(1)
+
+            # Tiny chunk merge
+            if len(chunk_text) < 300:
+                if filtered_chunks:
+                    filtered_chunks[-1]["text"] += " " + chunk_text
+                    if temp_chunk["section_title"]:
+                        filtered_chunks[-1]["section_title"] = temp_chunk["section_title"]
+                # else: rare leading tiny → keep
+            else:
+                filtered_chunks.append(temp_chunk)
+
+        # === Final indexing ===
+        total_chunks = len(filtered_chunks)
+        for final_idx, chunk in enumerate(filtered_chunks):
+            chunk["chunk_index"] = final_idx + 1
+            chunk["total_chunks"] = total_chunks
+
+        all_chunks.extend(filtered_chunks)
+
+    # Save & stats
     save_jsonl_to_file(all_chunks, out_file_wiki_chunks_chapter_summary)
 
-    # Print statistics
     results = chunk_statistics(all_chunks, "CHAPTER SUMMARY CHUNKS")
     results["metrics"]["number_of_items"] = len(chapter_data)
-
     print_results(results, "")
 
     return results
@@ -247,81 +234,107 @@ def chunk_chapter_summary_pages():
 
 def chunk_chronology_pages():
     """
-    Chunk the chronology pages into temporal sections.
-    Handles both temporal (book-based) and non-temporal (event-based) structures.
+    Chunk the chronology wiki pages using hybrid strategy.
+    Preserves temporal structure and tight event grouping.
     """
-
     chronology_data = load_json_from_file(in_file_wiki_chronology)
     all_chunks = []
 
-    # Process each chronology page
+    # Get hybrid chunker configured for chronology
+
     for filename, page_data in tqdm(chronology_data.items(), desc="Processing chronologies"):
         character_name = page_data["character_name"]
 
-        # Process temporal sections (book-by-book) - Rand, Mat
-        for section in page_data.get("temporal_sections", []):
-            content = section["content"]
+        # === Build full page text with preserved headings ===
+        page_parts = []
 
-            if not content.strip():
-                continue
+        # Temporal sections (book-by-book)
+        temporal_sections = sorted(page_data.get("temporal_sections", []), key=lambda x: x.get("book_number", 999))
+        for section in temporal_sections:
+            book_title = section.get("book_title", "Unknown Book")
+            content = section.get("content", "").strip()
+            if content:
+                page_parts.append(f"## Chronology: {book_title}\n{content}")
 
-            # Split large content into chunks
-            content_chunks = split_into_paragraphs(content)
-
-            # Create a chunk object for each split
-            for idx, chunk_text in enumerate(content_chunks):
-                chunk = {
-                    "source": "wiki",
-                    "wiki_type": "chronology",
-                    "character_name": character_name,
-                    "filename": filename,
-                    "temporal_order": section["book_number"],
-                    "book_title": section["book_title"],
-                    "chunk_index": idx + 1,
-                    "total_chunks": len(content_chunks),
-                    "text": chunk_text,
-                }
-                all_chunks.append(chunk)
-
-        # Process non-temporal sections (event-based) - Perrin, Egwene, Elayne
+        # Non-temporal sections (event-based)
         for section in page_data.get("non_temporal_sections", []):
-            section_title = section.get("section_title", "")
-            content = section.get("content", "")
+            section_title = section.get("section_title", "Untitled Event")
+            content = section.get("content", "").strip()
 
-            # Combine subsections if present
-            if section.get("subsections"):
-                subsection_texts = []
-                if content.strip():
-                    subsection_texts.append(content)
-                for subsection in section["subsections"]:
-                    if subsection.get("content"):
-                        subsection_texts.append(f"**{subsection['title']}**\n{subsection['content']}")
-                if subsection_texts:
-                    content = "\n\n".join(subsection_texts)
+            # Combine subsections
+            subsection_parts = []
+            if content:
+                subsection_parts.append(content)
+            for subsection in section.get("subsections", []):
+                sub_title = subsection.get("title", "")
+                sub_content = subsection.get("content", "").strip()
+                if sub_content:
+                    subsection_parts.append(f"### {sub_title}\n{sub_content}")
+            if subsection_parts:
+                combined = "\n\n".join(subsection_parts)
+                page_parts.append(f"## {section_title}\n{combined}")
 
-            if not content.strip():
-                continue
+        full_text = "\n\n".join([part for part in page_parts if part.strip()])
 
-            # Split large content into chunks
-            content_chunks = split_into_paragraphs(content)
+        if not full_text.strip():
+            continue
 
-            # Create a chunk object for each split
-            for idx, chunk_text in enumerate(content_chunks):
-                chunk = {
-                    "source": "wiki",
-                    "wiki_type": "chronology",
-                    "character_name": character_name,
-                    "filename": filename,
-                    "temporal_order": None,  # Event-based, no specific book number
-                    "book_title": None,
-                    "section_title": section_title,
-                    "chunk_index": idx + 1,
-                    "total_chunks": len(content_chunks),
-                    "text": chunk_text,
-                }
-                all_chunks.append(chunk)
+        # === Hybrid chunking ===
+        raw_chunks = _wiki_chronology_chunker(full_text)
 
-    # Save chunks
+        # === Tiny chunk cleanup + metadata ===
+        filtered_chunks = []
+        for idx, chunk_text in enumerate(raw_chunks):
+            temp_chunk = {
+                "source": "wiki",
+                "wiki_type": "chronology",
+                "character_name": character_name,
+                "filename": filename,
+                "text": chunk_text,
+                "temporal_order": None,
+                "book_title": None,
+                "section_title": "",
+            }
+
+            # Extract section title (e.g., "Chronology: The Shadow Rising" or event name)
+            heading_match = re.search(r"^##\s+(.+?)$", chunk_text, flags=re.MULTILINE)
+            if heading_match:
+                full_heading = heading_match.group(1)
+                temp_chunk["section_title"] = full_heading
+
+                # Infer temporal_order from book titles in chronology sections
+                if full_heading.startswith("Chronology: "):
+                    book_part = full_heading.replace("Chronology: ", "").strip()
+                    # Optional: map book_part to book_number if needed
+                    temp_chunk["book_title"] = book_part
+
+            # Tiny chunk merge
+            if len(chunk_text) < 300:
+                if filtered_chunks:
+                    filtered_chunks[-1]["text"] += " " + chunk_text
+                    if temp_chunk["section_title"]:
+                        filtered_chunks[-1]["section_title"] = temp_chunk["section_title"]
+                    if temp_chunk["book_title"]:
+                        filtered_chunks[-1]["book_title"] = temp_chunk["book_title"]
+                # else: keep rare leading tiny
+            else:
+                filtered_chunks.append(temp_chunk)
+
+        # === Final indexing ===
+        total_chunks = len(filtered_chunks)
+        for final_idx, chunk in enumerate(filtered_chunks):
+            chunk["chunk_index"] = final_idx + 1
+            chunk["total_chunks"] = total_chunks
+
+            # Set temporal_order from book_title if available (for filtering)
+            if chunk.get("book_title"):
+                # You can add a book_title → book_number map here if needed
+                # For now, keep as string or set to book_number if mapped
+                pass
+
+        all_chunks.extend(filtered_chunks)
+
+    # Save & stats
     save_jsonl_to_file(all_chunks, out_file_wiki_chunks_chronology)
 
     # Character breakdown
@@ -332,7 +345,6 @@ def chunk_chronology_pages():
 
     results = chunk_statistics(all_chunks, "CHRONOLOGIES CHUNKS")
     results["metrics"]["number_of_items"] = len(char_counts)
-
     print_results(results, "")
 
     return results
@@ -355,39 +367,45 @@ def aux_chunk_book_chapter(chapter: Dict, book_number: int, book_title: str) -> 
     chapter_title = chapter.get("chapter_title", "")
     chapter_type = chapter.get("chapter_type", "chapter")
 
-    # Split into paragraphs
-    paragraphs = split_into_paragraphs(content)
+    # Semantic chunking (current strategy)
+    raw_chunks = _books_chunker(content)
 
-    # Process all paragraphs through the chunking function
-    all_chunks = []
-    for paragraph in paragraphs:
-        para_chunks = split_paragraph_into_chunks(paragraph=paragraph)
-        all_chunks.extend(para_chunks)
-
-    # Create chunk objects with metadata
-    chunk_objects = []
-    total_chunks = len(all_chunks)
-
-    for idx, chunk_text in enumerate(all_chunks):
-        chunk_id = f"book_{book_number:02d}_ch_{chapter_number:02d}_chunk_{idx + 1:03d}"
-
-        chunk_obj = {
+    # === TINY CHUNK CLEANUP & METADATA ASSIGNMENT ===
+    filtered_chunks = []
+    for idx, chunk_text in enumerate(raw_chunks):
+        # Temporary chunk object (index will be recalculated)
+        temp_chunk = {
             "source": "book",
-            "chunk_id": chunk_id,
+            "chunk_id": f"book_{book_number:02d}_ch_{chapter_number:02d}_chunk_{idx + 1:03d}",  # temporary ID
             "book_number": book_number,
             "book_title": book_title,
             "chapter_number": chapter_number,
             "chapter_title": chapter_title,
             "chapter_type": chapter_type,
-            "chunk_index": idx + 1,
-            "total_chunks_in_chapter": total_chunks,
             "text": chunk_text,
             "temporal_order": book_number,
         }
 
-        chunk_objects.append(chunk_obj)
+        # Merge tiny chunks (< 300 chars) into previous chunk
+        if len(chunk_text) < cfg_min_books_chunks_size_characters:
+            if filtered_chunks:  # Merge into last chunk if exists
+                filtered_chunks[-1]["text"] += " " + chunk_text
+            # else: very rare leading tiny chunk → keep as-is (unlikely with semantic chunker)
+        else:
+            filtered_chunks.append(temp_chunk)
 
-    return chunk_objects
+    # If the very last raw chunk was tiny and merged, it's already handled above
+
+    # === Recalculate final indices and IDs ===
+    final_total = len(filtered_chunks)
+    for final_idx, chunk in enumerate(filtered_chunks):
+        # Update human-readable fields
+        chunk["chunk_index"] = final_idx + 1
+        chunk["total_chunks_in_chapter"] = final_total
+        # Regenerate clean chunk_id with correct index
+        chunk["chunk_id"] = f"book_{book_number:02d}_ch_{chapter_number:02d}_chunk_{final_idx + 1:03d}"
+
+    return filtered_chunks
 
 
 def chunk_books():
@@ -439,192 +457,115 @@ def chunk_books():
     return results
 
 
-def aux_chunk_page(filename: str, page_data: Dict, source_type: str) -> List[Dict]:
+def chunk_concept_pages():
     """
-    Chunk a single wiki page by grouping sections to reach target size.
-    Preserves section structure while creating properly-sized chunks.
-
-    Args:
-        filename: Source filename
-        page_data: Parsed page data
-        source_type: 'concept', 'prophecy', or 'magic'
-
-    Returns:
-        List of chunks
+    Chunk concept, magic, and prophecy wiki pages using hybrid strategy.
+    Handles stubs and long explanations appropriately.
     """
-    page_name = page_data.get("page_name", "")
-    page_type = page_data.get("page_type", "")
-    sections = page_data.get("sections", [])
-    categories = page_data.get("metadata", {}).get("categories", [])
+    # Process all three types with same logic
+    types_to_process = [
+        ("concept", in_file_wiki_concept, out_file_wiki_chunks_concept),
+        ("prophecy", in_file_wiki_prophecies, out_file_wiki_chunks_prophecies),
+        ("magic", in_file_wiki_magic, out_file_wiki_chunks_magic),
+    ]
 
-    # Build list of section texts (each section with its subsections)
-    section_texts = []
-    section_titles = []
+    all_results = []
 
-    for section in sections:
-        section_title = section.get("title", "")
-        section_content = section.get("content", "").strip()
+    for source_type, input_file, output_file in types_to_process:
+        data = load_json_from_file(input_file)
+        all_chunks = []
 
-        # Skip category sections
-        if section_title.lower() in ["categories", "category"]:
-            continue
+        for filename, page_data in tqdm(data.items(), desc=f"Processing {source_type}"):
+            page_name = page_data.get("page_name", "")
+            page_type = page_data.get("page_type", "")
+            categories = page_data.get("metadata", {}).get("categories", [])
 
-        # Build section text with subsections
-        section_parts = []
+            # === Build full page text with preserved headings ===
+            page_parts = []
+            for section in page_data.get("sections", []):
+                section_title = section.get("title", "")
+                content = section.get("content", "").strip()
 
-        # Add main section content
-        if section_title and section_content:
-            section_parts.append(f"## {section_title}\n{section_content}")
-        elif section_title:
-            section_parts.append(f"## {section_title}")
-        elif section_content:
-            section_parts.append(section_content)
+                # Skip category sections
+                if section_title.lower() in ["categories", "category"]:
+                    continue
 
-        # Add subsections
-        for subsection in section.get("subsections", []):
-            sub_title = subsection.get("title", "")
-            sub_content = subsection.get("content", "").strip()
+                section_parts = []
+                if section_title and content:
+                    section_parts.append(f"## {section_title}\n{content}")
+                elif section_title:
+                    section_parts.append(f"## {section_title}")
+                elif content:
+                    section_parts.append(content)
 
-            if sub_title and sub_content:
-                section_parts.append(f"### {sub_title}\n{sub_content}")
-            elif sub_title:
-                section_parts.append(f"### {sub_title}")
-            elif sub_content:
-                section_parts.append(sub_content)
+                for subsection in section.get("subsections", []):
+                    sub_title = subsection.get("title", "")
+                    sub_content = subsection.get("content", "").strip()
+                    if sub_title and sub_content:
+                        section_parts.append(f"### {sub_title}\n{sub_content}")
+                    elif sub_title:
+                        section_parts.append(f"### {sub_title}")
+                    elif sub_content:
+                        section_parts.append(sub_content)
 
-        # Combine section and subsections
-        full_section_text = "\n\n".join(section_parts)
+                if section_parts:
+                    page_parts.append("\n\n".join(section_parts))
 
-        if not full_section_text.strip():
-            continue
+            full_text = "\n\n".join(page_parts)
 
-        section_texts.append(full_section_text)
-        section_titles.append(section_title if section_title else "Content")
+            if not full_text.strip():
+                continue
 
-    if not section_texts:
-        return []
+            # === Hybrid chunking ===
+            raw_chunks = _wiki_concept_chunker(full_text)
 
-    # Group sections into chunks (like grouping paragraphs)
-    chunks = []
-    current_chunk_sections = []
-    current_chunk_titles = []
-    current_size = 0
+            # === Tiny chunk cleanup + metadata ===
+            filtered_chunks = []
+            for idx, chunk_text in enumerate(raw_chunks):
+                temp_chunk = {
+                    "source": "wiki",
+                    "wiki_type": source_type,  # 'concept', 'magic', or 'prophecy'
+                    "page_type": page_type,
+                    "page_name": page_name,
+                    "source_file": filename,
+                    "text": chunk_text,
+                    "temporal_order": None,
+                    "section_title": "",
+                    "categories": categories,
+                }
 
-    max_size = cfg_max_chunk_size
+                # Extract section title
+                heading_match = re.search(r"^##\s+(.+?)$", chunk_text, flags=re.MULTILINE)
+                if heading_match:
+                    temp_chunk["section_title"] = heading_match.group(1)
 
-    for section_text, section_title in zip(section_texts, section_titles):
-        section_size = len(section_text)
+                # Tiny chunk merge
+                if len(chunk_text) < 300:
+                    if filtered_chunks:
+                        filtered_chunks[-1]["text"] += " " + chunk_text
+                        if temp_chunk["section_title"]:
+                            filtered_chunks[-1]["section_title"] = temp_chunk["section_title"]
+                    # else: keep rare leading tiny
+                else:
+                    filtered_chunks.append(temp_chunk)
 
-        # If single section exceeds max, split it by paragraphs
-        if section_size > max_size:
-            # Save current chunk if exists
-            if current_chunk_sections:
-                chunk_text = "\n\n".join(current_chunk_sections)
-                chunk_titles = ", ".join(current_chunk_titles)
-                chunks.append({"text": chunk_text, "section_title": chunk_titles})
-                current_chunk_sections = []
-                current_chunk_titles = []
-                current_size = 0
+            # Final indexing
+            total_chunks = len(filtered_chunks)
+            for final_idx, chunk in enumerate(filtered_chunks):
+                chunk["chunk_index"] = final_idx + 1
+                chunk["total_chunks"] = total_chunks
 
-            # Split oversized section by paragraphs and group them
-            section_chunks = split_into_paragraphs(section_text)
+            all_chunks.extend(filtered_chunks)
 
-            for chunk_text in section_chunks:
-                chunks.append({"text": chunk_text, "section_title": section_title})
-            continue
+        # Save
+        save_jsonl_to_file(all_chunks, output_file)
 
-        # Check if adding this section would exceed max
-        separator_size = 2 if current_chunk_sections else 0
-        new_size = current_size + separator_size + section_size
+        results = chunk_statistics(all_chunks, f"{source_type.upper()} CHUNKS")
+        results["metrics"]["number_of_items"] = len(data)
+        print_results(results, "")
+        all_results.append(results)
 
-        if new_size <= max_size:
-            # Fits - add to current chunk
-            current_chunk_sections.append(section_text)
-            current_chunk_titles.append(section_title)
-            current_size = new_size
-        else:
-            # Doesn't fit - start new chunk
-            if current_chunk_sections:
-                chunk_text = "\n\n".join(current_chunk_sections)
-                chunk_titles = ", ".join(current_chunk_titles)
-                chunks.append({"text": chunk_text, "section_title": chunk_titles})
-
-            current_chunk_sections = [section_text]
-            current_chunk_titles = [section_title]
-            current_size = section_size
-
-    # Add final chunk
-    if current_chunk_sections:
-        chunk_text = "\n\n".join(current_chunk_sections)
-        chunk_titles = ", ".join(current_chunk_titles)
-        chunks.append({"text": chunk_text, "section_title": chunk_titles})
-
-    # Convert to final chunk format with metadata
-    final_chunks = []
-    total_chunks = len(chunks)
-
-    for idx, chunk_data in enumerate(chunks):
-        chunk = {
-            "source": "wiki",
-            "source_type": source_type,
-            "page_type": page_type,
-            "page_name": page_name,
-            "source_file": filename,
-            "section_title": chunk_data["section_title"],
-            "temporal_order": None,
-            "chunk_index": idx + 1,
-            "total_chunks": total_chunks,
-            "text": chunk_data["text"],
-        }
-
-        if categories:
-            chunk["categories"] = categories
-
-        final_chunks.append(chunk)
-
-    return final_chunks
-
-
-def chunk_concept_magic_prophecy(input_file: Path, output_file: Path, source_type: str) -> tuple:
-    """
-    Process a single file type (concept, prophecy, or magic).
-
-    Args:
-        input_file: Input JSON file path
-        output_file: Output JSONL file path
-        source_type: 'concept', 'prophecy', or 'magic'
-
-    Returns:
-        (chunks_created, stats_dict)
-    """
-
-    concept_data = load_json_from_file(input_file)
-
-    # Process all pages
-    all_chunks = []
-    pages_processed = 0
-    empty_pages = 0
-
-    for filename, page_data in tqdm(concept_data.items(), desc=f"Processing {source_type}"):
-        chunks = aux_chunk_page(filename, page_data, source_type)
-
-        if not chunks:
-            empty_pages += 1
-            continue
-
-        all_chunks.extend(chunks)
-        pages_processed += 1
-
-    save_jsonl_to_file(all_chunks, output_file)
-
-    # Print statistics
-
-    results = chunk_statistics(all_chunks, f"{source_type.upper()} CHUNKS")
-    results["metrics"]["number_of_items"] = pages_processed
-
-    print_results(results, "")
-
-    return results
+    return all_results
 
 
 def main():
@@ -632,13 +573,11 @@ def main():
 
     statistics = []
 
+    # statistics.append(chunk_books())
     statistics.append(chunk_character_pages())
     statistics.append(chunk_chapter_summary_pages())
     statistics.append(chunk_chronology_pages())
-    statistics.append(chunk_books())
-    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_concept, out_file_wiki_chunks_concept, "concept"))
-    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_prophecies, out_file_wiki_chunks_prophecies, "prophecy"))
-    statistics.append(chunk_concept_magic_prophecy(in_file_wiki_magic, out_file_wiki_chunks_magic, "magic"))
+    statistics.extend(chunk_concept_pages())
 
     total_time = (datetime.now() - start_time).total_seconds()
 
@@ -647,9 +586,9 @@ def main():
 
 if __name__ == "__main__":
     paths = get_paths()
-    config = get_config()
 
     cfg_max_chunk_size = config.MAX_CHUNK_SIZE
+    cfg_min_books_chunks_size_characters = config.CHUNKING_STRATEGY["MIN_BOOKS_CHUNKS_SIZE_CHARACTERS"]
 
     in_file_wiki_character = paths.FILE_WIKI_CHARACTER
     in_file_wiki_chapter_summary = paths.FILE_WIKI_CHAPTER_SUMMARY

@@ -24,13 +24,14 @@ from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
 from src.utils.wiki_constants import (
-    AJAH_CATEGORIES,
+    AJAHS,
     ALIGNMENT_DARK,
     CHANNELING_AFFILIATIONS,
     CULTURAL_GROUPS,
-    GENDER_CATEGORIES,
+    GENDERS,
     MILITARY_GROUPS,
     MILITARY_ROLES,
+    NATIONALITY_CATEGORIES,
     ORGANIZATIONS,
     PROFESSIONS,
     SOCIAL_ROLES,
@@ -50,8 +51,11 @@ def normalize_name(name: str) -> str:
 def extract_gender(categories: List[str]) -> Optional[str]:
     """Extract gender from categories."""
     for category in categories:
-        if category in GENDER_CATEGORIES:
-            return GENDER_CATEGORIES[category]
+        if category in GENDERS:
+            if category == "Men":
+                return "male"
+            else:
+                return "female"
     return None
 
 
@@ -81,8 +85,8 @@ def extract_channeling_info(categories: List[str], gender: Optional[str]) -> Dic
 def extract_ajah(categories: List[str]) -> Optional[str]:
     """Extract Ajah from categories."""
     for category in categories:
-        if category in AJAH_CATEGORIES:
-            return AJAH_CATEGORIES[category]
+        if category in AJAHS:
+            return category.replace("_", " ")
     return None
 
 
@@ -91,7 +95,7 @@ def extract_special_abilities(categories: List[str]) -> List[str]:
     abilities = []
     for category in categories:
         if category in SPECIAL_ABILITIES:
-            abilities.append(SPECIAL_ABILITIES[category])
+            abilities.append(category.replace("_", " "))
     return sorted(abilities) if abilities else []
 
 
@@ -99,8 +103,7 @@ def extract_nationalities(categories: List[str]) -> List[str]:
     """Extract nationalities from categories (ending with '(people)')."""
     nationalities = []
     for category in categories:
-        if category.endswith("(people)"):
-            # Remove '_(people)' suffix
+        if category in NATIONALITY_CATEGORIES:
             nationality = category.replace("_(people)", "").replace("_", " ")
             nationalities.append(nationality)
     return sorted(nationalities) if nationalities else []
