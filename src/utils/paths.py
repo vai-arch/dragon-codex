@@ -73,6 +73,7 @@ class Paths:
         self.FILE_REDIRECT_ALIASES_MAPPING = self.METADATA_WIKI_PATH / "redirect_aliases_mapping.json"
         # Maps wiki filenames to their category lists for classification
         self.FILE_FILENAME_TO_CATEGORIES = self.METADATA_WIKI_PATH / "filename_to_categories.json"
+        self.FILE_TEMPORAL_ALIASES = self.METADATA_WIKI_PATH / "temporal_aliases.json"
         # Maps wiki categories to the list of filenames in each category
         self.FILE_CATEGORY_TO_FILES = self.METADATA_WIKI_PATH / "category_to_files.json"
         # Unified glossary extracted from all 15 book files (characters, places, terms)

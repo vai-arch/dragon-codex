@@ -379,7 +379,7 @@ ALL_MAGIC_CATEGORIES = POWER_OBJECTS | ONE_POWER_CONCEPTS | MAGIC_PLACES | MAGIC
 ALL_PROPHECIES_CATEGORIES = {"Prophecies", "Foretellings", "Foreseen events", "Foreseen people"}
 
 # LOCATIONS: Countries, cities, regions, buildings, geographic features. CONCEPTS
-LOCATION_CATEGORIES = [
+LOCATION_CATEGORIES = {
     "Aiel_Waste",
     "Almoren",
     "Almoth_Plain",
@@ -543,10 +543,10 @@ LOCATION_CATEGORIES = [
     "Historical_nations",
     "Nations_of_the_Free_Years",
     "Unclaimed_territories",
-]
+}
 
 # CREATURES: Animals, Shadowspawn, special beings
-CREATURE_CATEGORIES = [
+CREATURE_CATEGORIES = {
     "Animals",
     "Horses",
     "Wolves",
@@ -560,10 +560,10 @@ CREATURE_CATEGORIES = [
     "Extradimensional_entities",
     "Other_non-humans",
     "Ogier",
-]
+}
 
 # ITEMS: Non-magical objects, weapons, clothing, food, tools
-ITEM_CATEGORIES = [
+ITEM_CATEGORIES = {
     "Weapons",
     "Sword_forms",
     "Battle_Cries",
@@ -595,10 +595,10 @@ ITEM_CATEGORIES = [
     "Technology",
     "Calendars",
     "Measurements",
-]
+}
 
 # HISTORICAL: Time periods, events, wars
-HISTORICAL_CATEGORIES = [
+HISTORICAL_CATEGORIES = {
     "Ages",
     "First_Age",
     "Second_Age",
@@ -625,10 +625,10 @@ HISTORICAL_CATEGORIES = [
     "Phrases",
     "Slang",
     "Legends",
-]
+}
 
 # CULTURAL: Customs, traditions, songs, holidays
-CULTURAL_CATEGORIES = [
+CULTURAL_CATEGORIES = {
     "Culture",
     "Aiel_culture",
     "Atha'an_Miere_culture",
@@ -645,10 +645,10 @@ CULTURAL_CATEGORIES = [
     "Philosophy",
     "Theories",
     "Parallels",
-]
+}
 
 # CONCEPTS: Metaphysical, abstract WoT concepts
-CONCEPT_CATEGORIES = [
+CONCEPT_CATEGORIES = {
     "The_Pattern",
     "The_Wheel_of_Time",
     "Ta'veren",
@@ -672,9 +672,9 @@ CONCEPT_CATEGORIES = [
     "Constellations",
     "Trees",
     "Plants",
-]
+}
 
-ORGANIZATION_CATEGORIES = [
+ORGANIZATION_CATEGORIES = {
     "Aes_Sedai",
     "Black_Ajah",
     "Entertainers",
@@ -707,7 +707,7 @@ ORGANIZATION_CATEGORIES = [
     "Aiel_warrior_societies",
     "Organizations",
     "Healers",
-]
+}
 
 # =============================================================================
 # ALL CONCEPT CATEGORIES (for easy checking)
@@ -718,8 +718,14 @@ ALL_CONCEPT_CATEGORIES = LOCATION_CATEGORIES | CREATURE_CATEGORIES | ITEM_CATEGO
 # CATEGORIES TO SKIP (for easy checking)
 # =============================================================================
 CATEGORIES_TO_SKIP = {
+    "Inclusion_redirects",
+    "Timeline_redirects",
     "Authors",
+    "Chapter_redirects",
+    "Date_redirects",
+    "Book_redirects",
     "Publishers",
+    "Administrative_redirects",
     "Non-canon",
     "Statistical_analysis",
     "Book_glossaries",
@@ -745,9 +751,12 @@ CATEGORIES_TO_SKIP = {
     "Role_Playing",
     "Spoilers",
     "Stubs",
+    "Category_redirects",
     "TV_Series",
     "The_World_of_Robert_Jordan's_The_Wheel_of_Time",
     "Wheel_of_Time_translations",
+    "Series_books",
+    "All_books",
 }
 
 # =============================================================================

@@ -662,7 +662,7 @@ class WoTWikiScraper:
                 page_categories = {c.lower() for c in page_data.get("categories", [])}
                 skip_categories_lower = {c.lower() for c in CATEGORIES_TO_SKIP}
 
-                if page_categories & skip_categories_lower:
+                if page_categories & skip_categories_lower or str(page_data["title"]).startswith("Stedding "):
                     # Found at least one category to skip
                     stats["skipped"] += 1
                     # print(f"  → Skipped (blocked categories match): {char_name}")
@@ -799,9 +799,13 @@ def main():
 
     # Scrape all pages
     metrics = scraper.scrape_wiki_pages(page_names=pages, output_dir=out_wiki_original_path, delay=1.0)
-    # build redirects
-    redirect_mapping, redirect_statistics = scraper.build_redirect_mapping(out_wiki_original_path)
 
+    # After scraping, copy files to final directory
+    copy_files(out_wiki_original_path, out_wiki_path, extension=".txt", log=False, exclude_pattern="*_SKIPPED.txt")
+    copy_files(in_wiki_glossary_path, out_wiki_path, extension=".txt", log=False)
+
+    # build redirects
+    redirect_mapping, redirect_statistics = scraper.build_redirect_mapping(out_wiki_path)
     save_json_to_file(redirect_mapping, out_redirect_mapping_path, indent=2)
     aliases = scraper.invert_redirect_mapping(redirect_mapping)
     save_json_to_file(aliases, out_redirect_aliases_mapping_path, indent=2)
@@ -813,11 +817,8 @@ def main():
     }
 
     statistics["metrics"] = {**statistics["metrics"], **redirect_statistics}
+        # fmt:on
 
-    # fmt:on
-    # After scraping, copy files to final directory
-    copy_files(out_wiki_original_path, out_wiki_path, extension=".txt", log=False, exclude_pattern="*_SKIPPED.txt")
-    copy_files(in_wiki_glossary_path, out_wiki_path, extension=".txt", log=False)
     total_time = datetime.now() - start_time
 
     total_statistics_logging(total_time=total_time, log_name="ing_03_wiki_scrapper", statistics=statistics, title="SCRAPPED PAGES")
