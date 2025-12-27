@@ -9,6 +9,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import save_json_to_file
 
+_phase = "1A1"
+
 
 def load_data(questions_file, phase_file):
     with open(questions_file, "r", encoding="utf-8") as f:
@@ -165,8 +167,6 @@ def compare_phases(prev_scores, curr_scores):
 
 
 if __name__ == "__main__":
-    phase = "1A"  # Update manually or via arg
-
     paths = get_paths()
     parser = argparse.ArgumentParser()
     parser.add_argument("--questions_file", default=None)
@@ -176,8 +176,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     in_questions_file = args.questions_file or paths.FILE_TEST_QUESTIONS
-    in_answers_file = args.phase_file or (paths.RETRIEVAL_TESTING_RESULTS_PATH / f"answers_{phase}_retrieval.json")
-    out_scores = args.output_file or (paths.RETRIEVAL_TESTING_RESULTS_PATH / f"out_scores_{phase}.json")
+    in_answers_file = args.phase_file or (paths.RETRIEVAL_TESTING_RESULTS_PATH / f"answers_{_phase}_retrieval.json")
+    out_scores = args.output_file or (paths.RETRIEVAL_TESTING_RESULTS_PATH / f"out_scores_{_phase}.json")
 
     questions, results = load_data(in_questions_file, in_answers_file)
 
@@ -205,6 +205,6 @@ if __name__ == "__main__":
             return obj
 
     safe_output = convert_to_native(output)
-    save_json_to_file(safe_output, out_scores)
+    save_json_to_file(data=safe_output, output_file=out_scores, indent=2)
 
     print("\nAggregates:\n", json.dumps(agg, indent=2))

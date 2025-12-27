@@ -26,6 +26,8 @@ from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
 
+_phase = "1A1"
+
 
 def parse_sample_citation(citation: str) -> list[dict]:
     """Parse sample_citation into list of expected sources with book/chapter"""
@@ -202,7 +204,7 @@ def run_retrieval_tests(test_questions: List[dict], query_engine: QueryEngine, p
     return results, {**overall_stats, "by_category": stats["by_category"], "by_difficulty": stats["by_difficulty"]}
 
 
-def main(phase: str = "1A"):
+def main():
     global query_engine
 
     start_time = datetime.now()
@@ -212,13 +214,13 @@ def main(phase: str = "1A"):
     in_test_questions_file = paths.FILE_TEST_QUESTIONS  # points to questions_100_improved.json
     out_dir = paths.RETRIEVAL_TESTING_RESULTS_PATH
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_results_file = out_dir / f"answers_{phase}_retrieval.json"
+    out_results_file = out_dir / f"answers_{_phase}_retrieval.json"
 
     if not in_test_questions_file.exists():
         print(f"❌ Test questions file not found: {in_test_questions_file}")
         sys.exit(1)
 
-    print(f"🚀 Starting Phase {phase}: Pure Semantic Retrieval Test\n")
+    print(f"🚀 Starting Phase {_phase}: Pure Semantic Retrieval Test\n")
     print(f"📂 Loading questions from: {in_test_questions_file.name}")
 
     test_data = load_json_from_file(in_test_questions_file)
@@ -233,11 +235,11 @@ def main(phase: str = "1A"):
     for name, s in stats["collections"].items():
         print(f"   {name}: {s['count']:,} chunks")
 
-    results, statistics = run_retrieval_tests(test_questions, query_engine, phase)
+    results, statistics = run_retrieval_tests(test_questions, query_engine, _phase)
 
     output_data = {
         "metadata": {
-            "phase": phase,
+            "phase": _phase,
             "test_date": datetime.now().isoformat(),
             "questions_file": in_test_questions_file.name,
             "total_questions": len(test_questions),
@@ -254,13 +256,13 @@ def main(phase: str = "1A"):
     total_statistics_logging(
         statistics=results,
         total_time=total_time,
-        title=f"PHASE {phase} - RETRIEVAL TEST",
-        log_name=f"ret_test_phase_{phase}",
+        title=f"PHASE {_phase} - RETRIEVAL TEST",
+        log_name=f"ret_test_phase_{_phase}",
         tables=False,
     )
 
     # Summary highlights
-    print(f"\n🎯 Phase {phase} Summary:")
+    print(f"\n🎯 Phase {_phase} Summary:")
     print(f"   Avg chunks/query: {statistics['avg_chunks_per_query']}")
     print(f"   Avg time/query:   {statistics['avg_time_per_query']}s")
     print(f"   Zero chunks:      {len(statistics['warnings']['zero_chunks'])} questions")
@@ -273,11 +275,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--phase", type=str, default="1A", help="Test phase: 1A, 1B, 1C")
+    parser.add_argument("--phase", type=str, default="1A1", help="Test phase: 1A, 1B, 1C")
     args = parser.parse_args()
 
     try:
-        exit_code = main(phase=args.phase)
+        exit_code = main()
     except Exception as e:
         print(f"❌ Fatal error: {e}")
         traceback.print_exc()

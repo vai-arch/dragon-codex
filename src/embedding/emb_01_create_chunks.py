@@ -573,7 +573,7 @@ def main():
 
     statistics = []
 
-    # statistics.append(chunk_books())
+    statistics.append(chunk_books())
     statistics.append(chunk_character_pages())
     statistics.append(chunk_chapter_summary_pages())
     statistics.append(chunk_chronology_pages())

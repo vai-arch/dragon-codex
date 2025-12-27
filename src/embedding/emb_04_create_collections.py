@@ -19,6 +19,8 @@ from src.utils.config import get_config
 from src.utils.paths import get_paths
 from src.utils.util_statistics import total_statistics_logging
 
+config = None
+
 # Global path variables (initialized in main)
 in_embeddings_path = None
 in_file_book_embeddings = None
@@ -36,41 +38,30 @@ out_collection_reference = None
 
 
 def load_embeddings_from_pickle(filepath: Path) -> Tuple[List[dict], List[List[float]]]:
-    """
-    Load chunks and embeddings from pickle file.
-
-    Args:
-        filepath: Path to .pkl file containing embeddings
-
-    Returns:
-        tuple: (chunks, embeddings)
-            - chunks: list of chunk dictionaries with metadata
-            - embeddings: list of embedding vectors
-    """
     print(f"  Loading {filepath.name}...")
 
     with open(filepath, "rb") as f:
         embeddings_data = pickle.load(f)
 
-    # Format: {chunk_id: {"embedding": [...], "text": "...", "metadata": {...}}}
     if not isinstance(embeddings_data, dict):
         raise ValueError(f"Unexpected pickle format in {filepath.name}")
 
-    # Extract chunks and embeddings
     chunks = []
     embeddings = []
 
-    for chunk_id in sorted(embeddings_data.keys()):  # Sort to maintain order
+    sorted_keys = sorted(embeddings_data.keys(), key=lambda x: int(x.split("_")[1]))
+
+    for chunk_id in sorted_keys:
         data = embeddings_data[chunk_id]
 
-        # Reconstruct chunk with text + metadata
-        chunk = {"text": data["text"]}
-        chunk.update(data["metadata"])
+        # Combine text + metadata into one dict (text is separate for Chroma)
+        full_metadata = data["metadata"].copy()
+        full_metadata["text"] = data["text"]  # Temporary for processing
 
-        chunks.append(chunk)
+        chunks.append(full_metadata)
         embeddings.append(data["embedding"])
 
-    print(f"    ✓ Loaded {len(chunks)} chunks with embeddings")
+    print(f"    Loaded {len(chunks)} chunks with embeddings")
     return chunks, embeddings
 
 
@@ -92,7 +83,16 @@ def create_chromadb_collection(client: chromadb.Client, collection_name: str, em
     print(f"   Source files: {len(embedding_files)}")
 
     # Get or create collection
-    collection = client.get_or_create_collection(name=collection_name, metadata={"description": description})
+    collection = client.get_or_create_collection(
+        name=collection_name,
+        metadata={
+            "description": description,
+            "created_at": datetime.now().isoformat(),
+            "chunking_method": config.CHUNKING_STRATEGY["BOOKS_CHUNKING_STRATEGY_NAME"],  # vs "fixed" in old version
+            "embedding_model": config.EMBEDDING_MODEL["EMBEDDING_MODEL_NAME"],
+            "source": "books_only",
+        },
+    )
 
     # Track statistics
     total_chunks = 0
@@ -121,49 +121,35 @@ def create_chromadb_collection(client: chromadb.Client, collection_name: str, em
             embedding_vectors = []
 
             for i, (chunk, embedding) in enumerate(tqdm(zip(chunks, embeddings), desc=f"  Preparing {filepath.stem}", total=len(chunks), unit="chunk")):
-                # Generate unique ID
-                chunk_id = f"{filepath.stem}_{i}"
+                # Unique, sortable ID
+                chunk_id = f"{filepath.stem}_chunk_{i:05d}"
 
-                # Extract text (adjust key based on your chunk structure)
-                text = chunk.get("text", chunk.get("content", ""))
+                # Text goes to documents
+                text = chunk.get("text", "")
 
-                # Extract metadata (preserve all metadata fields)
+                # Build metadata - start with fixed fields
                 metadata = {
-                    "source": chunk.get("source", "unknown"),
-                    "source_type": chunk.get("source_type", "unknown"),
+                    "source": "book",
+                    "source_type": "book",
                     "source_file": filepath.stem,
                 }
 
-                # Add optional metadata fields if they exist
-                optional_fields = [
-                    "book_number",
-                    "book_title",
-                    "chapter_number",
-                    "chapter_title",
-                    "temporal_order",
-                    "character_mentions",
-                    "concept_mentions",
-                    "magic_mentions",
-                    "wiki_page",
-                    "section_title",
-                ]
+                # Add all other fields from the original chunk/metadata
+                for key, value in chunk.items():
+                    if key == "text":  # Already handled
+                        continue
+                    if value is None:  # Chroma rejects None
+                        continue
 
-                for field in optional_fields:
-                    if field in chunk:
-                        value = chunk[field]
-                        # Skip None values - ChromaDB doesn't accept them
-                        if value is None:
-                            continue
-                        if isinstance(value, list):
-                            metadata[field] = json.dumps(value)
-                        else:
-                            metadata[field] = value
+                    if isinstance(value, (list, dict)):
+                        metadata[key] = json.dumps(value)  # Serialize lists/dicts to string
+                    else:
+                        metadata[key] = value  # Primitives (str, int, float, bool)
 
                 ids.append(chunk_id)
                 documents.append(text)
                 metadatas.append(metadata)
                 embedding_vectors.append(embedding)
-
             # Add to collection in batches
             batch_size = 1000
             for i in tqdm(range(0, len(ids), batch_size), desc=f"  Adding to {collection_name}", unit="batch"):
@@ -206,27 +192,13 @@ def create_chromadb_collection(client: chromadb.Client, collection_name: str, em
 
 
 def reset_collections(client):
-    # Clear existing collections if rebuilding
-    print("🗑️  Clearing existing collections...")
+    print("🗑️  Resetting entire ChromaDB (all collections and files)...")
     try:
-        client.delete_collection(out_collection_books)
-        print(f"  ✓ Deleted '{out_collection_books}'")
-    except Exception:
-        print(f"  • '{out_collection_books}' didn't exist")
-
-    try:
-        client.delete_collection(out_collection_narrative)
-        print(f"  ✓ Deleted '{out_collection_narrative}'")
-    except Exception:
-        print(f"  • '{out_collection_narrative}' didn't exist")
-
-    try:
-        client.delete_collection(out_collection_reference)
-        print(f"  ✓ Deleted '{out_collection_reference}'")
-    except Exception:
-        print(f"  • '{out_collection_reference}' didn't exist")
-
-    print()
+        client.reset()  # This deletes ALL files and metadata
+        print("  ✓ Full reset complete - all files removed")
+    except Exception as e:
+        print(f"  ❌ Reset failed: {e}")
+        traceback.print_exc()
 
 
 def main():

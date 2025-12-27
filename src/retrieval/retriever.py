@@ -96,7 +96,7 @@ class Retriever:
 
         # Generate query embedding
         logger.debug(f"🔍 Generating embedding for query: {query_text[:50]}...")
-        embeddings, _, _, _ = self.vsm.embed_chunks([query_text])
+        embeddings, _, _, _ = self.vsm.embed_chunks(texts=[query_text], show_progress=False, prefix=self.vsm.get_manager_config()["EMBEDDING_MODEL"]["EMBEDDING_MODEL_SEARCH_PREFIX"])
         query_embedding = embeddings[0]
 
         # Build ChromaDB where filter for temporal limit

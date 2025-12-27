@@ -6,6 +6,21 @@ Query the complete Wheel of Time universe using local LLMs powered by Ollama. Ge
 
 ---
 
+                       Chunks        Segmentation             Model                                retrieval_quality
+-----------------  --------------   --------------    ----------------------    --------------    --------------------;
+   Phase 1A          Only Books      Paragraphs        Ollama / nomic-2048                            0.48
+   Phase 1A1         Only Books      Semantic          Ollama / nomic-2048                            0.81 (+68% )
+
+### Chunks
+
+   Only books
+
+### Segmentation
+
+   Paragraphs maximizing the size. Poorly curated
+
+###
+
 ## ✨ Features
 
 - **Character Evolution Tracking**: Follow character development across all 15 books
