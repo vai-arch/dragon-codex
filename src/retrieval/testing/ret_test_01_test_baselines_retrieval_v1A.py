@@ -20,13 +20,13 @@ from typing import List
 
 from tqdm import tqdm
 
-from src.retrieval.query_engine_just_semantics import QueryEngine
+from src.retrieval.query_engine import QueryEngine
 from src.utils.config import get_config
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
 
-_phase = "1A1"
+_phase = "1B"
 
 
 def parse_sample_citation(citation: str) -> list[dict]:
@@ -216,12 +216,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     out_results_file = out_dir / f"answers_{_phase}_retrieval.json"
 
-    if not in_test_questions_file.exists():
-        print(f"❌ Test questions file not found: {in_test_questions_file}")
-        sys.exit(1)
-
     print(f"🚀 Starting Phase {_phase}: Pure Semantic Retrieval Test\n")
-    print(f"📂 Loading questions from: {in_test_questions_file.name}")
 
     test_data = load_json_from_file(in_test_questions_file)
     test_questions = test_data["questions"]

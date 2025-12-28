@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import save_json_to_file
 
-_phase = "1A1"
+_phase = "1B"
 
 
 def load_data(questions_file, phase_file):

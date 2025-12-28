@@ -6,6 +6,7 @@ Handles query processing, classification, and collection routing.
 from typing import Dict, Optional, Tuple
 
 from src.retrieval.dynamic_query_classifier import DynamicQueryClassifier
+from src.retrieval.query_expander import expand_query_safe
 from src.retrieval.retriever import Retriever
 from src.utils.config import get_config
 from src.utils.logger import get_logger
@@ -171,6 +172,10 @@ class QueryEngine:
 
         # Route query
         routing = self.route_query(query_text=query_text, category=force_category, temporal_limit=temporal_limit)
+
+        expanded_terms = expand_query_safe(query=query_text, temporal_limit=temporal_limit)
+
+        query_text = query_text + " " + " ".join(expanded_terms)
 
         # Override top_k if specified
         if top_k is not None:

@@ -17,7 +17,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-from src.retrieval.query_engine_just_semantics import QueryEngine
+from src.retrieval.query_engine import QueryEngine
 from src.utils.config import get_config
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file

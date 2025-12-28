@@ -33,6 +33,7 @@ from src.utils.wiki_constants import CATEGORIES_TO_SKIP, REDIRECT_CATEGORIES, ex
 cfg_wiki_base_url = None
 
 in_file_wiki_all_pages_titles_file = None
+in_file_manual_aliases = None
 in_wiki_glossary_path = None
 out_wiki_original_path = None
 out_wiki_path = None
@@ -735,7 +736,7 @@ class WoTWikiScraper:
         return stats
 
     def build_redirect_mapping(self, wiki_path: Path) -> Dict[str, str]:
-        """Build complete redirect mapping from wiki files."""
+        """Build complete redirect mapping from wiki files + manual overrides."""
         mapping = {}
         errors = []
 
@@ -748,8 +749,8 @@ class WoTWikiScraper:
             total=len(wiki_files),
             desc="Scanning wiki files",
             unit="file",
-            file=sys.stderr,  # 👈 IMPORTANT
-            mininterval=0.0,  # 👈 FORCE refresh
+            file=sys.stderr,
+            mininterval=0.0,
         )
 
         for file_path in wiki_files:
@@ -773,20 +774,33 @@ class WoTWikiScraper:
                 errors.append({"file": file_path.name, "page_name": page_name, "error": "API query failed or returned no redirect"})
 
         if errors:
-            print(f"\n{len(errors)} errors occurred:")
-            for error in errors[:10000]:
+            print(f"\n{len(errors)} errors occurred during wiki scan:")
+            for error in errors[:100]:
                 print(f"  {error}")
-            if len(errors) > 10000:
-                print(f"  ... and {len(errors) - 10000} more errors")
+            if len(errors) > 100:
+                print(f"  ... and {len(errors) - 100} more")
 
-        # fmt: off
+        # === MANUAL ALIASES INTEGRATION ===
+        manual_aliases = load_json_from_file(file=in_file_manual_aliases)
+        added_count = 0
+        for alias, canonical in manual_aliases.items():
+            if alias not in mapping:  # Only add if not already present
+                mapping[alias] = canonical
+                added_count += 1
+        print(f"\nAdded {added_count} manual aliases (out of {len(manual_aliases)})")
+
+        # Final sort
+        mapping = dict(sorted(mapping.items()))
+
+        # Updated statistics
         statistics = {
             "redirected_pages": redirect_count,
             "redirections_mapped": processed_count,
-            "redirections_errors": len(errors)
+            "redirections_errors": len(errors),
+            "manual_aliases_added": added_count if "added_count" in locals() else 0,
         }
-        # fmt: on
-        return dict(sorted(mapping.items())), statistics
+
+        return mapping, statistics
 
 
 def main():
@@ -831,6 +845,7 @@ if __name__ == "__main__":
     cfg_wiki_base_url = config.WIKI_BASE_URL
     in_file_wiki_all_pages_titles_file = paths.FILE_WIKI_ALL_PAGE_TITLES
     in_wiki_glossary_path = paths.WIKI_GLOSSARY_PATH
+    in_file_manual_aliases = paths.FILE_MANUAL_ALIASES
     out_wiki_original_path = paths.WIKI_ORIGINAL_PATH
     out_wiki_path = paths.WIKI_PATH
     out_log_path = paths.LOG_PATH

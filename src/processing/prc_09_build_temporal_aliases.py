@@ -183,6 +183,7 @@ def main():
         else:
             num_aliases_in_books += 1
             data["is_obvious_variant"] = False
+            data["source"] = "books"
 
     save_json_to_file(temporal_aliases, out_file_temporal_aliases, indent=2)
 

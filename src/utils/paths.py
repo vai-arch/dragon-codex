@@ -25,10 +25,12 @@ class Paths:
         self.DATA_PATH = self.PROJECT_ROOT_PATH / "data"
 
         # Raw -> Original unprocessed data files
+        self.ALIASES_PATH = self.DATA_PATH / "raw" / "aliases"
         self.BOOKS_PATH = self.DATA_PATH / "raw" / "books"
         self.WIKI_PATH = self.DATA_PATH / "raw" / "wiki"
         self.WIKI_GLOSSARY_PATH = self.DATA_PATH / "raw" / "wiki_glossary"
         self.WIKI_ORIGINAL_PATH = self.DATA_PATH / "raw" / "wiki_original"
+        self.FILE_MANUAL_ALIASES = self.ALIASES_PATH / "manual_aliases.json"
 
         # Processed -> Raw data transformed into structured format (still "data heavy")
         self.PROCESSED_PATH = self.DATA_PATH / "processed"
