@@ -11,13 +11,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import chromadb
-from chromadb.config import Settings
 from tqdm import tqdm
 
 from src.utils.config import get_config
 from src.utils.paths import get_paths
 from src.utils.util_statistics import total_statistics_logging
+from src.utils.vector_store.base_vector_store_manager import BaseVectorStoreManager
+from src.utils.vector_store.vector_store_factory import VectorStoreFactory, VectorStoreType
 
 config = None
 
@@ -65,7 +65,7 @@ def load_embeddings_from_pickle(filepath: Path) -> Tuple[List[dict], List[List[f
     return chunks, embeddings
 
 
-def create_chromadb_collection(client: chromadb.Client, collection_name: str, embedding_files: List[Path], description: str) -> Dict:
+def create_chromadb_collection(vector_store_manager: BaseVectorStoreManager, collection_name: str, embedding_files: List[Path], description: str) -> Dict:
     """
     Create or get a ChromaDB collection and populate it with embeddings.
 
@@ -83,7 +83,7 @@ def create_chromadb_collection(client: chromadb.Client, collection_name: str, em
     print(f"   Source files: {len(embedding_files)}")
 
     # Get or create collection
-    collection = client.get_or_create_collection(
+    collection = vector_store_manager.get_or_create_collection(
         name=collection_name,
         metadata={
             "description": description,
@@ -191,10 +191,10 @@ def create_chromadb_collection(client: chromadb.Client, collection_name: str, em
     return statistics
 
 
-def reset_collections(client):
+def reset_collections(vector_store_manager):
     print("🗑️  Resetting entire ChromaDB (all collections and files)...")
     try:
-        client.reset()  # This deletes ALL files and metadata
+        vector_store_manager.reset()  # This deletes ALL files and metadata
         print("  ✓ Full reset complete - all files removed")
     except Exception as e:
         print(f"  ❌ Reset failed: {e}")
@@ -213,10 +213,13 @@ def main():
 
     # Initialize ChromaDB client
     print("📊 Initializing ChromaDB client...")
-    client = chromadb.PersistentClient(path=str(out_vector_store_path), settings=Settings(anonymized_telemetry=False, allow_reset=True))
+    config = get_config()
+    vector_store_manager = VectorStoreFactory.create(store_type=VectorStoreType.CHROMA, path=paths.VECTOR_STORE_PATH, telemetry=config.CHROMA_TELEMETRY, allow_reset=True)
+
+    # chromadb.PersistentClient(path=str(out_vector_store_path), settings=Settings(anonymized_telemetry=False, allow_reset=True))
     print(f"  ✓ Client initialized at: {out_vector_store_path}")
 
-    reset_collections(client)
+    reset_collections(vector_store_manager)
 
     # Define collection mappings
     collections_config = {
@@ -256,7 +259,7 @@ def main():
         if not existing_files:
             raise ValueError(f"⚠️  Skipping {collection_name} - no embedding files found")
 
-        stats = create_chromadb_collection(client=client, collection_name=collection_name, embedding_files=existing_files, description=config["description"])
+        stats = create_chromadb_collection(vector_store_manager=vector_store_manager, collection_name=collection_name, embedding_files=existing_files, description=config["description"])
 
         all_statistics[collection_name] = stats
 

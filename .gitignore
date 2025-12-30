@@ -48,6 +48,7 @@ logs/
 
 # Data (too large for git)
 data/chunks/
+data/bm25/
 data/embeddings/
 data/processed/
 data/auxiliary/

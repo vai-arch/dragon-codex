@@ -125,6 +125,9 @@ class Paths:
         self.FILE_WIKI_CHUNKS_PROPHECIES = self.CHUNKS_PATH / "wiki_chunks_prophecies.jsonl"
         self.FILE_WIKI_CHUNKS_MAGIC = self.CHUNKS_PATH / "wiki_chunks_magic.jsonl"
         self.FILE_WIKI_CHUNKS_CONCEPT = self.CHUNKS_PATH / "wiki_chunks_concept.jsonl"
+        self.BM25_PATH = self.DATA_PATH / "bm25"
+        self.BM25_INDEX_PATH = self.BM25_PATH / "bm25_index"
+        self.FILE_BM25_MAPPING = self.BM25_PATH / "bm25_mapping.json"
 
         # Week 5: Embedding Storage
         # ---------------------------------------------------------------------

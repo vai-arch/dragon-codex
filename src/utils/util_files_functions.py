@@ -222,7 +222,7 @@ def load_txt_line_by_line(file, log=True):
         lines = f.readlines()
 
     if log:
-        logger(f"   Loaded: {len(lines):,} lines")
+        logger.info(f"   Loaded: {len(lines):,} lines")
 
     return lines
 

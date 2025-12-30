@@ -5,12 +5,11 @@ Core retrieval logic for querying ChromaDB collections.
 
 from typing import Dict, List, Optional
 
-import chromadb
-
 from src.utils.config import get_config, get_embedding_manager_config
 from src.utils.embedding.embedding_factory import create_embedding_manager
 from src.utils.logger import get_logger
 from src.utils.paths import get_paths
+from src.utils.vector_store.vector_store_factory import VectorStoreFactory, VectorStoreType
 
 logger = get_logger(__name__)
 
@@ -35,7 +34,7 @@ class Retriever:
         self.vsm = create_embedding_manager(config.EMBEDDING_MANAGER, get_embedding_manager_config(config.EMBEDDING_MANAGER))
 
         # Initialize ChromaDB client
-        self.client = chromadb.PersistentClient(path=str(paths.VECTOR_STORE_PATH), settings=chromadb.Settings(anonymized_telemetry=config.CHROMA_TELEMETRY))
+        self.vector_store_manager = VectorStoreFactory.create(store_type=VectorStoreType.CHROMA, path=paths.VECTOR_STORE_PATH, telemetry=config.CHROMA_TELEMETRY, allow_reset=False)
 
         # Load collections
         self.collections = {}
@@ -45,7 +44,7 @@ class Retriever:
         """Load all available ChromaDB collections"""
         try:
             # books collection (books)
-            self.collections[self.config.CHROMA_COLLECTION_BOOKS] = self.client.get_collection(name=self.config.CHROMA_COLLECTION_BOOKS)
+            self.collections[self.config.CHROMA_COLLECTION_BOOKS] = self.vector_store_manager.get_collection(name=self.config.CHROMA_COLLECTION_BOOKS)
             logger.info(f"✅ Loaded collection: narrative ({self.collections[self.config.CHROMA_COLLECTION_BOOKS].count()} chunks)")
 
         except Exception as e:
@@ -53,7 +52,7 @@ class Retriever:
 
         try:
             # Narrative collection (books + chronology + chapter summaries)
-            self.collections["narrative"] = self.client.get_collection(name=self.config.CHROMA_COLLECTION_NARRATIVE)
+            self.collections["narrative"] = self.vector_store_manager.get_collection(name=self.config.CHROMA_COLLECTION_NARRATIVE)
             logger.info(f"✅ Loaded collection: narrative ({self.collections['narrative'].count()} chunks)")
 
         except Exception as e:
@@ -61,7 +60,7 @@ class Retriever:
 
         try:
             # Reference collection (characters + concepts + magic + prophecies)
-            self.collections["reference"] = self.client.get_collection(name=self.config.CHROMA_COLLECTION_REFERENCE)
+            self.collections["reference"] = self.vector_store_manager.get_collection(name=self.config.CHROMA_COLLECTION_REFERENCE)
             logger.info(f"✅ Loaded collection: reference ({self.collections['reference'].count()} chunks)")
 
         except Exception as e:
