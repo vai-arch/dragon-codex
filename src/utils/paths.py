@@ -151,7 +151,7 @@ class Paths:
 
         self.VALIDATIONS_TESTS = self.DATA_PATH / "validation"
 
-        self.QUERY_CLASSIFIER_MODEL_PATH = self.DATA_PATH / "query_classifier_model_v0"
+        self.QUERY_CLASSIFIER_MODEL_PATH = self.DATA_PATH / "query_classifier_model"
         self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_MANUAL = self.DATA_PATH / "raw" / "query_classifier_model" / "manually_generated_queries.jsonl"
         self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_AUTOMATIC = self.DATA_PATH / "raw" / "query_classifier_model" / "automatically_generated_queries.jsonl"
         self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_ALL = self.DATA_PATH / "raw" / "query_classifier_model" / "all_training_queries.jsonl"

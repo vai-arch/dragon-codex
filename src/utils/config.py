@@ -93,15 +93,15 @@ class Config:
             "SAVE_TOTAL_LIMIT": 2,
             "LABELS": ["character", "concept", "plot_event", "prophecy", "magic_system", "cross_reference", "relationship", "timeline"],
             ## IN CPU
-            "EVAL_STRATEGY": "no",  # Critical: disables evaluation during training
-            "LOAD_BEST_MODEL_AT_END": False,  # Not needed without evaluation
-            "METRIC_FOR_BEST_MODEL": None,  # Not used
-            "FP16": False,  # False for CPU , True for GPU
+            # "EVAL_STRATEGY": "no",  # Critical: disables evaluation during training
+            # "LOAD_BEST_MODEL_AT_END": False,  # Not needed without evaluation
+            # "METRIC_FOR_BEST_MODEL": None,  # Not used
+            # "FP16": False,  # False for CPU , True for GPU
             ## IN GPU
-            # "EVAL_STRATEGY": "epoch",
-            # "LOAD_BEST_MODEL_AT_END": True,
-            # "METRIC_FOR_BEST_MODEL": "eval_f1_macro",
-            # "FP16": True,
+            "EVAL_STRATEGY": "epoch",
+            "LOAD_BEST_MODEL_AT_END": True,
+            "METRIC_FOR_BEST_MODEL": "eval_f1_macro",
+            "FP16": True,
         }
 
         # Final Parameters:

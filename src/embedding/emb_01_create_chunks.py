@@ -648,11 +648,11 @@ def main():
 
     statistics = []
 
-    # statistics.append(chunk_books())
+    statistics.append(chunk_books())
     statistics.append(chunk_character_pages())
-    # statistics.append(chunk_chapter_summary_pages())
-    # statistics.append(chunk_chronology_pages())
-    # statistics.extend(chunk_concept_pages())
+    statistics.append(chunk_chapter_summary_pages())
+    statistics.append(chunk_chronology_pages())
+    statistics.extend(chunk_concept_pages())
 
     total_time = (datetime.now() - start_time).total_seconds()
 

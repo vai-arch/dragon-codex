@@ -1,3 +1,4 @@
+import shutil
 import sys
 import traceback
 from datetime import datetime
@@ -154,6 +155,11 @@ def main():
         total_time=total_time,
     )
 
+    for sub in out_query_classifier_model_path.iterdir():
+        if sub.is_dir() and sub.name.startswith("checkpoint-"):
+            shutil.rmtree(sub)
+            print(f"🗑️ Removed: {sub}")
+
 
 if __name__ == "__main__":
     # Initialize paths from config
@@ -161,7 +167,7 @@ if __name__ == "__main__":
     config = get_config()
 
     # Input paths - embedding files
-    in_file_query_classification_training = paths.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA
+    in_file_query_classification_training = paths.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_ALL
 
     # Output paths - Query classifier model collections
     out_query_classifier_model_path = paths.QUERY_CLASSIFIER_MODEL_PATH
