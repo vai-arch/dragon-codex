@@ -5,12 +5,21 @@
 Query the complete Wheel of Time universe using local LLMs powered by Ollama. Get accurate, spoiler-free answers about characters, magic, prophecies, and more.
 
 ---
-
-                       Chunks        Segmentation             Model               Aliases           retrieval_quality
------------------  --------------   --------------    ----------------------    --------------    --------------------;
-   Phase 1A          Only Books      Paragraphs        Ollama / nomic-2048          No                0.4800
-   Phase 1A1         Only Books      Semantic          Ollama / nomic-2048          No                0.8186 (+70,5% )
-   Phase 1B          Only Books      Semantic          Ollama / nomic-2048     Simple Expansion       0.8396 (+2,5%)
+                                                                                               Question
+                     Chunks       Segmentation           Model              Aliases           Classifier     retrieval_quality
+---------------  -------------   --------------  ---------------------  ------------------  -------------  ---------------------;
+   Phase 1A        Only Books     Paragraphs      Ollama / nomic-2048         No                  N/A        0.4800
+   Phase 1A1       Only Books     Semantic        Ollama / nomic-2048         No                  N/A        0.8186 (+70,5%)
+   Phase 1B        Only Books     Semantic        Ollama / nomic-2048    Simple Expansion         N/A        0.8396 (+2,5%)
+   Phase 1B1       Only Books     Semantic        Ollama / nomic-2048    Expansion + BM25         N/A        0.8502 (+1,3%)
+   Phase 2A       + Characters    Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2B       + Concepts      Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2C       + Magic         Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2D       + Prophecy      Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2E       + Timeline      Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2F       + Plot Event    Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2G       + Relationship  Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
+   Phase 2H       + Cross_ref.    Semantic        Ollama / nomic-2048    Expansion + BM25       Model v0
 
 ### Chunks
 

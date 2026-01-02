@@ -98,6 +98,7 @@ class Paths:
         self.FILE_WIKI_CHAPTER_SUMMARY = self.PROCESSED_WIKI_PATH / "wiki_chapter_summary.json"
         # Parsed concept pages (2,716 concepts: places, terms, magic, prophecies, etc.)
         self.FILE_WIKI_CONCEPT = self.PROCESSED_WIKI_PATH / "wiki_concept.json"
+        self.FILE_WIKI_TIMELINE = self.PROCESSED_WIKI_PATH / "wiki_timeline.json"
 
         # Week 3 Goal 3: Character Index
         # ---------------------------------------------------------------------
@@ -107,7 +108,9 @@ class Paths:
         self.FILE_PROPHECY_INDEX = self.METADATA_WIKI_PATH / "prophecy_index.json"
         # Index of One Power magic system (weaves, objects, terms, strength rankings)
         self.FILE_MAGIC_SYSTEM_INDEX = self.METADATA_WIKI_PATH / "magic_system_index.json"
-        # Index of WoT concepts (locations, creatures, items, historical events, culture)
+        # Index of timeline
+        self.FILE_TIMELINE_INDEX = self.METADATA_WIKI_PATH / "timeline_index.json"
+        # Index of WoT concepts (locations, creatures, items, culture)
         self.FILE_CONCEPT_INDEX = self.METADATA_WIKI_PATH / "concept_index.json"
 
         # Week 2: Book Processing (Pending)
@@ -124,6 +127,7 @@ class Paths:
         self.FILE_WIKI_CHUNKS_CHRONOLOGY = self.CHUNKS_PATH / "wiki_chunks_chronology.jsonl"
         self.FILE_WIKI_CHUNKS_PROPHECIES = self.CHUNKS_PATH / "wiki_chunks_prophecies.jsonl"
         self.FILE_WIKI_CHUNKS_MAGIC = self.CHUNKS_PATH / "wiki_chunks_magic.jsonl"
+        self.FILE_WIKI_CHUNKS_TIMELINE = self.CHUNKS_PATH / "wiki_chunks_timeline.jsonl"
         self.FILE_WIKI_CHUNKS_CONCEPT = self.CHUNKS_PATH / "wiki_chunks_concept.jsonl"
         self.BM25_PATH = self.DATA_PATH / "bm25"
         self.BM25_INDEX_PATH = self.BM25_PATH / "bm25_index"
@@ -141,19 +145,16 @@ class Paths:
         self.FILE_WIKI_CHRONOLOGY_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.embeddings.pkl"
         self.FILE_WIKI_PROPHECIES_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_prophecies.embeddings.pkl"
         self.FILE_WIKI_MAGIC_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_magic.embeddings.pkl"
-
-        # Temporary partial embedding files (used during checkpointing)
-        # self.FILE_BOOK_PARTIAL = self.EMBEDDINGS_PATH / "book_chunks.partial.pkl"
-        # self.FILE_WIKI_CHARACTER_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_character.partial.pkl"
-        # self.FILE_WIKI_CONCEPT_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_concept.partial.pkl"
-        # self.FILE_WIKI_MAGIC_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_magic.partial.pkl"
-        # self.FILE_WIKI_PROPHECIES_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_prophecies.partial.pkl"
-        # self.FILE_WIKI_CHAPTER_SUMMARY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chapter_summary.partial.pkl"
-        # self.FILE_WIKI_CHRONOLOGY_PARTIAL = self.EMBEDDINGS_PATH / "wiki_chunks_chronology.partial.pkl"
+        self.FILE_WIKI_TIMELINE_EMBEDDINGS = self.EMBEDDINGS_PATH / "wiki_chunks_timeline.embeddings.pkl"
 
         self.FILE_TEST_QUESTIONS = self.RETRIEVAL_TESTING_PATH / "questions_100.json"
 
         self.VALIDATIONS_TESTS = self.DATA_PATH / "validation"
+
+        self.QUERY_CLASSIFIER_MODEL_PATH = self.DATA_PATH / "query_classifier_model_v0"
+        self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_MANUAL = self.DATA_PATH / "raw" / "query_classifier_model" / "manually_generated_queries.jsonl"
+        self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_AUTOMATIC = self.DATA_PATH / "raw" / "query_classifier_model" / "automatically_generated_queries.jsonl"
+        self.FILE_QUERY_CLASSIFIER_MODEL_TRAINING_DATA_ALL = self.DATA_PATH / "raw" / "query_classifier_model" / "all_training_queries.jsonl"
 
         self._create_directories()
 

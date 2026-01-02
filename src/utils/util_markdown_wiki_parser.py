@@ -20,6 +20,7 @@ from src.utils.util_files_functions import load_json_from_file, load_text_from_f
 from src.utils.wiki_constants import (
     ALL_MAGIC_CATEGORIES,
     ALL_PROPHECIES_CATEGORIES,
+    ALL_TIMELINE_CATEGORIES,
     CATEGORIES_TO_SKIP,
     REDIRECT_CATEGORIES,
     extract_categories,
@@ -37,7 +38,7 @@ def classify_page_type(filename: str, categories: List[str]) -> str:
         categories: List of page categories
 
     Returns:
-        str: One of: 'SKIP', 'CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'PROPHECIES', 'MAGIC', 'CONCEPT'
+        str: One of: 'SKIP', 'CHRONOLOGY', 'CHARACTER', 'CHAPTER_SUMMARY', 'PROPHECIES', 'MAGIC', 'CONCEPT', 'TIMELINE'
     """
 
     # Skip files with no categories
@@ -64,13 +65,17 @@ def classify_page_type(filename: str, categories: List[str]) -> str:
     if "Chapter_summaries" in categories:
         return "CHAPTER_SUMMARY"
 
-    # Skip redirect pages
+    # Prophecies pages
     if any(cat in ALL_PROPHECIES_CATEGORIES for cat in categories):
         return "PROPHECIES"
 
-    # Skip redirect pages
+    # Magic pages
     if any(cat in ALL_MAGIC_CATEGORIES for cat in categories):
         return "MAGIC"
+
+    # Timeline pages
+    if any(cat in ALL_TIMELINE_CATEGORIES for cat in categories):
+        return "TIMELINE"
 
     # Everything else is a concept/place/event page
     return "CONCEPT"
@@ -456,6 +461,8 @@ def parse_wiki_file(filepath: Path, categories: List[str]) -> Optional[Dict]:
         return parse_concept_page(filepath, content, metadata, concept_type="PROPHECIES")
     elif page_type == "MAGIC":
         return parse_concept_page(filepath, content, metadata, concept_type="MAGIC")
+    elif page_type == "TIMELINE":
+        return parse_concept_page(filepath, content, metadata, concept_type="TIMELINE")
     elif page_type == "CONCEPT":
         return parse_concept_page(filepath, content, metadata, concept_type="CONCEPT")
 
@@ -473,7 +480,7 @@ def main():
     paths = get_paths()
 
     if len(sys.argv) < 3:
-        wiki_file = paths.WIKI_PATH / "Two_Rivers.txt"
+        wiki_file = paths.WIKI_PATH / "1000_NE.txt"
         categories_json = paths.FILE_FILENAME_TO_CATEGORIES
     else:
         wiki_file = Path(sys.argv[1])

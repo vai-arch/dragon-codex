@@ -24,11 +24,13 @@ class ConceptMagicProphecyTagger:
         self.concept_terms = {}
         self.magic_terms = {}
         self.prophecy_terms = {}
+        self.timeline_terms = {}
 
         self.ac_characters = None
         self.ac_concepts = None
         self.ac_magic = None
         self.ac_prophecy = None
+        self.ac_timeline = None
 
         self._load_indexes()
 
@@ -65,17 +67,20 @@ class ConceptMagicProphecyTagger:
         self.concept_terms, concept_index = load_index(in_file_concept_index)
         self.magic_terms, magic_index = load_index(in_file_magic_index)
         self.prophecy_terms, prophecy_index = load_index(in_file_prophecy_index)
+        self.timeline_terms, timeline_index = load_index(in_file_timeline_index)
 
         print(f"✓ Loaded {len(char_index)} characters ({len(self.character_terms)} with aliases)")
         print(f"✓ Loaded {len(concept_index)} concepts ({len(self.concept_terms)} with aliases)")
         print(f"✓ Loaded {len(magic_index)} magic ({len(self.magic_terms)} with aliases)")
         print(f"✓ Loaded {len(prophecy_index)} prophecies ({len(self.prophecy_terms)} with aliases)")
+        print(f"✓ Loaded {len(timeline_index)} prophecies ({len(self.timeline_terms)} with aliases)")
 
         # Build AC automatons
         self.ac_characters = self.build_ac_automaton(self.character_terms)
         self.ac_concepts = self.build_ac_automaton(self.concept_terms)
         self.ac_magic = self.build_ac_automaton(self.magic_terms)
         self.ac_prophecy = self.build_ac_automaton(self.prophecy_terms)
+        self.ac_timeline = self.build_ac_automaton(self.timeline_terms)
 
     def extract_mentions(self, text: str, automaton, topic_name: str = None) -> list:
         """
@@ -117,10 +122,12 @@ class ConceptMagicProphecyTagger:
             "concepts": 0,
             "magic": 0,
             "prophecies": 0,
+            "timeline": 0,
             "total_characters": 0,
             "total_concepts": 0,
             "total_magic": 0,
             "total_prophecies": 0,
+            "total_timeline": 0,
         }
 
         pbar = tqdm(chunks, desc="Processing chunks", dynamic_ncols=True, leave=False, file=sys.stderr)
@@ -135,24 +142,30 @@ class ConceptMagicProphecyTagger:
             concept_mentions = self.extract_mentions(text, self.ac_concepts, topic_name)
             magic_mentions = self.extract_mentions(text, self.ac_magic, topic_name)
             prophecy_mentions = self.extract_mentions(text, self.ac_prophecy, topic_name)
+            timeline_mentions = self.extract_mentions(text, self.ac_timeline, topic_name)
 
             # Update chunk
             chunk["character_mentions"] = character_mentions
             chunk["concept_mentions"] = concept_mentions
             chunk["magic_mentions"] = magic_mentions
             chunk["prophecy_mentions"] = prophecy_mentions
+            chunk["timeline_mentions"] = timeline_mentions
 
             # Update counters
             counters["characters"] += int(bool(character_mentions))
             counters["concepts"] += int(bool(concept_mentions))
             counters["magic"] += int(bool(magic_mentions))
             counters["prophecies"] += int(bool(prophecy_mentions))
+            counters["timeline"] += int(bool(timeline_mentions))
             counters["total_characters"] += len(character_mentions)
             counters["total_concepts"] += len(concept_mentions)
             counters["total_magic"] += len(magic_mentions)
             counters["total_prophecies"] += len(prophecy_mentions)
+            counters["total_timeline"] += len(timeline_mentions)
 
-            pbar.set_postfix_str(f"Characters: {counters['characters']}, Concepts: {counters['concepts']}, Magic: {counters['magic']}, Prophecies: {counters['prophecies']}")
+            pbar.set_postfix_str(
+                f"Characters: {counters['characters']}, Concepts: {counters['concepts']}, Magic: {counters['magic']}, Prophecies: {counters['prophecies']}, Timeline: {counters['timeline']}"
+            )
 
         save_jsonl_to_file(chunks, file_path)
         print(f"   ✅ Enriched {len(chunks):,} chunks")
@@ -173,6 +186,7 @@ def main():
         (inout_file_wiki_chunks_concept, "Wiki Concept"),
         (inout_file_wiki_chunks_magic, "Wiki Magic"),
         (inout_file_wiki_chunks_prophecies, "Wiki Prophecy"),
+        (inout_file_wiki_chunks_timeline, "Wiki Timeline"),
     ]
 
     results = {}
@@ -184,7 +198,7 @@ def main():
 
     statistics = []
     for chunk_type, stats in results.items():
-        total_chunks = max(stats.get("characters", 0), stats.get("concepts", 0), stats.get("magic", 0), stats.get("prophecies", 0))
+        total_chunks = max(stats.get("characters", 0), stats.get("concepts", 0), stats.get("magic", 0), stats.get("prophecies", 0), stats.get("timeline", 0))
         if total_chunks == 0:
             total_chunks = 1
         resultado = {
@@ -193,6 +207,7 @@ def main():
                 "Characters": (stats.get("characters", 0), stats.get("characters", 0) / total_chunks * 100),
                 "Concepts": (stats.get("concepts", 0), stats.get("concepts", 0) / total_chunks * 100),
                 "Magic": (stats.get("magic", 0), stats.get("magic", 0) / total_chunks * 100),
+                "Timeline": (stats.get("timeline", 0), stats.get("timeline", 0) / total_chunks * 100),
                 "Prophecies": (stats.get("prophecies", 0), stats.get("prophecies", 0) / total_chunks * 100),
                 "Total Chunks": total_chunks,
             },
@@ -213,6 +228,7 @@ if __name__ == "__main__":
     in_file_concept_index = paths.FILE_CONCEPT_INDEX
     in_file_magic_index = paths.FILE_MAGIC_SYSTEM_INDEX
     in_file_prophecy_index = paths.FILE_PROPHECY_INDEX
+    in_file_timeline_index = paths.FILE_TIMELINE_INDEX
 
     inout_file_wiki_chunks_chapter_summary = paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY
     inout_file_wiki_chunks_character = paths.FILE_WIKI_CHUNKS_CHARACTER
@@ -221,6 +237,7 @@ if __name__ == "__main__":
     inout_file_wiki_chunks_concept = paths.FILE_WIKI_CHUNKS_CONCEPT
     inout_file_wiki_chunks_prophecies = paths.FILE_WIKI_CHUNKS_PROPHECIES
     inout_file_wiki_chunks_magic = paths.FILE_WIKI_CHUNKS_MAGIC
+    inout_file_wiki_chunks_timeline = paths.FILE_WIKI_CHUNKS_TIMELINE
 
     try:
         exit_code = main()

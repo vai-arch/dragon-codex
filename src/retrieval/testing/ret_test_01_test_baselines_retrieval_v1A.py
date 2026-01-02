@@ -26,7 +26,7 @@ from src.utils.paths import get_paths
 from src.utils.util_files_functions import load_json_from_file, save_json_to_file
 from src.utils.util_statistics import total_statistics_logging
 
-_phase = "1B"
+_phase = "2A"
 
 
 def parse_sample_citation(citation: str) -> list[dict]:

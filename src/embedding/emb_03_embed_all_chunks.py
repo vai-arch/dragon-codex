@@ -458,15 +458,15 @@ if __name__ == "__main__":
     out_embedding_path = paths.EMBEDDINGS_PATH
     aux_file_embedding_checklpoint = paths.FILE_EMBEDDING_CHECKPOINT
 
-    # TODO PHASE 1A just embedding books
     in_files_to_embed = [
-        (paths.FILE_BOOK_CHUNKS, 80000, "Books"),
-        (paths.FILE_WIKI_CHUNKS_CHRONOLOGY, 80000, "Wiki Chronology"),
+        # (paths.FILE_BOOK_CHUNKS, 80000, "Books"),
+        # (paths.FILE_WIKI_CHUNKS_CHRONOLOGY, 80000, "Wiki Chronology"),
         (paths.FILE_WIKI_CHUNKS_CHARACTER, 80000, "Wiki Character"),
-        (paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY, 80000, "Wiki Chapter Summary"),
-        (paths.FILE_WIKI_CHUNKS_CONCEPT, 80000, "Wiki Concept"),
-        (paths.FILE_WIKI_CHUNKS_PROPHECIES, 80000, "Wiki Prophecy"),
-        (paths.FILE_WIKI_CHUNKS_MAGIC, 80000, "Wiki Magic"),
+        # (paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY, 80000, "Wiki Chapter Summary"),
+        # (paths.FILE_WIKI_CHUNKS_CONCEPT, 80000, "Wiki Concept"),
+        # (paths.FILE_WIKI_CHUNKS_PROPHECIES, 80000, "Wiki Prophecy"),
+        # (paths.FILE_WIKI_CHUNKS_MAGIC, 80000, "Wiki Magic"),
+        # (paths.FILE_WIKI_CHUNKS_TIMELINE, 80000, "Wiki Timeline"),
     ]
 
     try:

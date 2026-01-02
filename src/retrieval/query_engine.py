@@ -3,14 +3,16 @@ Dragon's Codex - Query Engine
 Handles query processing, classification, and collection routing.
 """
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
-from src.retrieval.dynamic_query_classifier import DynamicQueryClassifier
-from src.retrieval.query_expander import expand_query_safe
+import torch
+
 from src.retrieval.retriever import Retriever
 from src.utils.config import get_config
 from src.utils.logger import get_logger
 from src.utils.paths import get_paths
+from src.utils.query_classification.query_classifier import QueryClassifier
+from src.utils.util_files_functions import load_json_from_file
 
 logger = get_logger(__name__)
 
@@ -38,20 +40,8 @@ class QueryEngine:
         self.paths = paths
         self.retriever = Retriever(config)
 
-        # Initialize dynamic classifier (learns from indexes)
-        self.classifier = DynamicQueryClassifier(config, paths)
-
-    def classify_query(self, query_text: str) -> Tuple[str, float]:
-        """
-        Classify query into category using dynamic classifier
-
-        Args:
-            query_text: Query string
-
-        Returns:
-            tuple: (category, confidence)
-        """
-        return self.classifier.classify_query(query_text)
+        self.character_index = load_json_from_file(paths.FILE_CHARACTER_INDEX)
+        self.classifier = QueryClassifier(device=0 if torch.cuda.is_available() else -1)
 
     def route_query(
         self,
@@ -60,135 +50,122 @@ class QueryEngine:
         temporal_limit: Optional[int] = None,
     ) -> Dict[str, any]:
         """
-        PHASE 1 ONLY: Force books-only retrieval
-        Disable classifier and reference/wiki collections
+        Phase 2: Intelligent routing with classifier and character priority
+        - Classify query (or override)
+        - Character: wiki_content_character primary + books fallback + alias expansion
+        - Other: books default (expand later)
+        - Temporal limit preserved
         """
-        # TODO PHASE 1A Hard-code for Phase 1 safety
-        book_collection_name = "books"  # ← Change if your book collection has a different name (e.g., "books")
 
-        logger.info("🔒 PHASE 1 MODE: Forcing retrieval from books only (no wiki/reference collections)")
+        # Classification
+        if category is None:
+            classification = self.classifier.classify(query_text)
+            category = classification["category"]
+            confidence = classification["confidence"]
+        else:
+            confidence = 1.0
+
+        logger.info(f"Routing query | Category: {category} (conf: {confidence:.2f}) | Temporal limit: {temporal_limit}")
+
+        # Default
+        collections = []
+        top_k_per = {}
+        expanded_query = query_text
+        routing_strategy = "default"
+
+        if category == "character":
+            # Alias expansion for better retrieval
+            query_lower = query_text.lower()
+            for char_data in self.character_index.values():
+                primary = char_data["primary_name"].lower()
+                aliases = [a.lower() for a in char_data.get("aliases", [])]
+                all_names = [primary] + aliases
+                if any(name in query_lower for name in all_names):
+                    expanded_query = f"{query_text} {char_data['primary_name']} {' '.join(char_data.get('aliases', []))}"
+                    break
+
+            # Primary: wiki characters (narrative arcs)
+            collections.append(self.config.CHROMA_COLLECTION_CHARACTERS)
+            top_k_per[self.config.CHROMA_COLLECTION_CHARACTERS] = 15
+
+            # Fallback: books (event details)
+            collections.append(self.config.CHROMA_COLLECTION_BOOKS)
+            top_k_per[self.config.CHROMA_COLLECTION_BOOKS] = 10
+
+            routing_strategy = "character_wiki_primary"
+        else:
+            # Non-character (concept, prophecy, plot_event, etc.) — books for now
+            collections.append("books")
+            top_k_per["books"] = 20
+            routing_strategy = "non_character_books"
 
         return {
-            "category": "phase1_books_only",  # Clear indicator
-            "confidence": 1.0,
-            "collections_used": [book_collection_name],
-            "top_k_per_collection": 10,  # Keep consistent with baseline
-            "routing_strategy": "phase1_books_only",
+            "category": category,
+            "confidence": confidence,
+            "collections_used": collections,
+            "top_k_per_collection": top_k_per,
+            "routing_strategy": routing_strategy,
             "temporal_limit": temporal_limit,
+            "expanded_query": expanded_query,
         }
 
-    def route_query_phase1c(self, query_text: str, category: Optional[str] = None, temporal_limit: Optional[int] = None) -> Dict[str, any]:
-        """
-        Route query to appropriate collection(s)
-
-        Args:
-            query_text: Query string
-            category: Pre-classified category (if None, auto-classify)
-            temporal_limit: Temporal filter
-
-        Returns:
-            dict with:
-                - category: Detected category
-                - confidence: Classification confidence
-                - collections_used: Which collections were queried
-                - routing_strategy: How collections were chosen
-        """
-        # THIS IS JUST FOR PHASE I
-        if category is None:
-            # Timeline queries: Narrative focus (chronology pages + book events)
-            collections = ["narrative"]
-            top_k = 10
-            strategy = "phase_I"
-            confidence = 1.0
-        else:
-            # Classify if not provided
-            if category is None:
-                category, confidence = self.classify_query(query_text)
-            else:
-                confidence = 1.0
-
-            # Route based on category
-            if category == "character":
-                # Character queries: Use both collections (wiki has character pages, books have arcs)
-                collections = ["narrative", "reference"]
-                top_k = 5  # 5 per collection = 10 total
-                strategy = "both_collections_character_focus"
-
-            elif category == "concept":
-                # Concept queries: Reference first (wiki definitions), narrative second
-                collections = ["reference", "narrative"]
-                top_k = 5
-                strategy = "reference_primary_narrative_secondary"
-
-            elif category == "magic":
-                # Magic queries: Reference (magic system index) + narrative (examples)
-                collections = ["reference", "narrative"]
-                top_k = 5
-                strategy = "reference_primary_narrative_secondary"
-
-            elif category == "prophecy":
-                # Prophecy queries: Reference (prophecy index) + narrative (events)
-                collections = ["reference", "narrative"]
-                top_k = 5
-                strategy = "reference_primary_narrative_secondary"
-
-            elif category == "timeline":
-                # Timeline queries: Narrative focus (chronology pages + book events)
-                collections = ["narrative"]
-                top_k = 10
-                strategy = "narrative_only_temporal_focus"
-
-            else:  # 'general'
-                # General queries: Both collections, balanced
-                collections = ["narrative", "reference"]
-                top_k = 5
-                strategy = "balanced_both_collections"
-
-        logger.info(f"🔀 Routing: {category} → {strategy}")
-
-        return {"category": category, "confidence": confidence, "collections_used": collections, "top_k_per_collection": top_k, "routing_strategy": strategy, "temporal_limit": temporal_limit}
-
-    def execute_query(self, query_text: str, temporal_limit: Optional[int] = None, force_category: Optional[str] = None, top_k: Optional[int] = None) -> Dict:
+    def execute_query(
+        self,
+        query_text: str,
+        temporal_limit: Optional[int] = None,
+        force_category: Optional[str] = None,
+        top_k: Optional[int] = None,
+    ) -> Dict:
         """
         Execute complete query pipeline: classify → route → retrieve
 
         Args:
-            query_text: Query string
-            temporal_limit: Temporal filter (book number)
-            force_category: Override auto-classification
-            top_k: Override default top_k
+            query_text: Original query string
+            temporal_limit: Book limit for spoiler control
+            force_category: Override classifier
+            top_k: Override per-collection top_k
 
         Returns:
-            dict with:
-                - query: Original query
-                - category: Detected/forced category
-                - routing: Routing information
-                - results: Retrieved chunks
-                - metadata: Query metadata
+            dict with query results, routing, metadata
         """
         logger.info(f"\n{'=' * 70}")
         logger.info(f"🔍 QUERY: {query_text}")
+        if temporal_limit is not None:
+            logger.info(f"⏳ Temporal limit: up to book {temporal_limit}")
         logger.info(f"{'=' * 70}")
 
-        # Route query
-        routing = self.route_query(query_text=query_text, category=force_category, temporal_limit=temporal_limit)
+        # Phase 2 routing with classifier + alias expansion
+        routing = self.route_query(
+            query_text=query_text,
+            category=force_category,
+            temporal_limit=temporal_limit,
+        )
 
-        expanded_terms = expand_query_safe(query=query_text, temporal_limit=temporal_limit)
+        # Use expanded query from routing (includes aliases)
+        final_query = routing.get("expanded_query", query_text)
 
-        query_text = query_text + " " + " ".join(expanded_terms)
+        logger.info(f"📝 Final query (with expansion): {final_query}")
+        logger.info(f"🎯 Category: {routing['category']} (conf: {routing['confidence']:.2f})")
+        logger.info(f"🗂️ Collections: {routing['collections_used']}")
+        logger.info(f"🔢 Top-k: {routing['top_k_per_collection']}")
+        logger.info(f"🛡️ Routing strategy: {routing['routing_strategy']}")
 
-        # Override top_k if specified
+        # Override top_k if user specified
         if top_k is not None:
-            routing["top_k_per_collection"] = top_k
+            routing["top_k_per_collection"] = {coll: top_k for coll in routing["collections_used"]}
 
         # Execute retrieval
         retrieval_result = self.retriever.query_multiple_collections(
-            query_text=query_text, collections=routing["collections_used"], top_k_per_collection=routing["top_k_per_collection"], temporal_limit=temporal_limit
+            query_text=final_query,
+            collections=routing["collections_used"],
+            top_k_per_collection=routing["top_k_per_collection"],
+            temporal_limit=temporal_limit,
         )
 
-        # Combine results
+        # Final result
         result = {
-            "query": query_text,
+            "query": query_text,  # Original
+            "expanded_query": final_query,
             "category": routing["category"],
             "confidence": routing["confidence"],
             "routing": routing,
@@ -196,7 +173,7 @@ class QueryEngine:
             "metadata": {
                 "total_chunks_retrieved": retrieval_result["total_results"],
                 "collections_queried": routing["collections_used"],
-                "temporal_limit_applied": temporal_limit is not None,
+                "temporal_limit_applied": temporal_limit,
                 "routing_strategy": routing["routing_strategy"],
             },
         }

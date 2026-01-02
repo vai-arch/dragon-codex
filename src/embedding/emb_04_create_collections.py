@@ -216,7 +216,6 @@ def main():
     config = get_config()
     vector_store_manager = VectorStoreFactory.create(store_type=VectorStoreType.CHROMA, path=paths.VECTOR_STORE_PATH, telemetry=config.CHROMA_TELEMETRY, allow_reset=True)
 
-    # chromadb.PersistentClient(path=str(out_vector_store_path), settings=Settings(anonymized_telemetry=False, allow_reset=True))
     print(f"  ✓ Client initialized at: {out_vector_store_path}")
 
     reset_collections(vector_store_manager)
@@ -229,24 +228,29 @@ def main():
                 in_file_book_embeddings,  # Only this one
             ],
         },
-        # TODO PHASE 1A
-        # out_collection_narrative: {
-        #     "description": "Narrative content: story events, chronologies, and chapter summaries",
-        #     "files": [
-        #         in_file_book_embeddings,
-        #         in_file_wiki_chronology_embeddings,
-        #         in_file_wiki_chapter_summary_embeddings,
-        #     ],
-        # },
-        # out_collection_reference: {
-        #     "description": "Reference content: characters, concepts, magic system, and prophecies",
-        #     "files": [
-        #         in_file_wiki_character_embeddings,
-        #         in_file_wiki_concept_embeddings,
-        #         in_file_wiki_magic_embeddings,
-        #         in_file_wiki_prophecy_embeddings,
-        #     ],
-        # },
+        out_collection_characters: {
+            "description": "All the characters from WIKI",
+            "files": [
+                in_file_wiki_character_embeddings,  # Only this one
+            ],
+        },
+        out_collection_narrative: {
+            "description": "Narrative content: story events, chronologies, and chapter summaries",
+            "files": [
+                in_file_book_embeddings,
+                in_file_wiki_chronology_embeddings,
+                in_file_wiki_chapter_summary_embeddings,
+            ],
+        },
+        out_collection_reference: {
+            "description": "Reference content: concepts, magic system, timeline and prophecies",
+            "files": [
+                in_file_wiki_concept_embeddings,
+                in_file_wiki_magic_embeddings,
+                in_file_wiki_prophecy_embeddings,
+                in_file_wiki_timeline_embeddings,
+            ],
+        },
     }
 
     # Build collections
@@ -295,10 +299,12 @@ if __name__ == "__main__":
     in_file_wiki_concept_embeddings = paths.FILE_WIKI_CONCEPT_EMBEDDINGS
     in_file_wiki_prophecy_embeddings = paths.FILE_WIKI_PROPHECIES_EMBEDDINGS
     in_file_wiki_magic_embeddings = paths.FILE_WIKI_MAGIC_EMBEDDINGS
+    in_file_wiki_timeline_embeddings = paths.FILE_WIKI_TIMELINE_EMBEDDINGS
 
     # Output paths - ChromaDB collections
     out_vector_store_path = paths.VECTOR_STORE_PATH
     out_collection_books = config.CHROMA_COLLECTION_BOOKS
+    out_collection_characters = config.CHROMA_COLLECTION_CHARACTERS
     out_collection_narrative = config.CHROMA_COLLECTION_NARRATIVE
     out_collection_reference = config.CHROMA_COLLECTION_REFERENCE
 

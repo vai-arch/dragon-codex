@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from src.utils.paths import get_paths
 from src.utils.util_files_functions import save_json_to_file
 
-_phase = "1B"
+_phase = "2A"
 
 
 def load_data(questions_file, phase_file):
@@ -39,14 +39,14 @@ def semantic_match(expected, chunks_text):
     all_texts = [" ".join(expected)] + chunks_text
     tfidf_matrix = vectorizer.fit_transform([clean_text(t) for t in all_texts])
     sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).mean()
-    return sim
+    return min(sim, 1.0)  # Cap at 1.0
 
 
 def source_match(sample_citation, chunks):
     if not sample_citation:
         return 5.0
-    expected_sources = [clean_text(s.strip()) for s in sample_citation.split(";")]
-    chunk_sources = [clean_text(c.get("source", "") + " " + c.get("source_file", "") + " " + str(c.get("book_number", ""))) for c in chunks]
+    expected_sources = [s.strip().lower() for s in sample_citation.split(";")]
+    chunk_sources = [str(c.get("source", "") + " " + c.get("source_file", "") + " " + str(c.get("book_number", ""))).lower() for c in chunks]
     matches = sum(any(es in cs for cs in chunk_sources) for es in expected_sources)
     return (matches / len(expected_sources)) * 5
 
@@ -95,25 +95,20 @@ def score_question(q, res):
     chunks = res.get("retrieved_chunks", [])
     chunks_text = [c["text"] for c in chunks]
 
-    # <<< IMPROVEMENT 3: Sub-scores
+    # Sub-scores (0-1)
     coverage = keyword_overlap(expected_topics, chunks_text)
     precision = sum(any(clean_text(exp) in clean_text(chunk) for exp in expected_topics) for chunk in chunks_text)
     precision = precision / len(chunks_text) if chunks_text else 0.0
     semantic_sim = semantic_match(expected_topics, chunks_text)
 
-    # Combine into single retrieval_quality (average of coverage, precision, semantic)
-    retrieval_quality = (coverage + precision + semantic_sim) / 3 * 5
+    # Retrieval quality: average sub-scores * 5 (cap at 5.0)
+    retrieval_quality = min((coverage + precision + semantic_sim) / 3 * 5, 5.0)
 
-    # <<< IMPROVEMENT 2: Better citation scoring
     source_citations = source_match(q.get("sample_citation", ""), chunks)
-
-    # <<< IMPROVEMENT 5: Separate spoiler
     spoiler_prevention = spoiler_check(q.get("temporal_limit"), chunks)
 
-    # <<< IMPROVEMENT 4: Diagnostics
     diagnostics = get_diagnostics(q, res)
 
-    # <<< IMPROVEMENT 1: Smarter flagging
     flag = retrieval_quality < 2.5 or source_citations < 2.0 or spoiler_prevention == "Fail" or diagnostics["coverage_ratio"] < 0.3
 
     return {

@@ -373,6 +373,38 @@ MAGIC_WEAPONS = {
 # =============================================================================
 ALL_MAGIC_CATEGORIES = POWER_OBJECTS | ONE_POWER_CONCEPTS | MAGIC_PLACES | MAGIC_ENTITIES | MAGIC_WEAPONS
 
+# TIMELINE: (Historical) Time periods, events, wars
+TIMELINE_CATEGORIES = {
+    "Ages",
+    "First_Age",
+    "Second_Age",
+    "Third_Age",
+    "Fourth_Age",
+    "Age_of_Legends",
+    "After_the_Breaking",
+    "New_Era",
+    "New_Era_chronology",
+    "The_Free_Years",
+    "People_of_the_Free_Years",
+    "Battles",
+    "Wars",
+    "Timeline",
+    "Time",
+    "Dates",
+    "History",
+    "Historical",
+    "Historical_people",
+    "Dreadlords",
+    "Jenn_Aiel",
+    "Languages",
+    "Old_Tongue",
+    "Phrases",
+    "Slang",
+    "Legends",
+}
+
+ALL_TIMELINE_CATEGORIES = TIMELINE_CATEGORIES
+
 # =============================================================================
 # ALL PROPHECIES CATEGORIES (for easy checking)
 # =============================================================================
@@ -597,36 +629,6 @@ ITEM_CATEGORIES = {
     "Measurements",
 }
 
-# HISTORICAL: Time periods, events, wars
-HISTORICAL_CATEGORIES = {
-    "Ages",
-    "First_Age",
-    "Second_Age",
-    "Third_Age",
-    "Fourth_Age",
-    "Age_of_Legends",
-    "After_the_Breaking",
-    "New_Era",
-    "New_Era_chronology",
-    "The_Free_Years",
-    "People_of_the_Free_Years",
-    "Battles",
-    "Wars",
-    "Timeline",
-    "Time",
-    "Dates",
-    "History",
-    "Historical",
-    "Historical_people",
-    "Dreadlords",
-    "Jenn_Aiel",
-    "Languages",
-    "Old_Tongue",
-    "Phrases",
-    "Slang",
-    "Legends",
-}
-
 # CULTURAL: Customs, traditions, songs, holidays
 CULTURAL_CATEGORIES = {
     "Culture",
@@ -712,7 +714,7 @@ ORGANIZATION_CATEGORIES = {
 # =============================================================================
 # ALL CONCEPT CATEGORIES (for easy checking)
 # =============================================================================
-ALL_CONCEPT_CATEGORIES = LOCATION_CATEGORIES | CREATURE_CATEGORIES | ITEM_CATEGORIES | HISTORICAL_CATEGORIES | CULTURAL_CATEGORIES | CONCEPT_CATEGORIES | ORGANIZATION_CATEGORIES
+ALL_CONCEPT_CATEGORIES = LOCATION_CATEGORIES | CREATURE_CATEGORIES | ITEM_CATEGORIES | CULTURAL_CATEGORIES | CONCEPT_CATEGORIES | ORGANIZATION_CATEGORIES
 
 # =============================================================================
 # CATEGORIES TO SKIP (for easy checking)

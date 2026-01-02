@@ -15,6 +15,7 @@ Input: data/processed/wiki/wiki_character.json
 Output: data/metadata/wiki/character_index.json
 """
 
+import re
 import sys
 import traceback
 from datetime import datetime
@@ -37,6 +38,7 @@ from src.utils.wiki_constants import (
     SOCIAL_ROLES,
     SPECIAL_ABILITIES,
 )
+from src.utils.wot_constants import BOOK_NUMBER_MAP
 
 # File paths
 in_file_wiki_character = None
@@ -163,6 +165,67 @@ def extract_cultural_groups(categories: List[str]) -> List[str]:
     return sorted(groups) if groups else []
 
 
+def extract_first_last_appearance(char_data):
+    first_appeared = None
+    last_appeared = None
+    first_mentioned = None
+    last_mentioned = None
+
+    REPLACEMENTS = {
+        "ravens": "0",
+        "dragonmount": "0",
+        "fal dara": "0",
+        "snow": "0",
+        "prologue": "0",
+    }
+    pattern_replacement = re.compile(
+        r"(?<!\w)(" + "|".join(map(re.escape, REPLACEMENTS.keys())) + r")(?!\w)",
+        re.IGNORECASE,
+    )
+
+    for sec in char_data.get("non_temporal_sections", []):
+        for sub in sec.get("subsections", []):
+            if sub.get("title", "").strip() == "Chronological Information":
+                content = sub.get("content", "")
+                content = content.replace("\xa0", " ")
+                content = pattern_replacement.sub(
+                    lambda m: REPLACEMENTS[m.group(0).lower()],
+                    content,
+                )
+                content = re.sub(r"(\*\*|__|\*)", "", content)
+
+                # Pattern for appeared or mentioned
+                pattern = r"(First|Last)\s+(appeared|mentioned)\s*:\s*([A-Z]+)\s+(\d+)"
+
+                for match in re.finditer(pattern, content, re.IGNORECASE):
+                    which = match.group(1).lower()
+                    type_ = match.group(2).lower()  # appeared or mentioned
+                    book_abbrev = match.group(3)
+                    chapter = int(match.group(4))
+
+                    book_num = BOOK_NUMBER_MAP.get(book_abbrev)
+                    if book_num is None:
+                        raise ValueError(f"Warning: Unknown book {book_abbrev} for {char_data.get('character_name')}")
+
+                    entry = {"book": book_num, "chapter": chapter}
+                    if type_ == "appeared":
+                        if which == "first":
+                            first_appeared = entry
+                        else:
+                            last_appeared = entry
+                    else:  # mentioned
+                        if which == "first":
+                            first_mentioned = entry
+                        else:
+                            last_mentioned = entry
+
+    # Prioritize appeared > mentioned
+    final_first = first_appeared or first_mentioned
+    final_last = last_appeared or last_mentioned
+
+    return final_first, final_last
+
+
 def process_character(filename: str, char_data: Dict) -> Optional[Dict]:
     """Process a single character and extract all information."""
 
@@ -244,6 +307,13 @@ def process_character(filename: str, char_data: Dict) -> Optional[Dict]:
     if cultural:
         index_entry["cultural_groups"] = cultural
 
+    first_appeared, last_appeared = extract_first_last_appearance(char_data)
+
+    if first_appeared:
+        index_entry["first_appeared"] = first_appeared
+    if last_appeared:
+        index_entry["last_appeared"] = last_appeared
+
     return index_entry
 
 
@@ -269,6 +339,8 @@ def process_all_characters(characters: Dict) -> tuple:
         "with_organizations": 0,
         "darkfriends": 0,
         "with_professions": 0,
+        "first_appeared": 0,
+        "last_appeared": 0,
     }
 
     for filename, char_data in characters.items():
@@ -315,6 +387,12 @@ def process_all_characters(characters: Dict) -> tuple:
 
         if entry.get("professions"):
             stats["with_professions"] += 1
+
+        if entry.get("first_appeared"):
+            stats["first_appeared"] += 1
+
+        if entry.get("last_appeared"):
+            stats["last_appeared"] += 1
 
         # Progress indicator
         if stats["total"] % 500 == 0:

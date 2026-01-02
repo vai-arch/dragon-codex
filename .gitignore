@@ -53,13 +53,15 @@ data/embeddings/
 data/processed/
 data/auxiliary/
 data/metadata/
-vector_stores/
 data/statistics/
 data/raw/wiki/
 data/raw/wiki_original/
 data/raw/wiki_glossary/
 data/testing/results/
+data/query_classifier_model/
+data/query_classifier_model_v0/
 
+vector_stores/
 
 # Keep structure but not content
 !data/raw/.gitkeep

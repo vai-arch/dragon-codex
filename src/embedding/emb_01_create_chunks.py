@@ -26,6 +26,7 @@ from src.utils.util_statistics import (
     print_results_table,
     total_statistics_logging,
 )
+from src.utils.wot_constants import BOOK_NUMBER_MAP, EVENT_BOOK_MAP
 
 config = get_config()
 
@@ -45,6 +46,7 @@ in_file_books_all_parsed = None
 in_file_wiki_concept = None
 in_file_wiki_prophecies = None
 in_file_wiki_magic = None
+in_file_wiki_timeline = None
 
 out_file_wiki_chunks_chapter_summary = None
 out_file_wiki_chunks_character = None
@@ -53,101 +55,173 @@ out_file_book_chunks = None
 out_file_wiki_chunks_concept = None
 out_file_wiki_chunks_prophecies = None
 out_file_wiki_chunks_magic = None
+out_file_wiki_chunks_timeline = None
+
+
+###################################################################################
+####   CHARACTERS
+###################################################################################
+def extract_temporal_limit(page_data):
+    chrono = ""
+    for sec in page_data.get("non_temporal_sections", []):
+        for sub in sec.get("subsections", []):
+            if "Chronological Information" in sub.get("title", ""):
+                chrono += sub.get("content", "")
+    match = re.search(r"First appeared:\s*([A-Za-z\s']+)", chrono, re.IGNORECASE)
+    if match:
+        key = match.group(1).strip().replace(" ", "").replace("'", "")
+        return BOOK_NUMBER_MAP.get(key, 0)
+    return 0
+
+
+def infer_book_number(content, title):
+    lowered = (title + " " + content).lower()
+    matches = [num for key, num in EVENT_BOOK_MAP.items() if key in lowered]
+    return max(matches) if matches else None
+
+
+def is_spoiler_heavy(content):
+    lowered = content.lower()
+    return any(kw in lowered for kw in ["death", "died", "killed", "last battle", "tarmon gai'don", "shayol ghul", "moridin"])
+
+
+def split_long_content(content, max_chars=1200):
+    if len(content) <= max_chars:
+        return [content]
+    paragraphs = re.split(r"\n\n+", content.strip())
+    chunks, current = [], ""
+    for para in paragraphs:
+        if len(current) + len(para) + 2 > max_chars:
+            if current:
+                chunks.append(current.strip())
+            current = para
+        else:
+            current += "\n\n" + para if current else para
+    if current:
+        chunks.append(current.strip())
+    return chunks or [content]
 
 
 def chunk_character_pages():
-    """
-    Chunk the ~2452 character wiki pages using hybrid strategy.
-    Respects markdown structure + semantic refinement.
-    """
     character_data = load_json_from_file(in_file_wiki_character)
     all_chunks = []
 
     for filename, page_data in tqdm(character_data.items(), desc="Processing characters"):
         character_name = page_data["character_name"]
+        aliases = page_data.get("aliases", [])
+        categories = page_data.get("metadata", {}).get("categories", [])
 
-        # === Build full page text with preserved headings ===
-        page_parts = []
+        sections = []
+        running_limit = extract_temporal_limit(page_data)
 
-        # Non-temporal sections (Appearance, Personality, etc.)
-        for section in page_data.get("non_temporal_sections", []):
-            section_title = section.get("section_title", "Untitled Section")
-            if section.get("content"):
-                page_parts.append(f"## {section_title}\n{section['content'].strip()}")
-            # Subsections
-            if section.get("subsections"):
-                for sub in section["subsections"]:
-                    sub_title = sub.get("title", "")
-                    sub_content = sub.get("content", "").strip()
-                    if sub_title and sub_content:
-                        page_parts.append(f"### {sub_title}\n{sub_content}")
+        # Skip low-value / redundant sections
+        skip_titles = ["categories", "information", "biographical information", "chronological information", "physical information"]
+        # Non-temporal sections
+        tv_keywords = ["television series", "tv series", "tv show", "amazon prime", "prime video", "played by", "actress", "actor"]
 
-        # Temporal sections (book-by-book chronology) - preserve book order
-        temporal_sections = sorted(page_data.get("temporal_sections", []), key=lambda x: x.get("book_number", 999))
-        for section in temporal_sections:
-            book_title = section.get("book_title", "Unknown Book")
-            content = section.get("content", "").strip()
+        for sec in page_data.get("non_temporal_sections", []):
+            orig_title = sec.get("section_title", "")
+            title_lower = orig_title.lower()
+            content = sec.get("content", "").lower()
+            full_text = title_lower + " " + content
+
+            # Skip TV sections
+            if orig_title.lower() in skip_titles or any(kw in full_text for kw in tv_keywords):
+                continue
+
+            # Special handling for Min's Viewings
+            is_viewing = "viewing" in title_lower or "min farshaw" in content or "min's viewing" in title_lower
+            section_type = "viewing" if is_viewing else "non_temporal"
+            spoiler_heavy = True if is_viewing else False
+            view_limit = 14  # Default max; conservative
+
+            # Redact fulfillment notes (optional but recommended)
+            raw_content = sec.get("content", "").strip()
+            if is_viewing:
+                # Remove "(fulfilled ...)"
+                raw_content = re.sub(r"\s*\(fulfilled.*?\)", "", raw_content, flags=re.IGNORECASE)
+
+            content_parts = [raw_content]
+            for sub in sec.get("subsections", []):
+                sub_title = sub.get("title", "")
+                sub_content = sub.get("content", "").strip()
+                if sub_title and sub_content:
+                    content_parts.append(f"### {sub_title}\n{sub_content}")
+            full_content = "\n\n".join([p for p in content_parts if p])
+            if full_content:
+                sections.append(
+                    {
+                        "title": orig_title,
+                        "content": f"## {orig_title}\n{full_content}",
+                        "type": section_type,
+                        "temporal_limit": view_limit if is_viewing else running_limit,
+                        "spoiler_heavy": spoiler_heavy,
+                    }
+                )
+
+        # Temporal sections - preserve exact source order
+        temporal_sections = page_data.get("temporal_sections", [])
+        for sec in temporal_sections:
+            title = sec.get("event_title", "Unknown Event")
+            content = sec.get("content", "").strip()
             if content:
-                page_parts.append(f"## Chronology: {book_title}\n{content}")
+                book_num = infer_book_number(content, title)
+                current_limit = running_limit
+                if book_num is not None:
+                    current_limit = max(running_limit, book_num)
+                    running_limit = current_limit
 
-        full_text = "\n\n".join([part for part in page_parts if part.strip()])
+                sections.append(
+                    {
+                        "title": f"Chronology: {title}",
+                        "content": f"## Chronology: {title}\n{content}",
+                        "type": "temporal",
+                        "book_number": book_num,
+                        "temporal_limit": current_limit,
+                        "spoiler_heavy": is_spoiler_heavy(content),
+                    }
+                )
 
-        if not full_text.strip():
-            continue
+        # NO SORTING on temporal - preserve JSON order (wiki-curated chronology)
+        # Non-temporal at end
+        temporal_secs = [s for s in sections if s.get("type") == "temporal"]
+        non_temporal_secs = [s for s in sections if s.get("type") != "temporal"]
+        sections = temporal_secs + non_temporal_secs
 
-        # === Hybrid chunking ===
-        raw_chunks = _wiki_character_chunker(full_text)
+        # Chunking: one per section
+        for sec_idx, sec in enumerate(sections):
+            sec_text = sec["content"]
 
-        # === Tiny chunk cleanup + metadata ===
-        filtered_chunks = []
-        for idx, chunk_text in enumerate(raw_chunks):
-            temp_chunk = {
-                "source": "wiki",
-                "wiki_type": "character",
-                "character_name": character_name,
-                "filename": filename,
-                "text": chunk_text,
-                "temporal_order": None,  # Will infer from heading if possible
-                "section_title": "",  # Extract below
-            }
+            if len(sec_text) < 50:
+                continue  # Trim low-signal
 
-            # Extract section title from first heading in chunk (simple heuristic)
-            heading_match = re.search(r"^##\s+(.+?)$", chunk_text, flags=re.MULTILINE)
-            if heading_match:
-                temp_chunk["section_title"] = heading_match.group(1)
+            raw_chunks = [sec_text] if len(sec_text) <= 1500 else split_long_content(sec_text)
 
-            # Tiny chunk merge (<300 chars)
-            if len(chunk_text) < cfg_min_books_chunks_size_characters:
-                if filtered_chunks:
-                    filtered_chunks[-1]["text"] += " " + chunk_text
-                    # Update section_title if better one found
-                    if temp_chunk["section_title"]:
-                        filtered_chunks[-1]["section_title"] = temp_chunk["section_title"]
-                # else: rare leading tiny → keep
-            else:
-                filtered_chunks.append(temp_chunk)
+            for chunk_idx, chunk_text in enumerate(raw_chunks):
+                chunk = {
+                    "source": "wiki",
+                    "wiki_type": "character",
+                    "character_name": character_name,
+                    "aliases": aliases,
+                    "categories": categories,
+                    "filename": filename,
+                    "text": chunk_text.strip(),
+                    "section_title": sec["title"],
+                    "section_type": sec["type"],
+                    "book_number": sec.get("book_number"),
+                    "temporal_limit": sec.get("temporal_limit", running_limit),
+                    "spoiler_heavy": sec.get("spoiler_heavy", False),
+                    "chunk_index": chunk_idx + 1,
+                    "total_chunks_in_section": len(raw_chunks),
+                    "global_chunk_index": sec_idx + 1,
+                    "total_sections": len(sections),
+                }
+                all_chunks.append(chunk)
 
-        # === Final indexing ===
-        total_chunks = len(filtered_chunks)
-        for final_idx, chunk in enumerate(filtered_chunks):
-            chunk["chunk_index"] = final_idx + 1
-            chunk["total_chunks"] = total_chunks
-
-            # Infer temporal_order from section title (e.g., "Chronology: The Shadow Rising")
-            if "Chronology:" in chunk.get("section_title", ""):
-                # Map book title → book_number (you can build a dict or use existing)
-                book_title = chunk["section_title"].replace("Chronology: ", "").strip()
-                # Optional: add book_number mapping here if needed for filtering
-
-        all_chunks.extend(filtered_chunks)
-
-    # Save & stats
     save_jsonl_to_file(all_chunks, out_file_wiki_chunks_character)
-
-    results = chunk_statistics(all_chunks, "CHARACTERS CHUNKS")
+    results = chunk_statistics(all_chunks, "CHARACTER CHUNKS")
     results["metrics"]["number_of_items"] = len(character_data)
     print_results(results, "")
-
     return results
 
 
@@ -467,6 +541,7 @@ def chunk_concept_pages():
         ("concept", in_file_wiki_concept, out_file_wiki_chunks_concept),
         ("prophecy", in_file_wiki_prophecies, out_file_wiki_chunks_prophecies),
         ("magic", in_file_wiki_magic, out_file_wiki_chunks_magic),
+        ("timeline", in_file_wiki_timeline, out_file_wiki_chunks_timeline),
     ]
 
     all_results = []
@@ -524,7 +599,7 @@ def chunk_concept_pages():
             for idx, chunk_text in enumerate(raw_chunks):
                 temp_chunk = {
                     "source": "wiki",
-                    "wiki_type": source_type,  # 'concept', 'magic', or 'prophecy'
+                    "wiki_type": source_type,  # 'concept', 'magic', 'timeline' or 'prophecy'
                     "page_type": page_type,
                     "page_name": page_name,
                     "source_file": filename,
@@ -573,11 +648,11 @@ def main():
 
     statistics = []
 
-    statistics.append(chunk_books())
+    # statistics.append(chunk_books())
     statistics.append(chunk_character_pages())
-    statistics.append(chunk_chapter_summary_pages())
-    statistics.append(chunk_chronology_pages())
-    statistics.extend(chunk_concept_pages())
+    # statistics.append(chunk_chapter_summary_pages())
+    # statistics.append(chunk_chronology_pages())
+    # statistics.extend(chunk_concept_pages())
 
     total_time = (datetime.now() - start_time).total_seconds()
 
@@ -597,6 +672,7 @@ if __name__ == "__main__":
     in_file_wiki_concept = paths.FILE_WIKI_CONCEPT
     in_file_wiki_prophecies = paths.FILE_WIKI_PROPHECIES
     in_file_wiki_magic = paths.FILE_WIKI_MAGIC
+    in_file_wiki_timeline = paths.FILE_WIKI_TIMELINE
     out_file_wiki_chunks_chapter_summary = paths.FILE_WIKI_CHUNKS_CHAPTER_SUMMARY
     out_file_wiki_chunks_character = paths.FILE_WIKI_CHUNKS_CHARACTER
     out_file_wiki_chunks_chronology = paths.FILE_WIKI_CHUNKS_CHRONOLOGY
@@ -604,6 +680,7 @@ if __name__ == "__main__":
     out_file_wiki_chunks_concept = paths.FILE_WIKI_CHUNKS_CONCEPT
     out_file_wiki_chunks_prophecies = paths.FILE_WIKI_CHUNKS_PROPHECIES
     out_file_wiki_chunks_magic = paths.FILE_WIKI_CHUNKS_MAGIC
+    out_file_wiki_chunks_timeline = paths.FILE_WIKI_CHUNKS_TIMELINE
 
     try:
         exit_code = main()

@@ -5,10 +5,13 @@ Core retrieval logic for querying ChromaDB collections.
 
 from typing import Dict, List, Optional
 
+import bm25s
+
 from src.utils.config import get_config, get_embedding_manager_config
 from src.utils.embedding.embedding_factory import create_embedding_manager
 from src.utils.logger import get_logger
 from src.utils.paths import get_paths
+from src.utils.util_files_functions import load_json_from_file
 from src.utils.vector_store.vector_store_factory import VectorStoreFactory, VectorStoreType
 
 logger = get_logger(__name__)
@@ -40,6 +43,18 @@ class Retriever:
         self.collections = {}
         self._load_collections()
 
+        # === Load BM25 index once at startup ===
+        bm25_dir = paths.BM25_INDEX_PATH
+        print(f"Loading BM25 index from {bm25_dir}...")
+        self.bm25_retriever = bm25s.BM25.load(bm25_dir, load_corpus=True)  # corpus needed for tokenization
+
+        # Load mapping
+        mapping = load_json_from_file(paths.FILE_BM25_MAPPING)
+        self.bm25_chunk_ids = mapping["chunk_ids"]  # list[str] - your semantic chunk_id
+        self.bm25_metadata = mapping["metadata"]  # list[dict] - full metadata per chunk
+
+        print(f"BM25 loaded: {len(self.bm25_chunk_ids):,} chunks ready for hybrid search")
+
     def _load_collections(self):
         """Load all available ChromaDB collections"""
         try:
@@ -69,90 +84,161 @@ class Retriever:
         if not self.collections:
             raise ValueError("❌ No ChromaDB collections found! Run embedding script first.")
 
-    def query(self, query_text: str, collection_name: str = "narrative", top_k: int = 10, temporal_limit: Optional[int] = None) -> Dict:
+    def query(
+        self,
+        query_text: str,
+        collection_name: str = "books",
+        top_k: int = 20,  # Final number of chunks returned to LLM
+        temporal_limit: Optional[int] = None,
+        number_expanded_terms: int = 0,  # Passed from expand_query_safe() — count of injected aliases
+    ) -> Dict:
         """
-        Query a ChromaDB collection
-
-        Args:
-            query_text: Query string
-            collection_name: 'narrative' or 'reference'
-            top_k: Number of results to return
-            temporal_limit: If set, only return chunks up to this book number
-
-        Returns:
-            dict with:
-                - query: Original query text
-                - collection: Collection queried
-                - top_k: Number requested
-                - temporal_limit: Temporal filter applied
-                - results_count: Actual results returned
-                - chunks: List of retrieved chunks with metadata
+        Hybrid query: Dense (Chroma) + BM25 → RRF fusion
+        All tuning knobs are at the top for easy experimentation.
         """
-        if collection_name not in self.collections:
-            raise ValueError(f"❌ Collection not found: {collection_name}")
 
-        collection = self.collections[collection_name]
+        # ====================== TUNABLE PARAMETERS ======================
+        DENSE_FETCH_MULTIPLIER = 5  # Balanced candidates (5x top_k)
+        BM25_FETCH_MULTIPLIER = 5  # Balanced
+        RRF_K = 50  # Balanced rank fusion
+        BM25_BASE_WEIGHT = 1.0  # Default equal to dense
+        BM25_HIGH_ALIAS_WEIGHT = 1.5  # Boost on term-heavy queries
+        ALIAS_THRESHOLD = 4  # If expanded_terms > this → boost BM25
+        # =================================================================
 
-        # Generate query embedding
-        logger.debug(f"🔍 Generating embedding for query: {query_text[:50]}...")
+        # Dynamic weighting
+        bm25_weight = BM25_BASE_WEIGHT
+        if number_expanded_terms > ALIAS_THRESHOLD:
+            bm25_weight = BM25_HIGH_ALIAS_WEIGHT  # Favor exact match on names/terms
+
+        dense_fetch_k = top_k * DENSE_FETCH_MULTIPLIER
+        bm25_k = top_k * BM25_FETCH_MULTIPLIER
+        final_top_k = top_k
+
+        if collection_name != "books":
+            raise ValueError(f"Hybrid query only supports 'books' collection (got {collection_name})")
+
+        collection = self.collections["books"]
+
+        # ==================== 1. Dense Retrieval (Chroma) ====================
+        logger.debug(f"Generating embedding for hybrid query: {query_text[:50]}...")
         embeddings, _, _, _ = self.vsm.embed_chunks(texts=[query_text], show_progress=False, prefix=self.vsm.get_manager_config()["EMBEDDING_MODEL"]["EMBEDDING_MODEL_SEARCH_PREFIX"])
         query_embedding = embeddings[0]
 
-        # Build ChromaDB where filter for temporal limit
-        # Note: ChromaDB doesn't support filtering for null/None values well
-        # We'll fetch all results and filter in post-processing if needed
         where_filter = None
         if temporal_limit is not None:
-            # Only filter for chunks WITH temporal_order <= limit
-            # Chunks without temporal_order will need post-filtering
             where_filter = {"temporal_order": {"$lte": temporal_limit}}
 
-        # Query ChromaDB
-        logger.debug(f"🔍 Querying collection: {collection_name}, top_k: {top_k}")
+        results = collection.query(query_embeddings=[query_embedding], n_results=dense_fetch_k, where=where_filter)
 
-        # If temporal limit set, we need to fetch MORE results because we'll post-filter
-        # to include chunks with temporal_order=None
-        fetch_k = top_k * 3 if temporal_limit is not None else top_k
-
-        results = collection.query(query_embeddings=[query_embedding], n_results=fetch_k, where=where_filter)
-
-        # Parse results
-        chunks = []
-        if results and results["ids"] and results["ids"][0]:
+        dense_chunks = []
+        if results["ids"][0]:
             for i in range(len(results["ids"][0])):
-                chunk = {
-                    "id": results["ids"][0][i],
-                    "text": results["documents"][0][i],
-                    "distance": results["distances"][0][i] if results["distances"] else None,
-                    "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
-                }
-                chunks.append(chunk)
+                dense_chunks.append(
+                    {
+                        "id": results["ids"][0][i],
+                        "text": results["documents"][0][i],
+                        "distance": results["distances"][0][i] if results["distances"] else None,
+                        "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
+                    }
+                )
 
-        # Post-filter: If temporal_limit set, also include chunks with temporal_order=None
-        # (these are timeless wiki content like definitions)
+        # Post-filter: include timeless chunks (temporal_order=None) + enforce limit
         if temporal_limit is not None:
-            filtered_chunks = []
-            for chunk in chunks:
-                t_order = chunk["metadata"].get("temporal_order")
-                # Include if: temporal_order <= limit OR temporal_order is None
-                if t_order is None or t_order <= temporal_limit:
-                    filtered_chunks.append(chunk)
+            dense_chunks = [c for c in dense_chunks if c["metadata"].get("temporal_order") is None or c["metadata"].get("temporal_order") <= temporal_limit]
 
-            # Trim to requested top_k
-            chunks = filtered_chunks[:top_k]
+        # ==================== 2. BM25 Retrieval ====================
+        tokenized_batch = bm25s.tokenize([query_text], stemmer=None)
+        query_tokens = tokenized_batch[0]
 
-        logger.info(f"✅ Retrieved {len(chunks)} chunks from {collection_name}")
+        bm25_scores, bm25_indices = self.bm25_retriever.retrieve(query_tokens, k=bm25_k)
 
-        return {"query": query_text, "collection": collection_name, "top_k": top_k, "temporal_limit": temporal_limit, "results_count": len(chunks), "chunks": chunks}
+        bm25_chunks = []
+        if bm25_indices is not None and bm25_indices.size > 0:
+            for idx, raw_score in zip(bm25_indices, bm25_scores):
+                try:
+                    score = float(raw_score)
+                except (TypeError, ValueError):
+                    score = 0.0
 
-    def query_multiple_collections(self, query_text: str, collections: List[str] = ["narrative", "reference"], top_k_per_collection: int = 5, temporal_limit: Optional[int] = None) -> Dict:
+                if score <= 0:
+                    continue
+
+                chunk_id = self.bm25_chunk_ids[idx]
+                metadata = self.bm25_metadata[idx]
+                bm25_chunks.append(
+                    {
+                        "id": chunk_id,
+                        "text": self.bm25_retriever.corpus[idx],
+                        "distance": 1 / (score + 1e-6),
+                        "metadata": metadata,
+                    }
+                )
+
+        # Temporal filter for BM25
+        if temporal_limit is not None:
+            bm25_chunks = [
+                c
+                for c in bm25_chunks
+                if c["metadata"].get("temporal_order") is None or (isinstance(c["metadata"].get("temporal_order"), (int, float)) and c["metadata"].get("temporal_order") <= temporal_limit)
+            ]
+
+        # ==================== 3. RRF Fusion ====================
+        candidates = {}
+
+        # Dense contribution
+        for rank, chunk in enumerate(dense_chunks, 1):
+            cid = chunk["id"]
+            candidates[cid] = candidates.get(cid, 0) + 1 / (RRF_K + rank)
+
+        # BM25 contribution (with dynamic weight)
+        for rank, chunk in enumerate(bm25_chunks, 1):
+            cid = chunk["id"]
+            candidates[cid] = candidates.get(cid, 0) + bm25_weight / (RRF_K + rank)
+
+        # Final ranking
+        fused = sorted(candidates.items(), key=lambda x: x[1], reverse=True)[:final_top_k]
+        final_chunk_ids = [cid for cid, _ in fused]
+
+        # Build final chunk list — prefer dense version when available
+        final_chunks = []
+        seen = set()
+        for cid in final_chunk_ids:
+            if cid in seen:
+                continue
+            seen.add(cid)
+            chunk = next((c for c in dense_chunks if c["id"] == cid), None)
+            if chunk is None:
+                chunk = next((c for c in bm25_chunks if c["id"] == cid), None)
+            if chunk:
+                final_chunks.append(chunk)
+
+        logger.info(f"Hybrid retrieved {len(final_chunks)} chunks (dense + BM25 fused) | aliases: {number_expanded_terms} → BM25 weight: {bm25_weight}")
+
+        return {
+            "query": query_text,
+            "collection": collection_name,
+            "top_k": top_k,
+            "temporal_limit": temporal_limit,
+            "results_count": len(final_chunks),
+            "chunks": final_chunks,
+        }
+
+    def query_multiple_collections(
+        self,
+        query_text: str,
+        collections: List[str],
+        top_k_per_collection: Dict[str, int],
+        temporal_limit: Optional[int] = None,
+        number_expanded_terms: int = 0,
+    ) -> Dict:
         """
         Query multiple collections and merge results
 
         Args:
             query_text: Query string
             collections: List of collection names to query
-            top_k_per_collection: Number of results per collection
+            top_k_per_collection: Dict mapping collection → top_k int
             temporal_limit: Temporal filter
 
         Returns:
@@ -160,38 +246,51 @@ class Retriever:
         """
         all_chunks = []
         collection_counts = {}
+        used_collections = []
 
-        # Phase 1 safety filter
-        allowed_collections = {"books"}  # or {"books"}
-        filtered_collections = [c for c in collections if c in allowed_collections]
-
-        if not filtered_collections:
-            logger.error(f"No allowed collections found! Requested: {collections}")
-            return {"results": [], "total_results": 0}
-
-        if set(collections) != set(filtered_collections):
-            logger.warning(f"Blocked access to non-book collections: {set(collections) - set(filtered_collections)}")
-            raise ValueError(f"Blocked access to non-book collections: {set(collections) - set(filtered_collections)}")
+        # Phase 2: Allow books + wiki_content_character
+        allowed_collections = {
+            self.config.CHROMA_COLLECTION_BOOKS,
+            self.config.CHROMA_COLLECTION_CHARACTERS,  # wiki_content_character
+        }
 
         for coll_name in collections:
-            if coll_name not in self.collections:
-                logger.warning(f"⚠️ Skipping unknown collection: {coll_name}")
+            if coll_name not in allowed_collections:
+                logger.warning(f"Blocked access to collection: {coll_name}")
                 continue
 
-            result = self.query(query_text=query_text, collection_name=coll_name, top_k=top_k_per_collection, temporal_limit=temporal_limit)
+            if coll_name not in self.collections:
+                logger.warning(f"Skipping unknown collection: {coll_name}")
+                continue
+
+            # Get per-collection top_k
+            top_k = top_k_per_collection.get(coll_name, 10)
+
+            result = self.query(
+                query_text=query_text,
+                collection_name=coll_name,
+                top_k=top_k,  # Now int
+                temporal_limit=temporal_limit,
+                number_expanded_terms=number_expanded_terms,
+            )
 
             all_chunks.extend(result["chunks"])
             collection_counts[coll_name] = result["results_count"]
+            used_collections.append(coll_name)
 
-        # Sort by distance (lower is better)
+        if not all_chunks:
+            logger.info("No chunks retrieved from allowed collections")
+            return {"results": [], "total_results": 0}
+
+        # Sort by distance
         all_chunks.sort(key=lambda x: x["distance"] if x["distance"] is not None else 999)
 
-        logger.info(f"✅ Retrieved {len(all_chunks)} total chunks across {len(collections)} collections")
+        logger.info(f"Retrieved {len(all_chunks)} total chunks from {used_collections}")
 
         return {
             "query": query_text,
-            "collections": collections,
-            "top_k_per_collection": top_k_per_collection,
+            "collections": used_collections,
+            "top_k_per_collection": {c: top_k_per_collection.get(c, 10) for c in used_collections},
             "temporal_limit": temporal_limit,
             "total_results": len(all_chunks),
             "collection_counts": collection_counts,

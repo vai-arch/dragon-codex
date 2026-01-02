@@ -22,7 +22,6 @@ from src.utils.wiki_constants import (
     CONCEPT_CATEGORIES,
     CREATURE_CATEGORIES,
     CULTURAL_CATEGORIES,
-    HISTORICAL_CATEGORIES,
     ITEM_CATEGORIES,
     LOCATION_CATEGORIES,
     ORGANIZATION_CATEGORIES,
@@ -36,7 +35,6 @@ TAXONOMY = {
     "LOCATION": LOCATION_CATEGORIES,
     "CREATURE": CREATURE_CATEGORIES,
     "ITEM": ITEM_CATEGORIES,
-    "HISTORICAL": HISTORICAL_CATEGORIES,
     "CULTURAL": CULTURAL_CATEGORIES,
     "CONCEPT": CONCEPT_CATEGORIES,
     "ORGANIZATION": ORGANIZATION_CATEGORIES,
@@ -56,7 +54,6 @@ def classify_concept(categories, taxonomy):
     location_matches = []
     creature_matches = []
     item_matches = []
-    historical_matches = []
     cultural_matches = []
     organization_matches = []
     concept_matches = []
@@ -83,11 +80,6 @@ def classify_concept(categories, taxonomy):
                 organization_matches.append(cat)
                 break
 
-        for keyword in taxonomy["HISTORICAL"]:
-            if keyword in cat:
-                historical_matches.append(cat)
-                break
-
         for keyword in taxonomy["CULTURAL"]:
             if keyword in cat:
                 cultural_matches.append(cat)
@@ -107,8 +99,6 @@ def classify_concept(categories, taxonomy):
         return "organization", creature_matches
     elif item_matches:
         return "item", item_matches
-    elif historical_matches:
-        return "historical", historical_matches
     elif cultural_matches:
         return "cultural", cultural_matches
     elif concept_matches:

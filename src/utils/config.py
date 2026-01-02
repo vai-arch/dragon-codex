@@ -78,6 +78,32 @@ class Config:
             "WIKI_CONCEPT_MIN_SECTION_SIZE": 250,  # ↑ Handles stubs better
             "WIKI_CONCEPT_SEMANTIC_THRESHOLD": 0.75,
         }
+
+        self.QUERY_MODEL_TRAINING = {
+            "MODEL_NAME": "distilbert-base-uncased",
+            "MAX_LENGTH": 128,
+            "TEST_SIZE": 0.2,
+            "NUM_EPOCHS": 6,
+            "TRAIN_BATCH_SIZE": 16,
+            "EVAL_BATCH_SIZE": 16,
+            "LEARNING_RATE": 5e-5,
+            "WEIGHT_DECAY": 0.01,
+            "WARMUP_STEPS": 100,
+            "SEED": 42,
+            "SAVE_TOTAL_LIMIT": 2,
+            "LABELS": ["character", "concept", "plot_event", "prophecy", "magic_system", "cross_reference", "relationship", "timeline"],
+            ## IN CPU
+            "EVAL_STRATEGY": "no",  # Critical: disables evaluation during training
+            "LOAD_BEST_MODEL_AT_END": False,  # Not needed without evaluation
+            "METRIC_FOR_BEST_MODEL": None,  # Not used
+            "FP16": False,  # False for CPU , True for GPU
+            ## IN GPU
+            # "EVAL_STRATEGY": "epoch",
+            # "LOAD_BEST_MODEL_AT_END": True,
+            # "METRIC_FOR_BEST_MODEL": "eval_f1_macro",
+            # "FP16": True,
+        }
+
         # Final Parameters:
 
         # Target size: 6000 characters (~1340 tokens)
@@ -120,6 +146,7 @@ class Config:
         # ChromaDB settings
         self.CHROMA_PERSISTENCE = os.getenv("CHROMA_PERSISTENCE", "True").lower() == "true"
         self.CHROMA_COLLECTION_BOOKS = os.getenv("CHROMA_COLLECTION_BOOKS", "books")
+        self.CHROMA_COLLECTION_CHARACTERS = os.getenv("CHROMA_COLLECTION_CHARACTERS", "characters")
         self.CHROMA_COLLECTION_NARRATIVE = os.getenv("CHROMA_COLLECTION_NARRATIVE", "narrative")
         self.CHROMA_COLLECTION_REFERENCE = os.getenv("CHROMA_COLLECTION_REFERENCE", "reference")
         # NEW: ChromaDB client settings

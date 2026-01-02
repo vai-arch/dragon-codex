@@ -43,6 +43,7 @@ out_file_wiki_chapter_summary = None
 out_file_wiki_prophecies = None
 out_file_wiki_magic = None
 out_file_wiki_concept = None
+out_file_wiki_timeline = None
 
 out_filename_map = None
 
@@ -81,6 +82,7 @@ def group_files_by_type(wiki_path, filename_to_categories_file):
     print(f"   PROPHECIES:      {len(files_by_type['PROPHECIES']):5,} files")
     print(f"   MAGIC:           {len(files_by_type['MAGIC']):5,} files")
     print(f"   CONCEPT:         {len(files_by_type['CONCEPT']):5,} files")
+    print(f"   TIMELINE:        {len(files_by_type['TIMELINE']):5,} files")
 
     parseable = (
         len(files_by_type["CHRONOLOGY"])
@@ -89,6 +91,7 @@ def group_files_by_type(wiki_path, filename_to_categories_file):
         + len(files_by_type["PROPHECIES"])
         + len(files_by_type["MAGIC"])
         + len(files_by_type["CONCEPT"])
+        + len(files_by_type["TIMELINE"])
     )
     print(f"\n   Total parseable: {parseable:5,} files")
     print(f"   Total skipped:   {len(files_by_type['SKIP']):5,} files")
@@ -136,6 +139,8 @@ def process_page_type(page_type, filepaths, category_mappings):
         except Exception as e:
             # Parsing error
             errors.append({"filename": filename, "error": str(e), "type": "parse_error"})
+            traceback.print_exc()  # optional: prints full stack trace
+            raise ValueError(f"{filename}")
 
     success_count = len(parsed_pages)
     error_count = len(errors)
@@ -443,7 +448,7 @@ def main():
     all_errors = []
     all_skipped = []
 
-    page_types_to_process = ["CHRONOLOGY", "CHARACTER", "CHAPTER_SUMMARY", "PROPHECIES", "MAGIC", "CONCEPT"]
+    page_types_to_process = ["CHRONOLOGY", "CHARACTER", "CHAPTER_SUMMARY", "PROPHECIES", "MAGIC", "CONCEPT", "TIMELINE"]
 
     for page_type in page_types_to_process:
         if page_type not in files_by_type or not files_by_type[page_type]:
@@ -504,6 +509,7 @@ if __name__ == "__main__":
     out_file_wiki_prophecies = paths.FILE_WIKI_PROPHECIES
     out_file_wiki_magic = paths.FILE_WIKI_MAGIC
     out_file_wiki_concept = paths.FILE_WIKI_CONCEPT
+    out_file_wiki_timeline = paths.FILE_WIKI_TIMELINE
 
     out_filename_map = {
         "CHRONOLOGY": out_file_wiki_chronology,
@@ -512,6 +518,7 @@ if __name__ == "__main__":
         "PROPHECIES": out_file_wiki_prophecies,
         "MAGIC": out_file_wiki_magic,
         "CONCEPT": out_file_wiki_concept,
+        "TIMELINE": out_file_wiki_timeline,
     }
 
     try:

@@ -10,8 +10,10 @@ $modules = @(
     "src.processing.prc_04_analyze_wiki_categories",
     "src.processing.prc_05_organize_wiki_by_type"
     "src.processing.prc_06_build_character_index",
-    "src.processing.prc_07_build_prophecy_and_magic_index",
+    "src.processing.prc_07_build_prophecy_magic_and_timeline_index",
     "src.processing.prc_08_build_concept_index",
+    "src.processing.prc_09_build_temporal_aliases",
+    "src.processing.prc_10_build_bm25_index",
     "src.embedding.emb_01_create_chunks",
     "src.embedding.emb_02_enrich_chunks",
     "src.embedding.emb_03_embed_all_chunks",
